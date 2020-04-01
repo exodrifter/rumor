@@ -6,19 +6,28 @@ module Rumor.Prelude
 , Prelude.Eq(..)
 , Prelude.Maybe(..)
 , Prelude.Show(..)
+
+-- Functions
 , Prelude.fmap
 , Prelude.not
 , Prelude.notElem
 , Prelude.pure
 , Prelude.flip
-, (Prelude.$)
-, (Prelude.<>)
-, (Prelude.&&)
-, (Prelude.++)
-, (Prelude..)
-, (Control.Applicative.<|>)
-, (Control.Applicative.<$>)
+
+-- Operators
 , (Control.Applicative.*>)
+, (Control.Applicative.<$>)
+, (Control.Applicative.<|>)
+, (Prelude.$)
+, (Prelude.&&)
+, (Prelude.*)
+, (Prelude.+)
+, (Prelude.++)
+, (Prelude.-)
+, (Prelude..)
+, (Prelude./)
+, (Prelude.<>)
+, (Prelude.||)
 ) where
 
 import qualified Control.Applicative
