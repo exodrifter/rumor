@@ -16,19 +16,50 @@ category: Language
 
 description: Please see the README on GitHub at <https://github.com/exodrifter/rumor#readme>
 
+ghc-options:
+  - -XSafe
+  - -XOverloadedStrings
+  - -XNoImplicitPrelude
+  - -Weverything
+  - -Wcompat
+  - -Wno-all-missed-specialisations
+  - -Wno-missed-specialisations
+  - -Wno-missing-exported-signatures # See https://ghc.haskell.org/trac/ghc/ticket/14794#ticket
+  - -Wno-missing-import-lists
+  - -Wno-missing-local-signatures
+  - -Wno-safe
+
 dependencies:
 - base >= 4.7 && < 5
+- attoparsec
+- text
 
 library:
   source-dirs: src
+  exposed-modules:
+    - Rumor
 
 tests:
-  rumor-test:
+  rumor-internal-test:
     main: Spec.hs
-    source-dirs: test
+    source-dirs:
+    - test-internal
+    - src
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - HUnit
+  rumor-external-test:
+    main: Spec.hs
+    source-dirs:
+    - test-external
+    - src
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - rumor
+    - HUnit
