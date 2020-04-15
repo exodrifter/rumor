@@ -18,7 +18,7 @@ evaluateComplexTextExpressionTest =
   let
     expression =
       Concat ( Concat ( Concat (Text "I said \"Hello\" ")
-                               (NumberSubstitution (Number 3))
+                               (MathSubstitution (Number 3))
                       )
                       ( Concat (Text " times, ")
                                (BooleanSubstitution (Boolean True))

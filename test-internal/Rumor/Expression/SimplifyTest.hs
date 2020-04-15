@@ -24,7 +24,7 @@ tests =
     -- Text tests
     , simplifySimpleTextTest
     , simplifyLiteralBooleanSubstitutionTest
-    , simplifyLiteralNumberSubstitutionTest
+    , simplifyLiteralMathSubstitutionTest
     , simplifyTextConcatenationTest
     ]
 
@@ -87,12 +87,12 @@ simplifyLiteralBooleanSubstitutionTest =
       Concat (Text "That is ") (BooleanSubstitution (Boolean True))
     )
 
-simplifyLiteralNumberSubstitutionTest :: Test
-simplifyLiteralNumberSubstitutionTest =
+simplifyLiteralMathSubstitutionTest :: Test
+simplifyLiteralMathSubstitutionTest =
   TestCase $ assertEqual "Simplifies literal number substitution"
     (Text "The value is 3.0")
     (Expression.simplifyText $
-      Concat (Text "The value is ") (NumberSubstitution (Number 3))
+      Concat (Text "The value is ") (MathSubstitution (Number 3))
     )
 
 simplifyTextConcatenationTest :: Test

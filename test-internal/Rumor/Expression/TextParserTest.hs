@@ -16,6 +16,7 @@ tests =
     , textWhitespaceTest
     , booleanSubstitutionTest
     , numberSubstitutionTest
+    , mathSubstitutionTest
     , textSubstitutionTest
     , nestedSubstitutionTest
     , paddedWhitespaceSubstitutionTest
@@ -50,6 +51,12 @@ numberSubstitutionTest =
   TestCase $ assertEqual "Parses text containing a number substitution"
     (Right $ Text "I have 3.0 apples.")
     (parseOnly text "\"I have {3} apples.\"")
+
+mathSubstitutionTest :: Test
+mathSubstitutionTest =
+  TestCase $ assertEqual "Parses text containing a math substitution"
+    (Right $ Text "I have 3.0 apples.")
+    (parseOnly text "\"I have {(1+1)+1} apples.\"")
 
 textSubstitutionTest :: Test
 textSubstitutionTest =

@@ -17,7 +17,7 @@ simplifyComplexTextExpressionTest =
   let
     expression =
       Concat ( Concat ( Concat (Text "I    said \t \"Hello\" \n ")
-                               (NumberSubstitution (Number 3))
+                               (MathSubstitution (Add (Number 1) (Number 2)))
                       )
                       ( Concat (Text " times, \r\n")
                                (BooleanSubstitution (Boolean True))

@@ -29,7 +29,7 @@ data Expression a where
 
   Text :: T.Text -> Expression T.Text
   Concat :: Expression T.Text -> Expression T.Text -> Expression T.Text
-  NumberSubstitution :: Expression Double -> Expression T.Text
+  MathSubstitution :: Expression Double -> Expression T.Text
   BooleanSubstitution :: Expression Bool -> Expression T.Text
 
 instance Show (Expression a) where
@@ -45,7 +45,7 @@ instance Show (Expression a) where
 
       Text a -> "(Text " ++ show a ++ ")"
       Concat a b -> "(Concat " ++ show a ++ " " ++ show b ++ ")"
-      NumberSubstitution a -> "(NumberSubstitution" ++ show a ++ ")"
+      MathSubstitution a -> "(MathSubstitution" ++ show a ++ ")"
       BooleanSubstitution a -> "(BooleanSubstitution" ++ show a ++ ")"
 
 instance Eq (Expression a) where
@@ -61,7 +61,7 @@ instance Eq (Expression a) where
 
       (Text a, Text b) -> a == b
       (Concat a b, Concat c d) -> a == c && b == d
-      (NumberSubstitution a, NumberSubstitution b) -> a == b
+      (MathSubstitution a, MathSubstitution b) -> a == b
       (BooleanSubstitution a, BooleanSubstitution b) -> a == b
 
       (_, _) -> False
@@ -94,7 +94,7 @@ evaluate expr =
 
     Text _ -> TextValue $ evaluateText expr
     Concat _ _ -> TextValue $ evaluateText expr
-    NumberSubstitution _ -> TextValue $ evaluateText expr
+    MathSubstitution _ -> TextValue $ evaluateText expr
     BooleanSubstitution _ -> TextValue $ evaluateText expr
 
 evaluateBoolean :: Expression Bool -> Bool
@@ -117,7 +117,7 @@ evaluateText expr =
     Text a -> a
     Concat a b ->
       evaluateText a <> evaluateText b
-    NumberSubstitution a ->
+    MathSubstitution a ->
       toText $ evaluateNumber a
     BooleanSubstitution a ->
       toText $ evaluateBoolean a
@@ -136,7 +136,7 @@ simplify expr =
 
     Text _ -> simplifyText expr
     Concat _ _ -> simplifyText expr
-    NumberSubstitution _ -> simplifyText expr
+    MathSubstitution _ -> simplifyText expr
     BooleanSubstitution _ -> simplifyText expr
 
 simplifyBoolean :: Expression Bool -> Expression Bool
@@ -186,19 +186,19 @@ simplifyText expr =
 
     Concat (Text l) (Text r) ->
       Text . collapseSpaces $ l <> r
-    Concat (Text l) (NumberSubstitution (Number r)) ->
+    Concat (Text l) (MathSubstitution (Number r)) ->
       Text . collapseSpaces $ l <> toText r
     Concat (Text l) (BooleanSubstitution (Boolean r)) ->
       Text . collapseSpaces $ l <> toText r
-    Concat (NumberSubstitution (Number l)) (Text r) ->
+    Concat (MathSubstitution (Number l)) (Text r) ->
       Text . collapseSpaces $ toText l <> r
-    Concat (NumberSubstitution (Number l)) (NumberSubstitution (Number r)) ->
+    Concat (MathSubstitution (Number l)) (MathSubstitution (Number r)) ->
       Text . collapseSpaces $ toText l <> toText r
-    Concat (NumberSubstitution (Number l)) (BooleanSubstitution (Boolean r)) ->
+    Concat (MathSubstitution (Number l)) (BooleanSubstitution (Boolean r)) ->
       Text . collapseSpaces $ toText l <> toText r
     Concat (BooleanSubstitution (Boolean l)) (Text r) ->
       Text . collapseSpaces $ toText l <> r
-    Concat (BooleanSubstitution (Boolean l)) (NumberSubstitution (Number r)) ->
+    Concat (BooleanSubstitution (Boolean l)) (MathSubstitution (Number r)) ->
       Text . collapseSpaces $ toText l <> toText r
     Concat (BooleanSubstitution (Boolean l)) (BooleanSubstitution (Boolean r)) ->
       Text . collapseSpaces $ toText l <> toText r
@@ -207,12 +207,12 @@ simplifyText expr =
       then expr
       else simplifyText $ Concat (simplifyText l) (simplifyText r)
 
-    NumberSubstitution (Number a) ->
+    MathSubstitution (Number a) ->
       Text . collapseSpaces $ toText a
-    NumberSubstitution math ->
+    MathSubstitution math ->
       if simplifyMath math == math
-      then NumberSubstitution math
-      else simplifyText $ NumberSubstitution (simplifyMath math)
+      then MathSubstitution math
+      else simplifyText $ MathSubstitution (simplifyMath math)
     BooleanSubstitution (Boolean a) ->
       Text . collapseSpaces $ toText a
 

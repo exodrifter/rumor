@@ -114,7 +114,7 @@ substitution = do
   _ <- skipSpace
   result <-
     (BooleanSubstitution <$> boolean) <|>
-    (NumberSubstitution <$> number) <|>
+    (MathSubstitution <$> number) <|>
     text
   _ <- skipSpace
   _ <- char '}'
