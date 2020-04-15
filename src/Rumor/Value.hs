@@ -1,5 +1,4 @@
 {-# LANGUAGE Safe #-}
-{-# LANGUAGE DerivingStrategies #-}
 
 module Rumor.Value
 ( Value(..)

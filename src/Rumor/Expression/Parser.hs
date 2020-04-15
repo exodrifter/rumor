@@ -1,4 +1,3 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE Safe #-}
 
 module Rumor.Expression.Parser
