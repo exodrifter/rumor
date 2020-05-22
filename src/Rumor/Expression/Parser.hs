@@ -8,18 +8,21 @@ module Rumor.Expression.Parser
 
 import Rumor.Prelude
 import Rumor.Expression.Type(Expression(..), simplifyText, simplifyMath)
-import Data.Attoparsec.Text(Parser, char, double, skipSpace, string, takeWhile)
+import Text.Parsec(anyChar, chainl1, char, lookAhead, manyTill, oneOf, spaces, string)
+import Text.Parsec.Text(Parser)
+import Text.Parsec.Number(decimal, floating, sign)
 import qualified Data.Text as T
+import qualified Prelude
 
 boolean :: Parser (Expression Bool)
 boolean =
-  "true"  *> (pure $ Boolean True) <|>
-  "false" *> (pure $ Boolean False)
+  string "true"  *> (pure $ Boolean True) <||>
+  string "false" *> (pure $ Boolean False)
 
 -- Number expressions
 math :: Parser (Expression Double)
 math =
-  let piece = parenthesis math <|> number
+  let piece = parenthesis math <||> number
       -- We chain the multiplication and division operators first to
       -- give them a higher precedence than the subtraction and addition
       -- operators.
@@ -33,55 +36,27 @@ math =
 parenthesis :: Parser (Expression a) -> Parser (Expression a)
 parenthesis parser = do
   _ <- char '('
-  _ <- skipSpace
+  _ <- spaces
   result <- parser
-  _ <- skipSpace
+  _ <- spaces
   _ <- char ')'
   pure result
 
 multiplicationOperator :: Parser (Expression Double -> Expression Double -> Expression Double)
 multiplicationOperator =
-  skipSpace *> char '*' *> skipSpace *> pure Multiply <|>
-  skipSpace *> char '/' *> skipSpace *> pure Divide
+  spaces *> char '*' *> spaces *> pure Multiply <||>
+  spaces *> char '/' *> spaces *> pure Divide
 
 additionOperator :: Parser (Expression Double -> Expression Double -> Expression Double)
 additionOperator =
-  skipSpace *> char '+' *> skipSpace *> pure Add <|>
-  skipSpace *> char '-' *> skipSpace *> pure Subtract
+  spaces *> char '+' *> spaces *> pure Add <||>
+  spaces *> char '-' *> spaces *> pure Subtract
 
 number :: Parser (Expression Double)
-number = Number <$> double
-
--- | @chainl1 p op@ parses /one/ or more occurrences of @p@,
--- separated by @op@ Returns a value obtained by a /left/ associative
--- application of all functions returned by @op@ to the values returned
--- by @p@. This parser can for example be used to eliminate left
--- recursion which typically occurs in expression grammars.
---
--- >  expr    = term   `chainl1` addop
--- >  term    = factor `chainl1` mulop
--- >  factor  = parens expr <|> integer
--- >
--- >  mulop   =   do{ symbol "*"; return (*)   }
--- >          <|> do{ symbol "/"; return (div) }
--- >
--- >  addop   =   do{ symbol "+"; return (+) }
--- >          <|> do{ symbol "-"; return (-) }
-chainl1 :: Parser a -> Parser (a -> a -> a) -> Parser a
-chainl1 p op = do
-  let
-    go l =
-      -- The operator is present
-      ( do
-        fn <- op
-        r <- p
-        go (fn l r)
-      ) <|>
-      -- There is no matching operator; so we just return the value
-      ( pure l
-      )
-  l <- p
-  go l
+number = do
+  s <- sign
+  n <- floating <||> fromIntegral <$> (decimal :: Parser Prelude.Integer)
+  pure $ Number (s n)
 
 -- Text expressions
 text :: Parser (Expression T.Text)
@@ -89,18 +64,18 @@ text = char '\"' *> remainingText
 
 remainingText :: Parser (Expression T.Text)
 remainingText = do
-  beginning <- takeWhile (`notElem` ['{', '\\', '\"'])
+  beginning <- T.pack <$> manyTill anyChar (lookAhead (oneOf ['{', '\\', '\"']))
   result <-
       ( do -- Substitution sequence
           sub <- substitution
           rest <- remainingText
           pure $ Concat (Concat (Text beginning) sub) rest
-      ) <|>
+      ) <||>
       ( do -- Escape sequence
           esc <- escape
           rest <- remainingText
           pure $ Concat (Text (beginning <> esc)) rest
-      ) <|>
+      ) <||>
       ( do -- Normal text
           _ <- char '\"'
           pure $ Text beginning
@@ -110,19 +85,19 @@ remainingText = do
 substitution :: Parser (Expression T.Text)
 substitution = do
   _ <- char '{'
-  _ <- skipSpace
+  _ <- spaces
   result <-
-    (BooleanSubstitution <$> boolean) <|>
-    (MathSubstitution <$> number) <|>
+    BooleanSubstitution <$> boolean <||>
+    MathSubstitution <$> math <||>
     text
-  _ <- skipSpace
+  _ <- spaces
   _ <- char '}'
   pure result
 
 escape :: Parser T.Text
 escape =
-  string "\\n"  *> pure "\n" <|>
-  string "\\r"  *> pure "\r" <|>
-  string "\\{"  *> pure "{" <|>
-  string "\\\"" *> pure "\"" <|>
+  string "\\n"  *> pure "\n" <||>
+  string "\\r"  *> pure "\r" <||>
+  string "\\{"  *> pure "{"  <||>
+  string "\\\"" *> pure "\"" <||>
   string "\\\\" *> pure "\\"
