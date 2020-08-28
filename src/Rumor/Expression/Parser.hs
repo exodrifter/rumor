@@ -17,7 +17,7 @@ boolean =
   string "false" *> (pure $ Boolean False)
 
 -- Number expressions
-math :: Parser (Expression Double)
+math :: Parser (Expression Pico)
 math =
   let piece = parenthesis math <|> number
       -- We chain the multiplication and division operators first to
@@ -39,20 +39,18 @@ parenthesis parser = do
   _ <- char ')'
   pure result
 
-multiplicationOperator :: Parser (Expression Double -> Expression Double -> Expression Double)
+multiplicationOperator :: Parser (Expression Pico -> Expression Pico -> Expression Pico)
 multiplicationOperator =
   spaces *> char '*' *> spaces *> pure Multiply <|>
   spaces *> char '/' *> spaces *> pure Divide
 
-additionOperator :: Parser (Expression Double -> Expression Double -> Expression Double)
+additionOperator :: Parser (Expression Pico -> Expression Pico -> Expression Pico)
 additionOperator =
   spaces *> char '+' *> spaces *> pure Add <|>
   spaces *> char '-' *> spaces *> pure Subtract
 
-number :: Parser (Expression Double)
-number = do
-  n <- double <|> (fromIntegral <$> integer)
-  pure $ Number n
+number :: Parser (Expression Pico)
+number = Number <$> fixed
 
 -- Text expressions
 text :: Parser (Expression T.Text)

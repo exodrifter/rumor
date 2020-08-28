@@ -28,6 +28,7 @@ ghc-options:
   - -Wno-missing-exported-signatures # See https://ghc.haskell.org/trac/ghc/ticket/14794#ticket
   - -Wno-missing-import-lists
   - -Wno-missing-local-signatures
+  - -Wno-monomorphism-restriction
   - -Wno-safe
 
 dependencies:

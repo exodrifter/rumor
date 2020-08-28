@@ -10,8 +10,7 @@ module Rumor.Parser
 -- Parsers
 , anyChar
 , char
-, double
-, integer
+, fixed
 , oneOf
 , spaces
 , string
@@ -70,17 +69,14 @@ anyChar = Parser Parsec.anyChar
 char :: Char -> Parser Char
 char = Parser . Parsec.char
 
-double :: Parser Double
-double = Parser $ do
+fixed :: Parser Pico
+fixed = Parser $ do
+  let integer = Parsec.decimal :: Parsec.Parser Integer
+      resolution = 1000000000000
   s <- Parsec.sign
-  n <- Parsec.floating
-  pure $ s n
-
-integer :: Parser Integer
-integer = Parser $ do
-  s <- Parsec.sign
-  n <- Parsec.decimal
-  pure $ s n
+  l <- integer
+  r <- (Parsec.char '.' *> integer) <|> (pure 0)
+  pure . MkFixed . s $ l * resolution + (r `mod` resolution) * (resolution `div` 10)
 
 oneOf :: [Char] -> Parser Char
 oneOf = Parser . Parsec.oneOf

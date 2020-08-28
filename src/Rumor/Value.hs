@@ -9,6 +9,6 @@ import qualified Data.Text as T
 
 data Value =
   BooleanValue Bool |
-  NumberValue Double |
+  NumberValue Pico |
   TextValue T.Text
   deriving stock (Eq, Show)

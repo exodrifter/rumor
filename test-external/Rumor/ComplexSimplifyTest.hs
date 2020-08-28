@@ -26,5 +26,5 @@ simplifyComplexTextExpressionTest =
              (Text "?")
   in
     TestCase $ assertEqual "Simplifies a complex text expression correctly"
-      (Text "I said \"Hello\" 3.0 times, true?")
+      (Text "I said \"Hello\" 3 times, true?")
       (simplify expression)

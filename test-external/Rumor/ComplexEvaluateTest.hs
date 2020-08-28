@@ -27,5 +27,5 @@ evaluateComplexTextExpressionTest =
              (Text "?")
   in
     TestCase $ assertEqual "Evaluates a complex text expression correctly"
-      (TextValue "I said \"Hello\" 3.0 times, true?")
+      (TextValue "I said \"Hello\" 3 times, true?")
       (evaluate expression)

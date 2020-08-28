@@ -1,7 +1,10 @@
 {-# LANGUAGE Safe #-}
 
 module Rumor.Prelude
-( Prelude.Bool(..)
+( Data.Fixed.Fixed(..)
+, Data.Fixed.HasResolution
+, Data.Fixed.Pico
+, Prelude.Bool(..)
 , Prelude.Char
 , Prelude.Double
 , Prelude.Either(..)
@@ -12,11 +15,14 @@ module Rumor.Prelude
 , Prelude.Show(..)
 
 -- Functions
+, Prelude.div
+, Prelude.elem
+, Prelude.flip
+, Prelude.fromIntegral
+, Prelude.mod
 , Prelude.not
 , Prelude.notElem
 , Prelude.pure
-, Prelude.flip
-, Prelude.fromIntegral
 
 -- Operators
 , (Control.Applicative.*>)
@@ -35,4 +41,5 @@ module Rumor.Prelude
 ) where
 
 import qualified Control.Applicative
+import qualified Data.Fixed
 import qualified Prelude

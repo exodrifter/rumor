@@ -21,15 +21,15 @@ import qualified Data.Text as T
 data Expression a where
   Boolean :: Bool -> Expression Bool
 
-  Number :: Double -> Expression Double
-  Add :: Expression Double -> Expression Double -> Expression Double
-  Subtract :: Expression Double -> Expression Double -> Expression Double
-  Multiply :: Expression Double -> Expression Double -> Expression Double
-  Divide :: Expression Double -> Expression Double -> Expression Double
+  Number :: Pico -> Expression Pico
+  Add :: Expression Pico -> Expression Pico -> Expression Pico
+  Subtract :: Expression Pico -> Expression Pico -> Expression Pico
+  Multiply :: Expression Pico -> Expression Pico -> Expression Pico
+  Divide :: Expression Pico -> Expression Pico -> Expression Pico
 
   Text :: T.Text -> Expression T.Text
   Concat :: Expression T.Text -> Expression T.Text -> Expression T.Text
-  MathSubstitution :: Expression Double -> Expression T.Text
+  MathSubstitution :: Expression Pico -> Expression T.Text
   BooleanSubstitution :: Expression Bool -> Expression T.Text
 
 instance Show (Expression a) where
@@ -77,8 +77,8 @@ instance SubstitutionText Bool where
       True -> "true"
       False -> "false"
 
-instance SubstitutionText Double where
-  toText = T.pack . show
+instance (HasResolution r) => SubstitutionText (Fixed r) where
+  toText = T.dropWhileEnd (`elem` ['.', '0']) . T.pack . show
 
 -- Evaluates an expression
 evaluate :: Expression a -> Value
@@ -102,7 +102,7 @@ evaluateBoolean expr =
   case expr of
     Boolean a -> a
 
-evaluateNumber :: Expression Double -> Double
+evaluateNumber :: Expression Pico -> Pico
 evaluateNumber expr =
   case expr of
     Number a -> a
@@ -144,7 +144,7 @@ simplifyBoolean expr =
   case expr of
     Boolean _ -> expr
 
-simplifyMath :: Expression Double -> Expression Double
+simplifyMath :: Expression Pico -> Expression Pico
 simplifyMath expr =
   case expr of
     Number a ->
