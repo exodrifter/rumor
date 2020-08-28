@@ -1,5 +1,3 @@
-{-# LANGUAGE Safe #-}
-
 module Rumor.Expression.Parser
 ( boolean
 , math

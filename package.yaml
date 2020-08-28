@@ -17,7 +17,6 @@ category: Language
 description: Please see the README on GitHub at <https://github.com/exodrifter/rumor#readme>
 
 ghc-options:
-  - -XSafe
   - -XOverloadedStrings
   - -XNoImplicitPrelude
   - -XDerivingStrategies

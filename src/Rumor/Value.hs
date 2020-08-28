@@ -1,5 +1,3 @@
-{-# LANGUAGE Safe #-}
-
 module Rumor.Value
 ( Value(..)
 ) where

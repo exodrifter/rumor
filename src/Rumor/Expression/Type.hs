@@ -1,5 +1,4 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE Safe #-}
 
 module Rumor.Expression.Type
 ( Expression(..)

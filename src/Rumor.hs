@@ -1,5 +1,3 @@
-{-# LANGUAGE Safe #-}
-
 module Rumor
 ( Rumor.Expression.Type.Expression(..)
 , Rumor.Expression.Type.evaluate

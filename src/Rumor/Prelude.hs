@@ -1,5 +1,3 @@
-{-# LANGUAGE Safe #-}
-
 module Rumor.Prelude
 ( Data.Fixed.Fixed(..)
 , Data.Fixed.HasResolution
