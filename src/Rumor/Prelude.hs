@@ -12,6 +12,7 @@ module Rumor.Prelude
 , Prelude.Functor(..)
 , Prelude.Integer
 , Prelude.Maybe(..)
+, Prelude.Num(..)
 , Prelude.Show(..)
 
 -- Functions
@@ -23,6 +24,7 @@ module Rumor.Prelude
 , Prelude.not
 , Prelude.notElem
 , Prelude.pure
+, Text.Read.readMaybe
 
 -- Operators
 , (Control.Applicative.*>)
@@ -30,10 +32,7 @@ module Rumor.Prelude
 , (Control.Applicative.<|>)
 , (Prelude.$)
 , (Prelude.&&)
-, (Prelude.*)
-, (Prelude.+)
 , (Prelude.++)
-, (Prelude.-)
 , (Prelude..)
 , (Prelude./)
 , (Prelude.<>)
@@ -43,3 +42,4 @@ module Rumor.Prelude
 import qualified Control.Applicative
 import qualified Data.Fixed
 import qualified Prelude
+import qualified Text.Read

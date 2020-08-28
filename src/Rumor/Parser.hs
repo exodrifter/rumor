@@ -17,8 +17,8 @@ module Rumor.Parser
 ) where
 
 import Rumor.Prelude
-import Control.Monad (Monad(..))
-import Control.Applicative (Applicative(..), Alternative(..))
+import Control.Monad (Monad(..), MonadFail(..))
+import Control.Applicative (Applicative(..), Alternative(empty))
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.Number as Parsec
 import qualified Text.Parsec.Text as Parsec
@@ -43,6 +43,9 @@ instance Monad Parser where
   return = pure
   p >>= f = Parser $ unParser p >>= (unParser . f)
 
+instance MonadFail Parser where
+  fail = Parser . Parsec.parserFail
+
 runParser :: Parser a -> Parsec.SourceName -> T.Text -> Either Parsec.ParseError a
 runParser p = Parsec.runParser (unParser p) ()
 
@@ -52,6 +55,9 @@ runParser p = Parsec.runParser (unParser p) ()
 
 chainl1 :: Parser a -> Parser (a -> a -> a) -> Parser a
 chainl1 p op = Parser $ Parsec.chainl1 (unParser p) (unParser op)
+
+many :: Parser a -> Parser [a]
+many = Parser . Parsec.many . unParser
 
 manyTill :: Parser a -> Parser end -> Parser [a]
 manyTill p end =
@@ -69,17 +75,22 @@ anyChar = Parser Parsec.anyChar
 char :: Char -> Parser Char
 char = Parser . Parsec.char
 
+digit :: Parser Char
+digit = Parser Parsec.digit
+
 fixed :: Parser Pico
-fixed = Parser $ do
-  let integer = Parsec.decimal :: Parsec.Parser Integer
-      resolution = 1000000000000
-  s <- Parsec.sign
-  l <- integer
-  r <- (Parsec.char '.' *> integer) <|> (pure 0)
-  pure . MkFixed . s $ l * resolution + (r `mod` resolution) * (resolution `div` 10)
+fixed = do
+  s <- sign
+  mn <- readMaybe <$> many (digit <|> char '.')
+  case mn of
+    Just n -> pure $ s n
+    Nothing -> fail "failed to read fixed number"
 
 oneOf :: [Char] -> Parser Char
 oneOf = Parser . Parsec.oneOf
+
+sign :: Num a => Parser (a -> a)
+sign = Parser Parsec.sign
 
 spaces :: Parser ()
 spaces = Parser Parsec.spaces
