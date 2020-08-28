@@ -2,10 +2,10 @@ module Rumor.Expression.NumberParserTest
 ( tests
 ) where
 
-import Prelude (Either(..), ($))
 import Rumor.Expression.Parser (math)
 import Rumor.Expression.Type (Expression(..))
-import Rumor.Helper(runTestParser)
+import Rumor.Helper (runTestParser)
+
 import Test.HUnit
 
 tests :: Test

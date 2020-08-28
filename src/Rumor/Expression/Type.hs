@@ -12,8 +12,8 @@ module Rumor.Expression.Type
 , simplifyText
 ) where
 
-import Rumor.Prelude
 import Rumor.Value (Value(..))
+
 import qualified Data.Char as Char
 import qualified Data.Text as T
 

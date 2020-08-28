@@ -1,10 +1,10 @@
-import Prelude (IO, pure)
-import Test.HUnit (Test(..), runTestTT)
 import qualified Rumor.Expression.BooleanParserTest
 import qualified Rumor.Expression.EvaluateTest
 import qualified Rumor.Expression.NumberParserTest
 import qualified Rumor.Expression.SimplifyTest
 import qualified Rumor.Expression.TextParserTest
+
+import Test.HUnit (Test(..), runTestTT)
 
 main :: IO ()
 main = do

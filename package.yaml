@@ -18,7 +18,6 @@ description: Please see the README on GitHub at <https://github.com/exodrifter/r
 
 ghc-options:
   - -XOverloadedStrings
-  - -XNoImplicitPrelude
   - -XDerivingStrategies
   - -Weverything
   - -Wcompat
@@ -29,6 +28,7 @@ ghc-options:
   - -Wno-missing-local-signatures
   - -Wno-monomorphism-restriction
   - -Wno-safe
+  - -Wno-implicit-prelude
 
 dependencies:
 - base >= 4.7 && < 5

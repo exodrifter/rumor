@@ -1,7 +1,7 @@
-import Prelude (IO, pure)
-import Test.HUnit (Test(..), runTestTT)
 import qualified Rumor.ComplexEvaluateTest
 import qualified Rumor.ComplexSimplifyTest
+
+import Test.HUnit (Test(..), runTestTT)
 
 main :: IO ()
 main = do

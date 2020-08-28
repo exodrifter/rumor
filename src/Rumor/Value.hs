@@ -2,7 +2,6 @@ module Rumor.Value
 ( Value(..)
 ) where
 
-import Rumor.Prelude
 import qualified Data.Text as T
 
 data Value r =

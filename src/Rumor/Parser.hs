@@ -16,13 +16,12 @@ module Rumor.Parser
 , string
 ) where
 
-import Rumor.Prelude
-import Control.Monad (Monad(..), MonadFail(..))
 import Control.Applicative (Applicative(..), Alternative(empty))
+import Control.Monad (Monad(..), MonadFail(..))
+import qualified Data.Text as T
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.Number as Parsec
 import qualified Text.Parsec.Text as Parsec
-import qualified Data.Text as T
 
 -- A parser that automatically rolls back when it fails, like
 -- attoparsec.
@@ -89,7 +88,7 @@ fixed = do
 oneOf :: [Char] -> Parser Char
 oneOf = Parser . Parsec.oneOf
 
-sign :: Num a => Parser (a -> a)
+sign :: HasResolution r => Parser (Fixed r -> Fixed r)
 sign = Parser Parsec.sign
 
 spaces :: Parser ()

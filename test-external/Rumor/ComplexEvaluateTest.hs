@@ -2,7 +2,6 @@ module Rumor.ComplexEvaluateTest
 ( tests
 ) where
 
-import Rumor.Prelude
 import Rumor.Expression.Type (Expression(..), evaluate)
 import Rumor.Value (Value(..))
 

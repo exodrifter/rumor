@@ -4,9 +4,9 @@ module Rumor.Expression.Parser
 , text
 ) where
 
+import Rumor.Expression.Type
 import Rumor.Parser
-import Rumor.Prelude
-import Rumor.Expression.Type(Expression(..), simplifyText, simplifyMath)
+
 import qualified Data.Text as T
 
 boolean :: Parser (Expression r Bool)

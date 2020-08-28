@@ -2,7 +2,6 @@ module Rumor.Expression.SimplifyTest
 ( tests
 ) where
 
-import Rumor.Prelude
 import Rumor.Expression.Type (Expression(..))
 import qualified Rumor.Expression.Type as Expression
 

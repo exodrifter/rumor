@@ -2,7 +2,6 @@ module Rumor.Helper
 ( runTestParser
 ) where
 
-import Rumor.Prelude
 import Rumor.Expression.Type (Expression(..))
 import Rumor.Parser
 
