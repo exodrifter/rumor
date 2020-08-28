@@ -18,21 +18,21 @@ import Rumor.Value (Value(..))
 import qualified Data.Char as Char
 import qualified Data.Text as T
 
-data Expression a where
-  Boolean :: Bool -> Expression Bool
+data Expression r a where
+  Boolean :: Bool -> Expression r Bool
 
-  Number :: Pico -> Expression Pico
-  Add :: Expression Pico -> Expression Pico -> Expression Pico
-  Subtract :: Expression Pico -> Expression Pico -> Expression Pico
-  Multiply :: Expression Pico -> Expression Pico -> Expression Pico
-  Divide :: Expression Pico -> Expression Pico -> Expression Pico
+  Number :: Fixed r -> Expression r (Fixed r)
+  Add :: Expression r (Fixed r) -> Expression r (Fixed r) -> Expression r (Fixed r)
+  Subtract :: Expression r (Fixed r) -> Expression r (Fixed r) -> Expression r (Fixed r)
+  Multiply :: Expression r (Fixed r) -> Expression r (Fixed r) -> Expression r (Fixed r)
+  Divide :: Expression r (Fixed r) -> Expression r (Fixed r) -> Expression r (Fixed r)
 
-  Text :: T.Text -> Expression T.Text
-  Concat :: Expression T.Text -> Expression T.Text -> Expression T.Text
-  MathSubstitution :: Expression Pico -> Expression T.Text
-  BooleanSubstitution :: Expression Bool -> Expression T.Text
+  Text :: T.Text -> Expression r T.Text
+  Concat :: Expression r T.Text -> Expression r T.Text -> Expression r T.Text
+  MathSubstitution :: Expression r (Fixed r) -> Expression r T.Text
+  BooleanSubstitution :: Expression r Bool -> Expression r T.Text
 
-instance Show (Expression a) where
+instance HasResolution r => Show (Expression r a) where
   show expr =
     case expr of
       Boolean a -> "(Boolean " ++ show a ++ ")"
@@ -48,7 +48,7 @@ instance Show (Expression a) where
       MathSubstitution a -> "(MathSubstitution" ++ show a ++ ")"
       BooleanSubstitution a -> "(BooleanSubstitution" ++ show a ++ ")"
 
-instance Eq (Expression a) where
+instance Eq (Expression r a) where
   (==) l r =
     case (l, r) of
       (Boolean a, Boolean b) -> a == b
@@ -77,11 +77,11 @@ instance SubstitutionText Bool where
       True -> "true"
       False -> "false"
 
-instance (HasResolution r) => SubstitutionText (Fixed r) where
+instance HasResolution r => SubstitutionText (Fixed r) where
   toText = T.dropWhileEnd (`elem` ['.', '0']) . T.pack . show
 
 -- Evaluates an expression
-evaluate :: Expression a -> Value
+evaluate :: HasResolution r => Expression r a -> Value r
 evaluate expr =
   case expr of
     Boolean _ -> BooleanValue $ evaluateBoolean expr
@@ -97,12 +97,12 @@ evaluate expr =
     MathSubstitution _ -> TextValue $ evaluateText expr
     BooleanSubstitution _ -> TextValue $ evaluateText expr
 
-evaluateBoolean :: Expression Bool -> Bool
+evaluateBoolean :: Expression r Bool -> Bool
 evaluateBoolean expr =
   case expr of
     Boolean a -> a
 
-evaluateNumber :: Expression Pico -> Pico
+evaluateNumber :: HasResolution r => Expression r (Fixed r) -> (Fixed r)
 evaluateNumber expr =
   case expr of
     Number a -> a
@@ -111,7 +111,7 @@ evaluateNumber expr =
     Multiply l r -> evaluateNumber l * evaluateNumber r
     Divide l r -> evaluateNumber l / evaluateNumber r
 
-evaluateText :: Expression T.Text -> T.Text
+evaluateText :: HasResolution r => Expression r T.Text -> T.Text
 evaluateText expr =
   case expr of
     Text a -> a
@@ -123,7 +123,7 @@ evaluateText expr =
       toText $ evaluateBoolean a
 
 -- Simplifies an expression
-simplify :: Expression a -> Expression a
+simplify :: HasResolution r => Expression r a -> Expression r a
 simplify expr =
   case expr of
     Boolean _ -> simplifyBoolean expr
@@ -139,12 +139,12 @@ simplify expr =
     MathSubstitution _ -> simplifyText expr
     BooleanSubstitution _ -> simplifyText expr
 
-simplifyBoolean :: Expression Bool -> Expression Bool
+simplifyBoolean :: Expression r Bool -> Expression r Bool
 simplifyBoolean expr =
   case expr of
     Boolean _ -> expr
 
-simplifyMath :: Expression Pico -> Expression Pico
+simplifyMath :: HasResolution r => Expression r (Fixed r) -> Expression r (Fixed r)
 simplifyMath expr =
   case expr of
     Number a ->
@@ -178,7 +178,7 @@ simplifyMath expr =
       then expr
       else simplifyMath $ Divide (simplifyMath l) (simplifyMath r)
 
-simplifyText :: Expression T.Text -> Expression T.Text
+simplifyText :: HasResolution r => Expression r T.Text -> Expression r T.Text
 simplifyText expr =
   case expr of
     Text a ->

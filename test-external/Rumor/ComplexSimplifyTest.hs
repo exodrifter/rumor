@@ -2,9 +2,12 @@ module Rumor.ComplexSimplifyTest
 ( tests
 ) where
 
+import Rumor.Prelude
 import Rumor.Expression.Type (Expression(..), simplify)
-import Prelude (Bool(..), ($))
+
+import Data.Fixed (E12)
 import Test.HUnit
+import qualified Data.Text as T
 
 tests :: Test
 tests =
@@ -27,4 +30,4 @@ simplifyComplexTextExpressionTest =
   in
     TestCase $ assertEqual "Simplifies a complex text expression correctly"
       (Text "I said \"Hello\" 3 times, true?")
-      (simplify expression)
+      (simplify (expression :: Expression E12 T.Text))

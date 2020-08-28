@@ -78,7 +78,7 @@ char = Parser . Parsec.char
 digit :: Parser Char
 digit = Parser Parsec.digit
 
-fixed :: Parser Pico
+fixed :: HasResolution r => Parser (Fixed r)
 fixed = do
   s <- sign
   mn <- readMaybe <$> many (digit <|> char '.')

@@ -7,8 +7,8 @@ module Rumor.Value
 import Rumor.Prelude
 import qualified Data.Text as T
 
-data Value =
+data Value r =
   BooleanValue Bool |
-  NumberValue Pico |
+  NumberValue (Fixed r) |
   TextValue T.Text
   deriving stock (Eq, Show)

@@ -2,10 +2,13 @@ module Rumor.ComplexEvaluateTest
 ( tests
 ) where
 
+import Rumor.Prelude
 import Rumor.Expression.Type (Expression(..), evaluate)
 import Rumor.Value (Value(..))
-import Prelude (Bool(..), ($))
+
+import Data.Fixed (E12)
 import Test.HUnit
+import qualified Data.Text as T
 
 tests :: Test
 tests =
@@ -28,4 +31,4 @@ evaluateComplexTextExpressionTest =
   in
     TestCase $ assertEqual "Evaluates a complex text expression correctly"
       (TextValue "I said \"Hello\" 3 times, true?")
-      (evaluate expression)
+      (evaluate (expression :: Expression E12 T.Text))
