@@ -82,7 +82,7 @@ text = simplifyText <$> remainingText
 remainingText :: HasResolution r => Parser (Expression r T.Text)
 remainingText = do
   beginning <- T.pack <$>
-    manyTill anyChar (void (char '{') <|> void endOfLine <|> eof)
+    manyTill anyChar (void (char '{') <|> eol <|> eof)
   result <-
       ( do -- Substitution sequence
           sub <- substitution
@@ -90,13 +90,13 @@ remainingText = do
           pure $ Concat (Concat (Text beginning) sub) rest
       ) <|>
       ( do -- End of line with more content
-          _ <- endOfLine
+          eol
           s <- spaces *> pure " "
           sameOrIndented
           Concat (Text $ s <> beginning) <$> remainingText
       ) <|>
       ( do -- End of line with no more content
-          _ <- endOfLine
+          eol
           pure $ Text beginning
       ) <|>
       ( do -- End of file

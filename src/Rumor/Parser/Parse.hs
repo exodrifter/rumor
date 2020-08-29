@@ -2,7 +2,7 @@ module Rumor.Parser.Parse
 ( alphaNum
 , anyChar
 , char
-, endOfLine
+, eol
 , eof
 , fixed
 , oneOf
@@ -31,8 +31,8 @@ char = Parser . Parsec.char
 digit :: Parser Char
 digit = Parser Parsec.digit
 
-endOfLine :: Parser Char
-endOfLine = Parser Parsec.endOfLine
+eol :: Parser ()
+eol = Parser $ void Parsec.endOfLine
 
 eof :: Parser ()
 eof = Parser Parsec.eof
@@ -51,7 +51,7 @@ oneOf = Parser . Parsec.oneOf
 -- | Consumes the rest of the line, including the end of line characters if they
 -- exist
 restOfLine :: Parser T.Text
-restOfLine = T.pack <$> manyTill anyChar (void endOfLine <|> eof)
+restOfLine = T.pack <$> manyTill anyChar (eol <|> eof)
 
 sign :: HasResolution r => Parser (Fixed r -> Fixed r)
 sign = Parser Parsec.sign
