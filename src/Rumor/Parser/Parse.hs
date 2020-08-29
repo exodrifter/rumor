@@ -48,13 +48,18 @@ fixed = do
 oneOf :: [Char] -> Parser Char
 oneOf = Parser . Parsec.oneOf
 
--- | Consumes the rest of the line, including the end of line characters if they
--- exist
-restOfLine :: Parser T.Text
-restOfLine = T.pack <$> manyTill anyChar (eol <|> eof)
+-- | Consumes the rest of whitespace on this line, including the end of line
+-- characters if they exist
+restOfLine :: Parser ()
+restOfLine = do
+  _ <- manyTill space (eol <|> eof)
+  eol <|> eof
 
 sign :: HasResolution r => Parser (Fixed r -> Fixed r)
 sign = Parser Parsec.sign
+
+space :: Parser Char
+space = Parser Parsec.space
 
 spaces :: Parser ()
 spaces = Parser Parsec.spaces
