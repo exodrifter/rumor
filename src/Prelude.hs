@@ -24,6 +24,7 @@ module Prelude
 -- Operators
 , (Control.Applicative.*>)
 , (Control.Applicative.<$>)
+, (Control.Applicative.<*)
 , (Control.Applicative.<|>)
 , (Data.Bool.&&)
 , (Data.Bool.||)

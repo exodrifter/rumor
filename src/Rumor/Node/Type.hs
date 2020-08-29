@@ -10,6 +10,7 @@ import qualified Data.Text as T
 data Node r =
     Say (Maybe Identifier) (Expression r T.Text)
   | Append (Maybe Identifier) (Expression r T.Text)
+  | Section Identifier [Node r]
   deriving stock (Eq, Show)
 
 newtype Identifier = Identifier { unIdentifier :: T.Text }

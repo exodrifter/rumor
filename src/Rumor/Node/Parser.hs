@@ -2,6 +2,7 @@ module Rumor.Node.Parser
 ( nodes
 , say
 , append
+, section
 ) where
 
 import Rumor.Expression.Parser
@@ -15,10 +16,13 @@ identifier :: Parser Identifier
 identifier = Identifier . T.pack <$> many1 alphaNum
 
 nodes :: HasResolution r => Parser [Node r]
-nodes = many
-  ( say <|>
-    append
-  )
+nodes = many node
+
+node :: HasResolution r => Parser (Node r)
+node =
+  say <|>
+  append <|>
+  section
 
 say :: HasResolution r => Parser (Node r)
 say = do
@@ -40,3 +44,14 @@ dialog symbol = do
   _ <- char symbol
   d <- withPos text
   pure $ (s, d)
+
+section :: HasResolution r => Parser (Node r)
+section = withPos $ do
+  _ <- string "label"
+  spaces
+  i <- identifier
+  _ <- restOfLine
+
+  spaces
+  n <- indented *> block (node <* spaces)
+  pure $ Section i n

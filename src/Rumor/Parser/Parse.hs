@@ -6,11 +6,12 @@ module Rumor.Parser.Parse
 , eof
 , fixed
 , oneOf
+, restOfLine
 , spaces
 , string
 ) where
 
-import Rumor.Parser.Combinator (many)
+import Rumor.Parser.Combinator (many, manyTill)
 import Rumor.Parser.Type (Parser(..))
 
 import Control.Monad (fail)
@@ -46,6 +47,11 @@ fixed = do
 
 oneOf :: [Char] -> Parser Char
 oneOf = Parser . Parsec.oneOf
+
+-- | Consumes the rest of the line, including the end of line characters if they
+-- exist
+restOfLine :: Parser T.Text
+restOfLine = T.pack <$> manyTill anyChar (void endOfLine <|> eof)
 
 sign :: HasResolution r => Parser (Fixed r -> Fixed r)
 sign = Parser Parsec.sign
