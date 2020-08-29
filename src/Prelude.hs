@@ -7,8 +7,6 @@ module Prelude
 , Data.Eq.Eq(..)
 , Data.Fixed.Fixed(..)
 , Data.Fixed.HasResolution
-, Data.Fixed.Pico
-, Data.Functor.Functor(..)
 , Data.Maybe.Maybe(..)
 , Data.String.IsString
 , System.IO.FilePath
@@ -19,10 +17,8 @@ module Prelude
 , Control.Applicative.pure
 , Control.Monad.return
 , Control.Monad.void
-, Data.Bool.not
-, Data.Function.flip
+, Data.Functor.fmap
 , Data.List.elem
-, Data.List.notElem
 , Text.Read.readMaybe
 
 -- Operators

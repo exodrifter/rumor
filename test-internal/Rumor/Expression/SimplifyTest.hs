@@ -39,37 +39,37 @@ simplifySimpleBooleanTest =
 simplifySimpleNumberTest :: Test
 simplifySimpleNumberTest =
   TestCase $ assertEqual "simplifyMath returns correct number"
-    (Number 3 :: Expression E12 Pico)
+    (Number 3 :: Expression E12 (Fixed E12))
     (Expression.simplifyMath $ Number 3)
 
 simplifyAdditionTest :: Test
 simplifyAdditionTest =
   TestCase $ assertEqual "Simplifies addition"
-    (Number 15 :: Expression E12 Pico)
+    (Number 15 :: Expression E12 (Fixed E12))
     (Expression.simplifyMath $ Add (Number 5) (Number 10))
 
 simplifySubtractionTest :: Test
 simplifySubtractionTest =
   TestCase $ assertEqual "Simplifies subtraction"
-    (Number (-5) :: Expression E12 Pico)
+    (Number (-5) :: Expression E12 (Fixed E12))
     (Expression.simplifyMath $ Subtract (Number 5) (Number 10))
 
 simplifyMultiplicationTest :: Test
 simplifyMultiplicationTest =
   TestCase $ assertEqual "Simplifies multiplication"
-    (Number 50 :: Expression E12 Pico)
+    (Number 50 :: Expression E12 (Fixed E12))
     (Expression.simplifyMath $ Multiply (Number 5) (Number 10))
 
 simplifyDivisionTest :: Test
 simplifyDivisionTest =
   TestCase $ assertEqual "Simplifies division"
-    (Number 0.5 :: Expression E12 Pico)
+    (Number 0.5 :: Expression E12 (Fixed E12))
     (Expression.simplifyMath $ Divide (Number 5) (Number 10))
 
 simplifyNestedMathTest :: Test
 simplifyNestedMathTest =
   TestCase $ assertEqual "Simplifies nested mathematical operations"
-    (Number 2 :: Expression E12 Pico)
+    (Number 2 :: Expression E12 (Fixed E12))
     (Expression.simplifyMath $
       Divide (Add (Number 5) (Number 5))
              (Subtract (Number 10) (Number 5))

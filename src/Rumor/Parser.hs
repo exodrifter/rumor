@@ -27,6 +27,7 @@ module Rumor.Parser
 
 import Control.Applicative (Applicative(..), Alternative(empty))
 import Control.Monad (Monad(..), MonadFail(..))
+import Data.Functor (Functor(..))
 import qualified Data.Text as T
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.Number as Parsec

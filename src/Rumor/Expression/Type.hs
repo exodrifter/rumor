@@ -236,19 +236,20 @@ stripText expr =
     _ -> expr
 
 collapseSpaces :: T.Text -> T.Text
-collapseSpaces =
-  flip T.foldl' "" $ \txt ch ->
-    case T.unsnoc txt of
-      -- Our string is empty
-      Nothing ->
-        if Char.isSpace ch
-        then T.singleton ' '
-        else T.singleton ch
+collapseSpaces t =
+  let fn txt ch =
+        case T.unsnoc txt of
+          -- Our string is empty
+          Nothing ->
+            if Char.isSpace ch
+            then T.singleton ' '
+            else T.singleton ch
 
-      -- Our string is not empty
-      Just (_, previousCharacter) ->
-        case (Char.isSpace previousCharacter, Char.isSpace ch) of
-          (True, True) -> txt
-          (True, False) -> T.snoc txt ch
-          (False, True) -> T.snoc txt ' '
-          (False, False) -> T.snoc txt ch
+          -- Our string is not empty
+          Just (_, previousCharacter) ->
+            case (Char.isSpace previousCharacter, Char.isSpace ch) of
+              (True, True) -> txt
+              (True, False) -> T.snoc txt ch
+              (False, True) -> T.snoc txt ' '
+              (False, False) -> T.snoc txt ch
+  in  T.foldl' fn "" t

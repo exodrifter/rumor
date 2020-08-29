@@ -32,7 +32,7 @@ evaluateSimpleNumberTest :: Test
 evaluateSimpleNumberTest =
   TestCase $ assertEqual "evaluateNumber returns correct number"
     3
-    (Expression.evaluateNumber (Number 3 :: Expression E12 Pico))
+    (Expression.evaluateNumber (Number 3 :: Expression E12 (Fixed E12)))
 
 evaluateSimpleTextTest :: Test
 evaluateSimpleTextTest =
