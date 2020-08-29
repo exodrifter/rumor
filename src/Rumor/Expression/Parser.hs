@@ -31,9 +31,9 @@ math =
 parenthesis :: Parser (Expression r a) -> Parser (Expression r a)
 parenthesis parser = do
   _ <- char '('
-  _ <- spaces
+  spaces
   result <- parser
-  _ <- spaces
+  spaces
   _ <- char ')'
   pure result
 
@@ -107,12 +107,12 @@ remainingText = do
 substitution :: HasResolution r => Parser (Expression r T.Text)
 substitution = do
   _ <- char '{'
-  _ <- spaces
+  spaces
   result <-
     BooleanSubstitution <$> boolean <|>
     MathSubstitution <$> math <|>
     quote
-  _ <- spaces
+  spaces
   _ <- char '}'
   pure result
 
