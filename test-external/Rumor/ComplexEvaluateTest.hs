@@ -2,8 +2,7 @@ module Rumor.ComplexEvaluateTest
 ( tests
 ) where
 
-import Rumor.Expression.Type (Expression(..), evaluate)
-import Rumor.Value (Value(..))
+import Rumor (Expression(..), Value(..), evaluate)
 
 import Data.Fixed (E12)
 import Test.HUnit

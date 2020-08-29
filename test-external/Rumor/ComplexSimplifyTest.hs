@@ -2,7 +2,7 @@ module Rumor.ComplexSimplifyTest
 ( tests
 ) where
 
-import Rumor.Expression.Type (Expression(..), simplify)
+import Rumor (Expression(..), simplify)
 
 import Data.Fixed (E12)
 import Test.HUnit
