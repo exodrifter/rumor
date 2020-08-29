@@ -1,5 +1,6 @@
 module Rumor.Node.Helper
-( runTestParser
+( runNodeParser
+, runNodesParser
 ) where
 
 import Rumor.Node.Type (Node(..))
@@ -8,8 +9,14 @@ import Rumor.Parser
 import Data.Fixed (E12)
 import qualified Data.Text as T
 
-runTestParser ::
+runNodeParser ::
   Parser (Node E12) ->
   T.Text ->
   Either ParseError (Node E12)
-runTestParser parser = runParser parser ""
+runNodeParser parser = runParser parser ""
+
+runNodesParser ::
+  Parser [Node E12] ->
+  T.Text ->
+  Either ParseError [Node E12]
+runNodesParser parser = runParser parser ""

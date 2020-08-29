@@ -1,5 +1,6 @@
 module Rumor.Node.Parser
-( say
+( nodes
+, say
 , append
 ) where
 
@@ -12,6 +13,12 @@ import qualified Data.Text as T
 
 identifier :: Parser Identifier
 identifier = Identifier . T.pack <$> many1 alphaNum
+
+nodes :: HasResolution r => Parser [Node r]
+nodes = many
+  ( say <|>
+    append
+  )
 
 say :: HasResolution r => Parser (Node r)
 say = do

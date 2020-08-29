@@ -4,6 +4,7 @@ import qualified Rumor.Expression.NumberParserTest
 import qualified Rumor.Expression.SimplifyTest
 import qualified Rumor.Expression.TextParserTest
 import qualified Rumor.Node.DialogParserTest
+import qualified Rumor.Node.NodesParserTest
 
 import Test.HUnit (Test(..), runTestTT)
 
@@ -24,5 +25,6 @@ tests =
       ]
     , TestList -- Node Tests
       [ Rumor.Node.DialogParserTest.tests
+      , Rumor.Node.NodesParserTest.tests
       ]
     ]
