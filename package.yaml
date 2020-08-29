@@ -17,8 +17,9 @@ category: Language
 description: Please see the README on GitHub at <https://github.com/exodrifter/rumor#readme>
 
 ghc-options:
-  - -XOverloadedStrings
   - -XDerivingStrategies
+  - -XGeneralizedNewtypeDeriving
+  - -XOverloadedStrings
   - -Weverything
   - -Wcompat
   - -Wno-all-missed-specialisations
@@ -28,10 +29,13 @@ ghc-options:
   - -Wno-missing-local-signatures
   - -Wno-monomorphism-restriction
   - -Wno-safe
+  - -Wno-unsafe
   - -Wno-implicit-prelude
 
 dependencies:
 - base >= 4.7 && < 5
+- indents
+- mtl
 - parsec
 - parsec3-numbers
 - text

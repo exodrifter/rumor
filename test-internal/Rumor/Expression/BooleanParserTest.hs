@@ -2,9 +2,9 @@ module Rumor.Expression.BooleanParserTest
 ( tests
 ) where
 
+import Rumor.Expression.Helper (runTestParser)
 import Rumor.Expression.Parser (boolean)
 import Rumor.Expression.Type (Expression(..))
-import Rumor.Helper (runTestParser)
 
 import Test.HUnit
 

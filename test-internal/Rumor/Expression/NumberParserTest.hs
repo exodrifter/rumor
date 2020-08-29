@@ -2,9 +2,9 @@ module Rumor.Expression.NumberParserTest
 ( tests
 ) where
 
+import Rumor.Expression.Helper (runTestParser)
 import Rumor.Expression.Parser (math)
 import Rumor.Expression.Type (Expression(..))
-import Rumor.Helper (runTestParser)
 
 import Test.HUnit
 

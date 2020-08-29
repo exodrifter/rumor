@@ -53,28 +53,56 @@ number :: HasResolution r => Parser (Expression r (Fixed r))
 number = Number <$> fixed
 
 -- Text expressions
-text :: HasResolution r => Parser (Expression r T.Text)
-text = char '\"' *> remainingText
+quote :: HasResolution r => Parser (Expression r T.Text)
+quote = simplifyText <$> (char '\"' *> remainingQuote)
 
-remainingText :: HasResolution r => Parser (Expression r T.Text)
-remainingText = do
+remainingQuote :: HasResolution r => Parser (Expression r T.Text)
+remainingQuote = do
   beginning <- T.pack <$> manyTill anyChar (oneOf ['{', '\\', '\"'])
   result <-
       ( do -- Substitution sequence
           sub <- substitution
-          rest <- remainingText
+          rest <- remainingQuote
           pure $ Concat (Concat (Text beginning) sub) rest
       ) <|>
       ( do -- Escape sequence
           esc <- escape
-          rest <- remainingText
+          rest <- remainingQuote
           pure $ Concat (Text (beginning <> esc)) rest
       ) <|>
       ( do -- Normal text
           _ <- char '\"'
           pure $ Text beginning
       )
-  pure $ simplifyText result
+  pure result
+
+text :: HasResolution r => Parser (Expression r T.Text)
+text = simplifyText <$> remainingText
+
+remainingText :: HasResolution r => Parser (Expression r T.Text)
+remainingText = do
+  beginning <- T.pack <$>
+    manyTill anyChar (void (char '{') <|> void endOfLine <|> eof)
+  result <-
+      ( do -- Substitution sequence
+          sub <- substitution
+          rest <- remainingText
+          pure $ Concat (Concat (Text beginning) sub) rest
+      ) <|>
+      ( do -- End of line with more content
+          _ <- endOfLine
+          s <- spaces *> pure " "
+          sameOrIndented
+          Concat (Text $ s <> beginning) <$> remainingText
+      ) <|>
+      ( do -- End of line with no more content
+          _ <- endOfLine
+          pure $ Text beginning
+      ) <|>
+      ( do -- End of file
+          pure $ Text beginning
+      )
+  pure result
 
 substitution :: HasResolution r => Parser (Expression r T.Text)
 substitution = do
@@ -83,7 +111,7 @@ substitution = do
   result <-
     BooleanSubstitution <$> boolean <|>
     MathSubstitution <$> math <|>
-    text
+    quote
   _ <- spaces
   _ <- char '}'
   pure result

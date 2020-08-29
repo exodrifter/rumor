@@ -1,4 +1,4 @@
-module Rumor.Helper
+module Rumor.Expression.Helper
 ( runTestParser
 ) where
 

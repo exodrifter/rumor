@@ -19,6 +19,13 @@ packages:
   original:
     hackage: HUnit-1.6.0.0
 - completed:
+    hackage: indents-0.5.0.1@sha256:ee53395fda933cb696a28d9fd2fe0afdb08e3ba1275bd4249fa25319c87b5735,1539
+    pantry-tree:
+      size: 545
+      sha256: 9c0ca196629397378373ce062e2e518ec1276f0532ffd5bb6ac6b89c12d49713
+  original:
+    hackage: indents-0.5.0.1
+- completed:
     hackage: parsec3-numbers-0.1.0@sha256:2f32295f9f4023f7f97da851549aaaf5e72866e98bf016a1ac3c6e8715bbaf8a,685
     pantry-tree:
       size: 264

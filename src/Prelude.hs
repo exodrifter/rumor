@@ -10,6 +10,7 @@ module Prelude
 , Data.Fixed.Pico
 , Data.Functor.Functor(..)
 , Data.Maybe.Maybe(..)
+, Data.String.IsString
 , System.IO.FilePath
 , System.IO.IO
 , Text.Show.Show(..)
@@ -17,6 +18,7 @@ module Prelude
 -- Functions
 , Control.Applicative.pure
 , Control.Monad.return
+, Control.Monad.void
 , Data.Bool.not
 , Data.Function.flip
 , Data.List.elem
@@ -51,6 +53,7 @@ import qualified Data.Functor
 import qualified Data.List
 import qualified Data.Maybe
 import qualified Data.Monoid
+import qualified Data.String
 import qualified GHC.Num
 import qualified GHC.Real
 import qualified System.IO

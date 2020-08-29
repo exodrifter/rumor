@@ -5,11 +5,20 @@ module Rumor.Parser
 
 -- Combinators
 , chainl1
+, many
+, many1
 , manyTill
 
+-- Indents
+, sameOrIndented
+, withPos
+
 -- Parsers
+, alphaNum
 , anyChar
 , char
+, endOfLine
+, eof
 , fixed
 , oneOf
 , spaces
@@ -21,11 +30,14 @@ import Control.Monad (Monad(..), MonadFail(..))
 import qualified Data.Text as T
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.Number as Parsec
-import qualified Text.Parsec.Text as Parsec
+import qualified Text.Parsec.Indent as Parsec
 
 -- A parser that automatically rolls back when it fails, like
 -- attoparsec.
-newtype Parser a = Parser { unParser :: Parsec.Parser a }
+newtype Parser a =
+  Parser
+    { unParser :: Parsec.IndentParser T.Text () a
+    }
 
 instance Functor Parser where
   fmap fn p = Parser $ fmap fn (unParser p)
@@ -46,7 +58,7 @@ instance MonadFail Parser where
   fail = Parser . Parsec.parserFail
 
 runParser :: Parser a -> Parsec.SourceName -> T.Text -> Either Parsec.ParseError a
-runParser p = Parsec.runParser (unParser p) ()
+runParser p = Parsec.runIndentParser (unParser p) ()
 
 --------------------------------------------------------------------------------
 -- Combinators
@@ -58,6 +70,9 @@ chainl1 p op = Parser $ Parsec.chainl1 (unParser p) (unParser op)
 many :: Parser a -> Parser [a]
 many = Parser . Parsec.many . unParser
 
+many1 :: Parser a -> Parser [a]
+many1 = Parser . Parsec.many1 . unParser
+
 manyTill :: Parser a -> Parser end -> Parser [a]
 manyTill p end =
   Parser $ Parsec.manyTill
@@ -65,8 +80,21 @@ manyTill p end =
     (Parsec.try . Parsec.lookAhead $ unParser end)
 
 --------------------------------------------------------------------------------
+-- Indents
+--------------------------------------------------------------------------------
+
+sameOrIndented :: Parser ()
+sameOrIndented = Parser Parsec.sameOrIndented
+
+withPos :: Parser a -> Parser a
+withPos = Parser . Parsec.withPos . unParser
+
+--------------------------------------------------------------------------------
 -- Parsers
 --------------------------------------------------------------------------------
+
+alphaNum :: Parser Char
+alphaNum = Parser Parsec.alphaNum
 
 anyChar :: Parser Char
 anyChar = Parser Parsec.anyChar
@@ -76,6 +104,12 @@ char = Parser . Parsec.char
 
 digit :: Parser Char
 digit = Parser Parsec.digit
+
+endOfLine :: Parser Char
+endOfLine = Parser Parsec.endOfLine
+
+eof :: Parser ()
+eof = Parser Parsec.eof
 
 fixed :: HasResolution r => Parser (Fixed r)
 fixed = do

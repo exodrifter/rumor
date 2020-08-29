@@ -179,6 +179,10 @@ simplifyMath expr =
 
 simplifyText :: HasResolution r => Expression r T.Text -> Expression r T.Text
 simplifyText expr =
+  stripText $ simplifyTextLoop expr
+
+simplifyTextLoop :: HasResolution r => Expression r T.Text -> Expression r T.Text
+simplifyTextLoop expr =
   case expr of
     Text a ->
       Text . collapseSpaces $ a
@@ -202,18 +206,34 @@ simplifyText expr =
     Concat (BooleanSubstitution (Boolean l)) (BooleanSubstitution (Boolean r)) ->
       Text . collapseSpaces $ toText l <> toText r
     Concat l r ->
-      if Concat (simplifyText l) (simplifyText r) == expr
+      if Concat (simplifyTextLoop l) (simplifyTextLoop r) == expr
       then expr
-      else simplifyText $ Concat (simplifyText l) (simplifyText r)
+      else simplifyTextLoop $ Concat (simplifyTextLoop l) (simplifyTextLoop r)
 
     MathSubstitution (Number a) ->
       Text . collapseSpaces $ toText a
     MathSubstitution math ->
       if simplifyMath math == math
       then MathSubstitution math
-      else simplifyText $ MathSubstitution (simplifyMath math)
+      else simplifyTextLoop $ MathSubstitution (simplifyMath math)
     BooleanSubstitution (Boolean a) ->
       Text . collapseSpaces $ toText a
+
+-- Attempts to trim whitespace from the beginning and end of an expression
+stripText :: Expression r T.Text -> Expression r T.Text
+stripText expr =
+  case expr of
+    Text a ->
+      Text . T.strip $ a
+
+    Concat (Text l) (Text r) ->
+      Concat (Text $ T.stripStart l) (Text $ T.stripEnd r)
+    Concat (Text l) r ->
+      Concat (Text $ T.stripStart l) r
+    Concat l (Text r) ->
+      Concat l (Text $ T.stripEnd r)
+
+    _ -> expr
 
 collapseSpaces :: T.Text -> T.Text
 collapseSpaces =
