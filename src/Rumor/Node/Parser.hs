@@ -13,9 +13,6 @@ import Rumor.Parser
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
 
-identifier :: Parser Identifier
-identifier = Identifier . T.pack <$> many1 alphaNum
-
 nodes :: HasResolution r => Parser [Node r]
 nodes = many node
 
@@ -135,13 +132,19 @@ wait = do
 dialog ::
   HasResolution r =>
   Char ->
-  Parser (Maybe Identifier, Expression r T.Text)
+  Parser (Maybe Character, Expression r T.Text)
 dialog symbol = do
-  i <- option identifier
+  i <- option character
   spaces
   _ <- char symbol
   d <- text
   pure $ (i, d)
+
+character :: Parser Character
+character = Character . T.pack <$> many1 alphaNum
+
+identifier :: Parser Identifier
+identifier = Identifier . T.pack <$> many1 alphaNum
 
 identifierLabel :: Parser Identifier
 identifierLabel = do

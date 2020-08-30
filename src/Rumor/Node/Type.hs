@@ -1,6 +1,7 @@
 module Rumor.Node.Type
 ( Node(..)
 , Identifier(..)
+, Character(..)
 , ClearType(..)
 ) where
 
@@ -11,7 +12,7 @@ import qualified Data.Text as T
 
 data Node r =
   -- Adds dialog to the scene
-    Append (Maybe Identifier) (Expression r T.Text)
+    Append (Maybe Character) (Expression r T.Text)
   -- Add a choice to the scene a user can pick
   | Choice (Maybe Identifier) (Expression r T.Text)
   -- Waits until the user chooses exactly one choice and removes all choices
@@ -26,7 +27,7 @@ data Node r =
   -- Moves execution from the current block to the parent block
   | Return
   -- Sets the dialog in the scene
-  | Say (Maybe Identifier) (Expression r T.Text)
+  | Say (Maybe Character) (Expression r T.Text)
   -- A labeled section which execution can be jumped to
   | Section Identifier (NE.NonEmpty (Node r))
   -- Wait for a user to provide input
@@ -34,6 +35,10 @@ data Node r =
   deriving stock (Eq, Show)
 
 newtype Identifier = Identifier { unIdentifier :: T.Text }
+  deriving stock (Eq, Show)
+  deriving newtype (IsString)
+
+newtype Character = Character { unCharacter :: T.Text }
   deriving stock (Eq, Show)
   deriving newtype (IsString)
 
