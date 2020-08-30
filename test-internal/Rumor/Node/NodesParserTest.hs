@@ -27,6 +27,7 @@ nodesTest =
           , Pause (Number 150000)
           , Call "foobar"
           , Jump "bizzbazz"
+          , Return
           ]
       )
       ( runNodesParser nodes
@@ -36,6 +37,7 @@ nodesTest =
           \pause 2.5 minutes \n\
           \call foobar \n\
           \jump bizzbazz \n\
+          \return \n\
           \ "
       )
 

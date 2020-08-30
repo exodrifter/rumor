@@ -5,6 +5,7 @@ module Rumor.Node.Parser
 , section
 ) where
 
+import Prelude hiding (return)
 import Rumor.Expression
 import Rumor.Node.Type
 import Rumor.Parser
@@ -24,6 +25,7 @@ node =
   call <|>
   jump <|>
   pause <|>
+  return <|>
   say <|>
   section <|>
   wait
@@ -77,6 +79,12 @@ pause = do
        minutesParser
   _ <- restOfLine
   pure $ Pause t
+
+return :: Parser (Node r)
+return = do
+  _ <- string "return"
+  _ <- restOfLine
+  pure Return
 
 say :: HasResolution r => Parser (Node r)
 say = do
