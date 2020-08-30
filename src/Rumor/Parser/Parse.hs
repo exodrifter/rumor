@@ -6,6 +6,7 @@ module Rumor.Parser.Parse
 , eof
 , fixed
 , oneOf
+, restOfFile
 , restOfLine
 , spaces
 , spaces1
@@ -47,6 +48,12 @@ fixed = do
 
 oneOf :: [Char] -> Parser Char
 oneOf = Parser . Parsec.oneOf
+
+-- | Consumes the rest of whitespace in this document
+restOfFile :: Parser ()
+restOfFile = do
+  _ <- manyTill space eof
+  eof
 
 -- | Consumes the rest of whitespace on this line, including the end of line
 -- characters if they exist

@@ -15,7 +15,15 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 
 nodes :: HasResolution r => Parser [Node r]
-nodes = many node
+nodes = do
+  spaces
+  ns <- withPos . many $ do
+    checkIndent
+    n <- node
+    spaces
+    pure n
+  restOfFile
+  pure ns
 
 node :: HasResolution r => Parser (Node r)
 node =
