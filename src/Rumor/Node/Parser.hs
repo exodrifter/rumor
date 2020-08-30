@@ -10,6 +10,7 @@ import Rumor.Expression.Type
 import Rumor.Node.Type
 import Rumor.Parser
 
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
 
 identifier :: Parser Identifier
@@ -54,4 +55,6 @@ section = withPos $ do
 
   spaces
   n <- indented *> block (node <* spaces)
-  pure $ Section i n
+  case NE.nonEmpty n of
+    Just ns -> pure $ Section i ns
+    Nothing -> fail "labeled section does not contain anything"

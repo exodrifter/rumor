@@ -15,6 +15,7 @@ module Prelude
 
 -- Functions
 , Control.Applicative.pure
+, Control.Monad.fail
 , Control.Monad.return
 , Control.Monad.void
 , Data.Functor.fmap

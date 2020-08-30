@@ -14,7 +14,6 @@ module Rumor.Parser.Parse
 import Rumor.Parser.Combinator (many, manyTill)
 import Rumor.Parser.Type (Parser(..))
 
-import Control.Monad (fail)
 import qualified Data.Text as T
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.Number as Parsec

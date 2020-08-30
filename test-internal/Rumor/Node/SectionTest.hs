@@ -8,6 +8,7 @@ import Rumor.Node.Parser (nodes, section)
 import Rumor.Node.Type (Node(..))
 
 import Test.HUnit
+import qualified Data.List.NonEmpty as NE
 
 tests :: Test
 tests =
@@ -21,10 +22,11 @@ tests =
 sectionTest :: Test
 sectionTest =
   TestCase $ assertEqual "Parses a single section"
-    ( Right $ Section "foobar"
-        [ Say Nothing (Text "Hello world!")
-        , Say Nothing (Text "Fizz bazz!")
-        ]
+    ( Right .
+        Section "foobar" $ NE.fromList
+          [ Say Nothing (Text "Hello world!")
+          , Say Nothing (Text "Fizz bazz!")
+          ]
     )
     ( runNodeParser section
         "label foobar \n\
@@ -37,10 +39,10 @@ multiSectionTest :: Test
 multiSectionTest =
   TestCase $ assertEqual "Parses multiple sections"
     ( Right
-      [ Section "foo"
+      [ Section "foo" $ NE.fromList
         [ Say Nothing (Text "Hello world! Hello everyone!")
         ]
-      , Section "bar"
+      , Section "bar" $ NE.fromList
         [ Say Nothing (Text "Fizz bazz!")
         , Say Nothing (Text "Bazz fizz!")
         ]
@@ -60,8 +62,8 @@ nestedSectionTest :: Test
 nestedSectionTest =
   TestCase $ assertEqual "Parses a nested section"
     ( Right $
-        Section "foo"
-          [ Section "bar"
+        Section "foo" $ NE.fromList
+          [ Section "bar" $ NE.fromList
             [ Say Nothing (Text "Hello world!")
             ]
           ]
@@ -77,17 +79,17 @@ multiNestedSectionTest :: Test
 multiNestedSectionTest =
   TestCase $ assertEqual "Parses multiple nested sections"
     ( Right
-      [ Section "foo"
+      [ Section "foo" $ NE.fromList
         [ Say Nothing (Text "Hello world! Hello everyone!")
-        , Section "bar"
+        , Section "bar" $ NE.fromList
           [ Say Nothing (Text "Fizz bazz!")
           , Say Nothing (Text "Bazz fizz!")
           ]
         ]
-      , Section "bizz"
+      , Section "bizz" $ NE.fromList
         [ Append Nothing (Text "Hello world!")
         , Append Nothing (Text "Hello everyone!")
-        , Section "bazz"
+        , Section "bazz" $ NE.fromList
           [ Append Nothing (Text "Fizz bazz! Bazz fizz!")
           ]
         ]
