@@ -21,26 +21,40 @@ nodes = many node
 node :: HasResolution r => Parser (Node r)
 node =
   append <|>
+  call <|>
+  jump <|>
   pause <|>
   say <|>
   section <|>
   wait
+
+--------------------------------------------------------------------------------
+-- Node Parsers
+--------------------------------------------------------------------------------
+-- It is expected that each of these parsers:
+-- * Assume that they start parsing where the command for the node is
+-- * Consume all of the input on the line, including the newline characters
 
 append :: HasResolution r => Parser (Node r)
 append = do
   (s, d) <- dialog '+'
   pure $ Append s d
 
-dialog ::
-  HasResolution r =>
-  Char ->
-  Parser (Maybe Identifier, Expression r T.Text)
-dialog symbol = do
-  s <- Just <$> identifier <|> pure Nothing
-  spaces
-  _ <- char symbol
-  d <- text
-  pure $ (s, d)
+call :: Parser (Node r)
+call = do
+  _ <- string "call"
+  spaces1
+  i <- identifier
+  _ <- restOfLine
+  pure $ Call i
+
+jump :: Parser (Node r)
+jump = do
+  _ <- string "jump"
+  spaces1
+  i <- identifier
+  _ <- restOfLine
+  pure $ Jump i
 
 pause :: HasResolution r => Parser (Node r)
 pause = do
@@ -87,3 +101,18 @@ wait = do
   _ <- string "wait"
   _ <- restOfLine
   pure Wait
+
+--------------------------------------------------------------------------------
+-- Helper Parsers
+--------------------------------------------------------------------------------
+
+dialog ::
+  HasResolution r =>
+  Char ->
+  Parser (Maybe Identifier, Expression r T.Text)
+dialog symbol = do
+  i <- Just <$> identifier <|> pure Nothing
+  spaces
+  _ <- char symbol
+  d <- text
+  pure $ (i, d)

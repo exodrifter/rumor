@@ -25,6 +25,8 @@ nodesTest =
           , Append Nothing (Text "Hello World!")
           , Wait
           , Pause (Number 150000)
+          , Call "foobar"
+          , Jump "bizzbazz"
           ]
       )
       ( runNodesParser nodes
@@ -32,6 +34,8 @@ nodesTest =
           \+ Hello World! \n\
           \wait \n\
           \pause 2.5 minutes \n\
+          \call foobar \n\
+          \jump bizzbazz \n\
           \ "
       )
 
