@@ -11,6 +11,7 @@ import Rumor.Node.Type
 import Rumor.Parser
 
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Set as Set
 import qualified Data.Text as T
 
 nodes :: HasResolution r => Parser [Node r]
@@ -150,7 +151,13 @@ identifierLabel :: Parser Identifier
 identifierLabel = do
   _ <- char '['
   spaces
+
   i <- identifier
+  usedIdentifiers <- getState
+  if Set.member i usedIdentifiers
+  then fail "duplicate identifier label"
+  else modifyState (Set.insert i)
+
   spaces
   _ <- char ']'
   pure i

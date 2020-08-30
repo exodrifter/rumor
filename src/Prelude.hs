@@ -19,6 +19,7 @@ module Prelude
 , Control.Monad.fail
 , Control.Monad.return
 , Control.Monad.void
+, Data.Either.isLeft
 , Data.Functor.fmap
 , Data.List.elem
 , Text.Read.readMaybe

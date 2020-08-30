@@ -14,6 +14,7 @@ tests =
   TestList
     [ nodesTest
     , sayBlockTest
+    , identifierDuplicateTest
     ]
 
 nodesTest :: Test
@@ -72,3 +73,15 @@ sayBlockTest =
           \Alice: That's great! \n\
           \ "
       )
+
+identifierDuplicateTest :: Test
+identifierDuplicateTest =
+  TestCase $ do
+    let result = runNodesParser nodes
+          "label [foo] \n\
+          \  : Hello \n\
+          \label [foo] \n\
+          \  : Hello \n\
+          \ "
+    assertBool "Fails to parse nodes that reuse identifiers"
+      (isLeft result)
