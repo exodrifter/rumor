@@ -33,6 +33,7 @@ nodesTest =
           , Clear ClearAll
           , Clear ClearDialog
           , Clear ClearChoices
+          , Choose
           ]
       )
       ( runNodesParser nodes
@@ -48,6 +49,7 @@ nodesTest =
           \clear \n\
           \clear dialog \n\
           \clear choices \n\
+          \choose \n\
           \ "
       )
 

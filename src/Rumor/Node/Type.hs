@@ -14,6 +14,9 @@ data Node r =
     Append (Maybe Identifier) (Expression r T.Text)
   -- Temporarily moves execution to a specified section
   | Call Identifier
+  -- Waits until the user chooses exactly one choice and removes all choices
+  -- from the scene after a choice has been selected
+  | Choose
   -- Removes all dialog and choices from the scene
   | Clear ClearType
   -- Jumps execution to a specified section
