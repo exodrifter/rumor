@@ -92,7 +92,7 @@ remainingText = do
       ( do -- End of line with more content
           eol
           s <- spaces *> pure " "
-          sameOrIndented
+          checkIndented
           Concat (Text $ s <> beginning) <$> remainingText
       ) <|>
       ( do -- End of line with no more content
@@ -100,6 +100,7 @@ remainingText = do
           pure $ Text beginning
       ) <|>
       ( do -- End of file
+          eof
           pure $ Text beginning
       )
   pure result
