@@ -21,6 +21,7 @@ nodes = many node
 node :: HasResolution r => Parser (Node r)
 node =
   append <|>
+  pause <|>
   say <|>
   section <|>
   wait
@@ -41,6 +42,28 @@ dialog symbol = do
   d <- text
   pure $ (s, d)
 
+pause :: HasResolution r => Parser (Node r)
+pause = do
+  let millisecondsParser = do
+        n <- math
+        _ <- (spaces1 *> string "milliseconds") <|> string "ms"
+        pure n
+      secondsParser = do
+        n <- math
+        _ <- (spaces1 *> string "seconds") <|> string "s"
+        pure $ simplifyMath (Multiply n (Number 1000))
+      minutesParser = do
+        n <- math
+        _ <- (spaces1 *> string "minutes") <|> string "m"
+        pure $ simplifyMath (Multiply n (Number 60000))
+  _ <- string "pause"
+  spaces1
+  t <- millisecondsParser <|>
+       secondsParser <|>
+       minutesParser
+  _ <- restOfLine
+  pure $ Pause t
+
 say :: HasResolution r => Parser (Node r)
 say = do
   (s, d) <- dialog ':'
@@ -49,7 +72,7 @@ say = do
 section :: HasResolution r => Parser (Node r)
 section = withPos $ do
   _ <- string "label"
-  spaces
+  spaces1
   i <- identifier
   _ <- restOfLine
 

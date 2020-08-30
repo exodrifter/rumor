@@ -11,6 +11,8 @@ import qualified Data.Text as T
 data Node r =
   -- Adds dialog to the scene
     Append (Maybe Identifier) (Expression r T.Text)
+  -- Pauses execution for a specified number of milliseconds
+  | Pause (Expression r (Fixed r))
   -- Sets the dialog in the scene
   | Say (Maybe Identifier) (Expression r T.Text)
   -- A labeled section which execution can be jumped to

@@ -8,6 +8,7 @@ module Rumor.Parser.Parse
 , oneOf
 , restOfLine
 , spaces
+, spaces1
 , string
 ) where
 
@@ -62,6 +63,9 @@ space = Parser Parsec.space
 
 spaces :: Parser ()
 spaces = Parser Parsec.spaces
+
+spaces1 :: Parser ()
+spaces1 = Parser (Parsec.space *> Parsec.spaces)
 
 string :: T.Text -> Parser T.Text
 string = Parser . fmap T.pack . Parsec.string . T.unpack

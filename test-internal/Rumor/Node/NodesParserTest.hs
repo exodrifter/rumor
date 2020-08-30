@@ -12,8 +12,28 @@ import Test.HUnit
 tests :: Test
 tests =
   TestList
-    [ sayBlockTest
+    [ nodesTest
+    , sayBlockTest
     ]
+
+nodesTest :: Test
+nodesTest =
+  TestCase $ do
+    assertEqual "Parses multiple nodes in a block"
+      ( Right
+          [ Say Nothing (Text "Hello World!")
+          , Append Nothing (Text "Hello World!")
+          , Wait
+          , Pause (Number 150000)
+          ]
+      )
+      ( runNodesParser nodes
+          ": Hello World! \n\
+          \+ Hello World! \n\
+          \wait \n\
+          \pause 2.5 minutes \n\
+          \ "
+      )
 
 sayBlockTest :: Test
 sayBlockTest =
@@ -24,7 +44,6 @@ sayBlockTest =
           , Say (Just "Alice") (Text "Hello there! How are you doing?")
           , Say (Just "Eve") (Text "I'm doing well.")
           , Say (Just "Alice") (Text "That's great!")
-          , Wait
           ]
       )
       ( runNodesParser nodes
@@ -33,6 +52,5 @@ sayBlockTest =
           \       How are you doing? \n\
           \Eve: I'm doing well. \n\
           \Alice: That's great! \n\
-          \wait \n\
           \ "
       )
