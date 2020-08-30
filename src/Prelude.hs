@@ -8,7 +8,7 @@ module Prelude
 , Data.Fixed.Fixed(..)
 , Data.Fixed.HasResolution
 , Data.Maybe.Maybe(..)
-, Data.Ord.Ord
+, Data.Ord.Ord(..)
 , Data.String.IsString
 , GHC.Integer.Integer
 , System.IO.FilePath

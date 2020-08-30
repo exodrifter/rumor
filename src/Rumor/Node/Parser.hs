@@ -10,6 +10,8 @@ import Rumor.Expression
 import Rumor.Node.Type
 import Rumor.Parser
 
+import Data.Int (Int)
+import GHC.Enum (maxBound)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
 import qualified Data.Text as T
@@ -164,7 +166,10 @@ identifierLabel = do
   usedIdentifiers <- getState
   if Set.member i usedIdentifiers
   then fail "duplicate identifier label"
-  else modifyState (Set.insert i)
+  else
+    if Set.size usedIdentifiers >= (maxBound :: Int)
+    then fail "cannot create any more identifier labels"
+    else modifyState (Set.insert i)
 
   spaces
   _ <- char ']'
