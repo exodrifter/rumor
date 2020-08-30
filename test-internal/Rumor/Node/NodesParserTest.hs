@@ -24,6 +24,7 @@ sayBlockTest =
           , Say (Just "Alice") (Text "Hello there! How are you doing?")
           , Say (Just "Eve") (Text "I'm doing well.")
           , Say (Just "Alice") (Text "That's great!")
+          , Wait
           ]
       )
       ( runNodesParser nodes
@@ -32,5 +33,6 @@ sayBlockTest =
           \       How are you doing? \n\
           \Eve: I'm doing well. \n\
           \Alice: That's great! \n\
+          \wait \n\
           \ "
       )

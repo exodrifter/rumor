@@ -77,7 +77,7 @@ remainingQuote = do
   pure result
 
 text :: HasResolution r => Parser (Expression r T.Text)
-text = simplifyText <$> remainingText
+text = withPos $ simplifyText <$> remainingText
 
 remainingText :: HasResolution r => Parser (Expression r T.Text)
 remainingText = do
