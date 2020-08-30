@@ -27,7 +27,6 @@ nodesTest =
           , Pause (Number 2.5)
           , Pause (Number 2500)
           , Pause (Number 150000)
-          , Call "foobar"
           , Jump "bizzbazz"
           , Return
           , Clear ClearAll
@@ -43,7 +42,6 @@ nodesTest =
           \pause 2.5 milliseconds \n\
           \pause 2.5 seconds \n\
           \pause 2.5 minutes \n\
-          \call foobar \n\
           \jump bizzbazz \n\
           \return \n\
           \clear \n\

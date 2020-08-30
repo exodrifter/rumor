@@ -22,7 +22,6 @@ nodes = many node
 node :: HasResolution r => Parser (Node r)
 node =
   append <|>
-  call <|>
   choose <|>
   clear <|>
   jump <|>
@@ -43,14 +42,6 @@ append :: HasResolution r => Parser (Node r)
 append = do
   (s, d) <- dialog '+'
   pure $ Append s d
-
-call :: Parser (Node r)
-call = do
-  _ <- string "call"
-  spaces1
-  i <- identifier
-  _ <- restOfLine
-  pure $ Call i
 
 choose :: Parser (Node r)
 choose = do
