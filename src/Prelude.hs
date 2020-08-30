@@ -8,6 +8,7 @@ module Prelude
 , Data.Fixed.Fixed(..)
 , Data.Fixed.HasResolution
 , Data.Maybe.Maybe(..)
+, Data.Ord.Ord
 , Data.String.IsString
 , System.IO.FilePath
 , System.IO.IO
@@ -51,6 +52,7 @@ import qualified Data.Functor
 import qualified Data.List
 import qualified Data.Maybe
 import qualified Data.Monoid
+import qualified Data.Ord
 import qualified Data.String
 import qualified GHC.Num
 import qualified GHC.Real

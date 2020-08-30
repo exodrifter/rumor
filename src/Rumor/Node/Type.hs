@@ -35,7 +35,7 @@ data Node r =
   deriving stock (Eq, Show)
 
 newtype Identifier = Identifier { unIdentifier :: T.Text }
-  deriving stock (Eq, Show)
+  deriving stock (Eq, Ord, Show)
   deriving newtype (IsString)
 
 newtype Character = Character { unCharacter :: T.Text }

@@ -2,11 +2,19 @@ module Rumor.Parser.Type
 ( Parser(..)
 , Parsec.ParseError
 , runParser
+
+-- User State
+, getState
+, modifyState
 ) where
+
+import Rumor.Node.Type
 
 import Control.Applicative (Applicative(..), Alternative(..))
 import Control.Monad (Monad(..), MonadFail(..))
 import Data.Functor (Functor(..))
+import Data.Set (Set)
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.Indent as Parsec
@@ -15,7 +23,7 @@ import qualified Text.Parsec.Indent as Parsec
 -- attoparsec.
 newtype Parser a =
   Parser
-    { unParser :: Parsec.IndentParser T.Text () a
+    { unParser :: Parsec.IndentParser T.Text (Set Identifier) a
     }
 
 instance Functor Parser where
@@ -37,4 +45,14 @@ instance MonadFail Parser where
   fail = Parser . Parsec.parserFail
 
 runParser :: Parser a -> Parsec.SourceName -> T.Text -> Either Parsec.ParseError a
-runParser p = Parsec.runIndentParser (unParser p) ()
+runParser p = Parsec.runIndentParser (unParser p) Set.empty
+
+--------------------------------------------------------------------------------
+-- User State
+--------------------------------------------------------------------------------
+
+getState :: Parser (Set Identifier)
+getState = Parser Parsec.getState
+
+modifyState :: (Set Identifier -> Set Identifier) -> Parser ()
+modifyState = Parser . Parsec.modifyState
