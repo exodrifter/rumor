@@ -10,6 +10,7 @@ module Prelude
 , Data.Maybe.Maybe(..)
 , Data.Ord.Ord
 , Data.String.IsString
+, GHC.Integer.Integer
 , System.IO.FilePath
 , System.IO.IO
 , Text.Show.Show(..)
@@ -55,6 +56,7 @@ import qualified Data.Maybe
 import qualified Data.Monoid
 import qualified Data.Ord
 import qualified Data.String
+import qualified GHC.Integer
 import qualified GHC.Num
 import qualified GHC.Real
 import qualified System.IO
