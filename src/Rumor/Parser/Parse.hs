@@ -11,7 +11,7 @@ module Rumor.Parser.Parse
 , string
 ) where
 
-import Rumor.Parser.Combinator (many, manyTill)
+import Rumor.Parser.Combinator
 import Rumor.Parser.Type (Parser(..))
 
 import qualified Data.Text as T

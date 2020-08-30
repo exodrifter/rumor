@@ -3,7 +3,7 @@ module Rumor.Node.Type
 , Identifier(..)
 ) where
 
-import Rumor.Expression.Type (Expression)
+import Rumor.Expression.Type
 
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T

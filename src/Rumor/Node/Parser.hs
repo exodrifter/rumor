@@ -5,8 +5,7 @@ module Rumor.Node.Parser
 , section
 ) where
 
-import Rumor.Expression.Parser
-import Rumor.Expression.Type
+import Rumor.Expression
 import Rumor.Node.Type
 import Rumor.Parser
 
