@@ -1,6 +1,7 @@
 module Rumor.Node.Type
 ( Node(..)
 , Identifier(..)
+, ClearType(..)
 ) where
 
 import Rumor.Expression.Type
@@ -13,6 +14,8 @@ data Node r =
     Append (Maybe Identifier) (Expression r T.Text)
   -- Temporarily moves execution to a specified section
   | Call Identifier
+  -- Removes all dialog and choices from the scene
+  | Clear ClearType
   -- Jumps execution to a specified section
   | Jump Identifier
   -- Pauses execution for a specified number of milliseconds
@@ -30,3 +33,9 @@ data Node r =
 newtype Identifier = Identifier { unIdentifier :: T.Text }
   deriving stock (Eq, Show)
   deriving newtype (IsString)
+
+data ClearType =
+    ClearAll
+  | ClearDialog
+  | ClearChoices
+  deriving stock (Eq, Show)

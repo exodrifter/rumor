@@ -5,7 +5,7 @@ module Rumor.Node.NodesParserTest
 import Rumor.Expression.Type (Expression(..))
 import Rumor.Node.Helper (runNodesParser)
 import Rumor.Node.Parser (nodes)
-import Rumor.Node.Type (Node(..))
+import Rumor.Node.Type (Node(..), ClearType(..))
 
 import Test.HUnit
 
@@ -24,20 +24,30 @@ nodesTest =
           [ Say Nothing (Text "Hello World!")
           , Append Nothing (Text "Hello World!")
           , Wait
+          , Pause (Number 2.5)
+          , Pause (Number 2500)
           , Pause (Number 150000)
           , Call "foobar"
           , Jump "bizzbazz"
           , Return
+          , Clear ClearAll
+          , Clear ClearDialog
+          , Clear ClearChoices
           ]
       )
       ( runNodesParser nodes
           ": Hello World! \n\
           \+ Hello World! \n\
           \wait \n\
+          \pause 2.5 milliseconds \n\
+          \pause 2.5 seconds \n\
           \pause 2.5 minutes \n\
           \call foobar \n\
           \jump bizzbazz \n\
           \return \n\
+          \clear \n\
+          \clear dialog \n\
+          \clear choices \n\
           \ "
       )
 

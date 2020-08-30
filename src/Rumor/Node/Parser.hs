@@ -23,6 +23,7 @@ node :: HasResolution r => Parser (Node r)
 node =
   append <|>
   call <|>
+  clear <|>
   jump <|>
   pause <|>
   return <|>
@@ -49,6 +50,15 @@ call = do
   i <- identifier
   _ <- restOfLine
   pure $ Call i
+
+clear :: Parser (Node r)
+clear = do
+  _ <- string "clear"
+  t <- spaces1 *> string "dialog" *> pure ClearDialog <|>
+       spaces1 *> string "choices" *> pure ClearChoices <|>
+       pure ClearAll
+  _ <- restOfLine
+  pure $ Clear t
 
 jump :: Parser (Node r)
 jump = do
