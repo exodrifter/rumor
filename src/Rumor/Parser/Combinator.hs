@@ -3,6 +3,7 @@ module Rumor.Parser.Combinator
 , many
 , many1
 , manyTill
+, option
 ) where
 
 import Rumor.Parser.Type (Parser(..))
@@ -23,3 +24,6 @@ manyTill p end =
   Parser $ Parsec.manyTill
     (unParser p)
     (Parsec.try . Parsec.lookAhead $ unParser end)
+
+option :: Parser a -> Parser (Maybe a)
+option p = Just <$> p <|> pure Nothing

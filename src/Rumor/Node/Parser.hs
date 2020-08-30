@@ -22,6 +22,7 @@ nodes = many node
 node :: HasResolution r => Parser (Node r)
 node =
   append <|>
+  choice <|>
   choose <|>
   clear <|>
   jump <|>
@@ -42,6 +43,15 @@ append :: HasResolution r => Parser (Node r)
 append = do
   (s, d) <- dialog '+'
   pure $ Append s d
+
+choice :: HasResolution r => Parser (Node r)
+choice = do
+  _ <- string "choice"
+  i <- option $ spaces1 *> identifierLabel
+  spaces1
+  c <- text
+  _ <- restOfLine
+  pure $ Choice i c
 
 choose :: Parser (Node r)
 choose = do
@@ -103,7 +113,7 @@ section :: HasResolution r => Parser (Node r)
 section = withPos $ do
   _ <- string "label"
   spaces1
-  i <- identifier
+  i <- identifierLabel
   _ <- restOfLine
 
   spaces
@@ -127,8 +137,17 @@ dialog ::
   Char ->
   Parser (Maybe Identifier, Expression r T.Text)
 dialog symbol = do
-  i <- Just <$> identifier <|> pure Nothing
+  i <- option identifier
   spaces
   _ <- char symbol
   d <- text
   pure $ (i, d)
+
+identifierLabel :: Parser Identifier
+identifierLabel = do
+  _ <- char '['
+  spaces
+  i <- identifier
+  spaces
+  _ <- char ']'
+  pure i

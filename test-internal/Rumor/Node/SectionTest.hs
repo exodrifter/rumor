@@ -29,7 +29,7 @@ sectionTest =
           ]
     )
     ( runNodeParser section
-        "label foobar \n\
+        "label [foobar] \n\
         \  : Hello world! \n\
         \  : Fizz bazz! \n\
         \ "
@@ -49,10 +49,10 @@ multiSectionTest =
       ]
     )
     ( runNodesParser nodes
-        "label foo \n\
+        "label [foo] \n\
         \  : Hello world! \n\
         \    Hello everyone! \n\
-        \label bar \n\
+        \label [bar] \n\
         \  : Fizz bazz! \n\
         \  : Bazz fizz! \n\
         \ "
@@ -69,8 +69,8 @@ nestedSectionTest =
           ]
     )
     ( runNodeParser section
-        "label foo \n\
-        \  label bar \n\
+        "label [foo] \n\
+        \  label [bar] \n\
         \    : Hello world! \n\
         \ "
     )
@@ -96,16 +96,16 @@ multiNestedSectionTest =
       ]
     )
     ( runNodesParser nodes
-        "label foo \n\
+        "label [foo] \n\
         \  : Hello world! \n\
         \    Hello everyone! \n\
-        \  label bar \n\
+        \  label [bar] \n\
         \    : Fizz bazz! \n\
         \    : Bazz fizz! \n\
-        \label bizz \n\
+        \label [bizz] \n\
         \  + Hello world! \n\
         \  + Hello everyone! \n\
-        \  label bazz \n\
+        \  label [bazz] \n\
         \    + Fizz bazz! \n\
         \      Bazz fizz! \n\
         \ "
