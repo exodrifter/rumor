@@ -7,6 +7,7 @@ module Prelude
 , Data.Eq.Eq(..)
 , Data.Fixed.Fixed(..)
 , Data.Fixed.HasResolution
+, Data.Map.Strict.Map
 , Data.Maybe.Maybe(..)
 , Data.Ord.Ord(..)
 , Data.String.IsString
@@ -52,6 +53,7 @@ import qualified Data.Fixed
 import qualified Data.Function
 import qualified Data.Functor
 import qualified Data.List
+import qualified Data.Map.Strict
 import qualified Data.Maybe
 import qualified Data.Monoid
 import qualified Data.Ord

@@ -1,12 +1,11 @@
 module Rumor.Script
 ( Script(..)
 , empty
-, singleNode
+, singleton
 ) where
 
 import Rumor.Node.Type
 
-import Data.Map (Map)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
 

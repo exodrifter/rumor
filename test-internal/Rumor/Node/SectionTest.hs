@@ -3,12 +3,13 @@ module Rumor.Node.SectionTest
 ) where
 
 import Rumor.Expression.Type (Expression(..))
-import Rumor.Node.Helper (runNodeParser, runNodesParser)
-import Rumor.Node.Parser (nodes, section)
+import Rumor.Node.Helper (runNodesParser)
 import Rumor.Node.Type (Node(..))
+import Rumor.Script (Script(..))
 
 import Test.HUnit
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Map.Strict as Map
 
 tests :: Test
 tests =
@@ -22,13 +23,18 @@ tests =
 sectionTest :: Test
 sectionTest =
   TestCase $ assertEqual "Parses a single section"
-    ( Right .
-        Section "foobar" $ NE.fromList
-          [ Say Nothing (Text "Hello world!")
-          , Say Nothing (Text "Fizz bazz!")
-          ]
+    ( Right Script
+      { sections = Map.fromList
+        [ ("foobar", NE.fromList
+            [ Say Nothing (Text "Hello world!")
+            , Say Nothing (Text "Fizz bazz!")
+            ]
+          )
+        ]
+      , nodes = []
+      }
     )
-    ( runNodeParser section
+    ( runNodesParser
         "label [foobar] \n\
         \  : Hello world! \n\
         \  : Fizz bazz! \n\
@@ -38,17 +44,22 @@ sectionTest =
 multiSectionTest :: Test
 multiSectionTest =
   TestCase $ assertEqual "Parses multiple sections"
-    ( Right
-      [ Section "foo" $ NE.fromList
-        [ Say Nothing (Text "Hello world! Hello everyone!")
+    ( Right Script
+      { sections = Map.fromList
+        [ ("foo", NE.fromList
+            [ Say Nothing (Text "Hello world! Hello everyone!")
+            ]
+          )
+        , ("bar", NE.fromList
+            [ Say Nothing (Text "Fizz bazz!")
+            , Say Nothing (Text "Bazz fizz!")
+            ]
+          )
         ]
-      , Section "bar" $ NE.fromList
-        [ Say Nothing (Text "Fizz bazz!")
-        , Say Nothing (Text "Bazz fizz!")
-        ]
-      ]
+      , nodes = []
+      }
     )
-    ( runNodesParser nodes
+    ( runNodesParser
         "label [foo] \n\
         \  : Hello world! \n\
         \    Hello everyone! \n\
@@ -61,15 +72,23 @@ multiSectionTest =
 nestedSectionTest :: Test
 nestedSectionTest =
   TestCase $ assertEqual "Parses a nested section"
-    ( Right $
-        Section "foo" $ NE.fromList
-          [ Section "bar" $ NE.fromList
+    ( Right Script
+      { sections = Map.fromList
+        [ ("foo", NE.fromList
+            [ Say Nothing (Text "Hi there!")
+            ]
+          )
+        , ("bar", NE.fromList
             [ Say Nothing (Text "Hello world!")
             ]
-          ]
+          )
+        ]
+      , nodes = []
+      }
     )
-    ( runNodeParser section
+    ( runNodesParser
         "label [foo] \n\
+        \  : Hi there! \n\
         \  label [bar] \n\
         \    : Hello world! \n\
         \ "
@@ -78,24 +97,31 @@ nestedSectionTest =
 multiNestedSectionTest :: Test
 multiNestedSectionTest =
   TestCase $ assertEqual "Parses multiple nested sections"
-    ( Right
-      [ Section "foo" $ NE.fromList
-        [ Say Nothing (Text "Hello world! Hello everyone!")
-        , Section "bar" $ NE.fromList
-          [ Say Nothing (Text "Fizz bazz!")
-          , Say Nothing (Text "Bazz fizz!")
-          ]
+    ( Right Script
+      { sections = Map.fromList
+        [ ("foo", NE.fromList
+            [ Say Nothing (Text "Hello world! Hello everyone!")
+            ]
+          )
+        , ("bar", NE.fromList
+            [ Say Nothing (Text "Fizz bazz!")
+            , Say Nothing (Text "Bazz fizz!")
+            ]
+          )
+        , ("bizz", NE.fromList
+            [ Append Nothing (Text "Hello world!")
+            , Append Nothing (Text "Hello everyone!")
+            ]
+          )
+        , ("bazz", NE.fromList
+            [ Append Nothing (Text "Fizz bazz! Bazz fizz!")
+            ]
+          )
         ]
-      , Section "bizz" $ NE.fromList
-        [ Append Nothing (Text "Hello world!")
-        , Append Nothing (Text "Hello everyone!")
-        , Section "bazz" $ NE.fromList
-          [ Append Nothing (Text "Fizz bazz! Bazz fizz!")
-          ]
-        ]
-      ]
+      , nodes = []
+      }
     )
-    ( runNodesParser nodes
+    ( runNodesParser
         "label [foo] \n\
         \  : Hello world! \n\
         \    Hello everyone! \n\

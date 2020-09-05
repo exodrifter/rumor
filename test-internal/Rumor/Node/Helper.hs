@@ -1,22 +1,15 @@
 module Rumor.Node.Helper
-( runNodeParser
-, runNodesParser
+( runNodesParser
 ) where
 
-import Rumor.Node.Type (Node(..))
-import Rumor.Parser
+import Rumor.Node.Parser (script)
+import Rumor.Parser (ParseError, runParser)
+import Rumor.Script (Script)
 
 import Data.Fixed (E12)
 import qualified Data.Text as T
 
-runNodeParser ::
-  Parser (Node E12) ->
-  T.Text ->
-  Either ParseError (Node E12)
-runNodeParser parser = runParser parser ""
-
 runNodesParser ::
-  Parser [Node E12] ->
   T.Text ->
-  Either ParseError [Node E12]
-runNodesParser parser = runParser parser ""
+  Either ParseError (Script E12)
+runNodesParser = runParser script ""

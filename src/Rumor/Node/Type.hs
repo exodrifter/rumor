@@ -7,7 +7,6 @@ module Rumor.Node.Type
 
 import Rumor.Expression.Type
 
-import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as T
 
 data Node r =
@@ -28,8 +27,6 @@ data Node r =
   | Return
   -- Sets the dialog in the scene
   | Say (Maybe Character) (Expression r T.Text)
-  -- A labeled section which execution can be jumped to
-  | Section Identifier (NE.NonEmpty (Node r))
   -- Wait for a user to provide input
   | Wait
   deriving stock (Eq, Show)

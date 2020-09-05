@@ -4,10 +4,11 @@ module Rumor.Node.NodesParserTest
 
 import Rumor.Expression.Type (Expression(..))
 import Rumor.Node.Helper (runNodesParser)
-import Rumor.Node.Parser (nodes)
+import Rumor.Script (Script(..))
 import Rumor.Node.Type (Node(..), ClearType(..))
 
 import Test.HUnit
+import qualified Data.Map.Strict as Map
 
 tests :: Test
 tests =
@@ -21,7 +22,9 @@ nodesTest :: Test
 nodesTest =
   TestCase $ do
     assertEqual "Parses multiple nodes in a block"
-      ( Right
+      ( Right Script
+        { sections = Map.empty
+        , nodes =
           [ Say Nothing (Text "Hello World!")
           , Append Nothing (Text "Hello World!")
           , Wait
@@ -36,8 +39,9 @@ nodesTest =
           , Choose
           , Choice (Just "foo") (Text "Green Door")
           ]
+        }
       )
-      ( runNodesParser nodes
+      ( runNodesParser
           ": Hello World! \n\
           \+ Hello World! \n\
           \wait \n\
@@ -58,14 +62,17 @@ sayBlockTest :: Test
 sayBlockTest =
   TestCase $ do
     assertEqual "Parses multiple says in a block"
-      ( Right
+      ( Right Script
+        { sections = Map.empty
+        , nodes =
           [ Say Nothing (Text "It was a quiet morning that day...")
           , Say (Just "Alice") (Text "Hello there! How are you doing?")
           , Say (Just "Eve") (Text "I'm doing well.")
           , Say (Just "Alice") (Text "That's great!")
           ]
+        }
       )
-      ( runNodesParser nodes
+      ( runNodesParser
           ": It was a quiet morning that day... \n\
           \Alice: Hello there! \n\
           \       How are you doing? \n\
@@ -77,7 +84,7 @@ sayBlockTest =
 identifierDuplicateTest :: Test
 identifierDuplicateTest =
   TestCase $ do
-    let result = runNodesParser nodes
+    let result = runNodesParser
           "label [foo] \n\
           \  : Hello \n\
           \label [foo] \n\

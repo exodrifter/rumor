@@ -3,9 +3,9 @@ module Rumor.Node.DialogParserTest
 ) where
 
 import Rumor.Expression.Type (Expression(..))
-import Rumor.Node.Helper (runNodeParser)
-import Rumor.Node.Parser (append, say)
+import Rumor.Node.Helper (runNodesParser)
 import Rumor.Node.Type (Node(..))
+import qualified Rumor.Script as Script
 
 import Test.HUnit
 
@@ -22,27 +22,31 @@ singleLineSayTest :: Test
 singleLineSayTest =
   TestCase $ do
     assertEqual "Parses a single-line say with no speaker"
-      (Right $ Say Nothing (Text "Hello there!"))
-      (runNodeParser say ": Hello there!")
+      (Right . Script.singleton $ Say Nothing (Text "Hello there!"))
+      (runNodesParser ": Hello there!")
 
     assertEqual "Parses a single-line say with a speaker"
-      (Right $ Say (Just "Alice") (Text "Hello there!"))
-      (runNodeParser say "Alice: Hello there!")
+      (Right . Script.singleton $ Say (Just "Alice") (Text "Hello there!"))
+      (runNodesParser "Alice: Hello there!")
 
 multiLineSayTest :: Test
 multiLineSayTest =
   TestCase $ do
     assertEqual "Parses a multi-line say with no speaker"
-      (Right $ Say Nothing (Text "Hello there! How are you doing?"))
-      ( runNodeParser say
+      ( Right . Script.singleton $
+          Say Nothing (Text "Hello there! How are you doing?")
+      )
+      ( runNodesParser
           ": Hello there! \n\
           \  How are you doing? \n\
           \ "
       )
 
     assertEqual "Parses a multi-line say with a speaker"
-      (Right $ Say (Just "Alice") (Text "Hello there! How are you doing?"))
-      ( runNodeParser say
+      ( Right . Script.singleton $
+          Say (Just "Alice") (Text "Hello there! How are you doing?")
+      )
+      ( runNodesParser
           "Alice: Hello there! \n\
           \       How are you doing? \n\
           \ "
@@ -52,27 +56,35 @@ singleLineAppendTest :: Test
 singleLineAppendTest =
   TestCase $ do
     assertEqual "Parses a single-line say with no speaker"
-      (Right $ Append Nothing (Text "Hello there!"))
-      (runNodeParser append "+ Hello there!")
+      ( Right . Script.singleton $
+          Append Nothing (Text "Hello there!")
+      )
+      (runNodesParser "+ Hello there!")
 
     assertEqual "Parses a single-line say with a speaker"
-      (Right $ Append (Just "Alice") (Text "Hello there!"))
-      (runNodeParser append "Alice+ Hello there!")
+      ( Right . Script.singleton $
+          Append (Just "Alice") (Text "Hello there!")
+      )
+      (runNodesParser "Alice+ Hello there!")
 
 multiLineAppendTest :: Test
 multiLineAppendTest =
   TestCase $ do
     assertEqual "Parses a multi-line say with no speaker"
-      (Right $ Append Nothing (Text "Hello there! How are you doing?"))
-      ( runNodeParser append
+      ( Right . Script.singleton $
+          Append Nothing (Text "Hello there! How are you doing?")
+      )
+      ( runNodesParser
         "+ Hello there! \n\
         \  How are you doing? \n\
         \ "
       )
 
     assertEqual "Parses a multi-line say with a speaker"
-      (Right $ Append (Just "Alice") (Text "Hello there! How are you doing?"))
-      ( runNodeParser append
+      ( Right . Script.singleton $
+          Append (Just "Alice") (Text "Hello there! How are you doing?")
+      )
+      ( runNodesParser
         "Alice+ Hello there! \n\
         \       How are you doing? \n\
         \ "
