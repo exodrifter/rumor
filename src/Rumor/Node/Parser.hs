@@ -61,13 +61,13 @@ choice = do
   i <- option $ spaces1 *> identifierLabel
   spaces1
   c <- text
-  _ <- restOfLine
+  restOfLine
   pure $ Choice i c
 
 choose :: Parser (Node r)
 choose = do
   _ <- string "choose"
-  _ <- restOfLine
+  restOfLine
   pure Choose
 
 clear :: Parser (Node r)
@@ -76,7 +76,7 @@ clear = do
   t <- spaces1 *> string "dialog" *> pure ClearDialog <|>
        spaces1 *> string "choices" *> pure ClearChoices <|>
        pure ClearAll
-  _ <- restOfLine
+  restOfLine
   pure $ Clear t
 
 jump :: Parser (Node r)
@@ -84,7 +84,7 @@ jump = do
   _ <- string "jump"
   spaces1
   i <- identifier
-  _ <- restOfLine
+  restOfLine
   pure $ Jump i
 
 pause :: HasResolution r => Parser (Node r)
@@ -106,13 +106,13 @@ pause = do
   t <- millisecondsParser <|>
        secondsParser <|>
        minutesParser
-  _ <- restOfLine
+  restOfLine
   pure $ Pause t
 
 return :: Parser (Node r)
 return = do
   _ <- string "return"
-  _ <- restOfLine
+  restOfLine
   pure Return
 
 say :: HasResolution r => Parser (Node r)
@@ -125,7 +125,7 @@ section = withPos $ do
   _ <- string "label"
   spaces1
   i <- identifierLabel
-  _ <- restOfLine
+  restOfLine
 
   spaces
   indented
@@ -137,7 +137,7 @@ section = withPos $ do
 wait :: Parser (Node r)
 wait = do
   _ <- string "wait"
-  _ <- restOfLine
+  restOfLine
   pure Wait
 
 --------------------------------------------------------------------------------
