@@ -32,4 +32,11 @@ packages:
       sha256: a3d23f56cc2a9d17ed24ac5119a7b2102d40c0afeed5271f6b41b7597f181df0
   original:
     hackage: parsec3-numbers-0.1.0
+- completed:
+    hackage: safe-0.3.19@sha256:0910dafb8898f52bde4c646e560228a0fd08b1fca5457f222d2f5c0fad6d2039,2317
+    pantry-tree:
+      size: 564
+      sha256: 40010636c24cebf3f3e29e9b3b8e6c35f249f5e5d253925433140bb0b4e3f891
+  original:
+    hackage: safe-0.3.19
 snapshots: []

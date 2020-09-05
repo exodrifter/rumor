@@ -7,11 +7,11 @@ module Prelude
 , Data.Eq.Eq(..)
 , Data.Fixed.Fixed(..)
 , Data.Fixed.HasResolution
+, Data.Int.Int
 , Data.Map.Strict.Map
 , Data.Maybe.Maybe(..)
 , Data.Ord.Ord(..)
 , Data.String.IsString
-, GHC.Integer.Integer
 , System.IO.FilePath
 , System.IO.IO
 , Text.Show.Show(..)
@@ -52,13 +52,13 @@ import qualified Data.Eq
 import qualified Data.Fixed
 import qualified Data.Function
 import qualified Data.Functor
+import qualified Data.Int
 import qualified Data.List
 import qualified Data.Map.Strict
 import qualified Data.Maybe
 import qualified Data.Monoid
 import qualified Data.Ord
 import qualified Data.String
-import qualified GHC.Integer
 import qualified GHC.Num
 import qualified GHC.Real
 import qualified System.IO

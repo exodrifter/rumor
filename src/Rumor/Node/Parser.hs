@@ -10,7 +10,6 @@ import Rumor.Script (Script)
 import qualified Rumor.OneOf as OO
 import qualified Rumor.Script as Script
 
-import Data.Int (Int)
 import GHC.Enum (maxBound)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
