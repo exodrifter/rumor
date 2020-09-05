@@ -73,9 +73,10 @@ choose = do
 clear :: Parser (Node r)
 clear = do
   _ <- string "clear"
-  t <- spaces1 *> string "dialog" *> pure ClearDialog <|>
-       spaces1 *> string "choices" *> pure ClearChoices <|>
-       pure ClearAll
+  spaces1
+  t <- string "dialog" *> pure ClearDialog <|>
+       string "choices" *> pure ClearChoices <|>
+       string "all" *> pure ClearAll
   restOfLine
   pure $ Clear t
 

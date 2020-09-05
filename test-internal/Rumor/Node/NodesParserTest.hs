@@ -46,7 +46,7 @@ nodesTest =
           \pause 2.5 minutes \n\
           \jump bizzbazz \n\
           \return \n\
-          \clear \n\
+          \clear all \n\
           \clear dialog \n\
           \clear choices \n\
           \choose \n\
