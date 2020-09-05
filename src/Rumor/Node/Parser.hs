@@ -17,14 +17,17 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 
 nodes :: HasResolution r => Parser [Node r]
-nodes = do
+nodes =
+  nodeBlock <* restOfFile
+
+nodeBlock :: HasResolution r => Parser [Node r]
+nodeBlock = do
   spaces
   ns <- withPos . many $ do
     checkIndent
     n <- node
     spaces
     pure n
-  restOfFile
   pure ns
 
 node :: HasResolution r => Parser (Node r)
@@ -125,8 +128,9 @@ section = withPos $ do
   _ <- restOfLine
 
   spaces
-  n <- indented *> block (node <* spaces)
-  case NE.nonEmpty n of
+  indented
+  b <- nodeBlock
+  case NE.nonEmpty b of
     Just ns -> pure $ Section i ns
     Nothing -> fail "labeled section does not contain anything"
 

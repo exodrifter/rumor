@@ -1,6 +1,5 @@
 module Rumor.Parser.Indent
-( block
-, checkIndent
+( checkIndent
 , checkIndented
 , indented
 , withPos
@@ -9,9 +8,6 @@ module Rumor.Parser.Indent
 import Rumor.Parser.Type (Parser(..))
 
 import qualified Text.Parsec.Indent as Parsec
-
-block :: Parser a -> Parser [a]
-block = Parser . Parsec.block . unParser
 
 -- | Parses only when the current indentation level matches the reference
 checkIndent :: Parser ()
