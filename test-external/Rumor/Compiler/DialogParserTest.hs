@@ -2,10 +2,8 @@ module Rumor.Compiler.DialogParserTest
 ( tests
 ) where
 
-import Rumor.Compiler.Helper (parse)
-import Rumor.Expression (Expression(..))
-import Rumor.Node (Node(..))
-import qualified Rumor.Script as Script
+import Rumor.Compiler.Helper (parse, scriptSingleton)
+import Rumor (Expression(..), Node(..))
 
 import Test.HUnit
 
@@ -22,18 +20,18 @@ singleLineSayTest :: Test
 singleLineSayTest =
   TestCase $ do
     assertEqual "Parses a single-line say with no speaker"
-      (Right . Script.singleton $ Say Nothing (Text "Hello there!"))
+      (Right . scriptSingleton $ Say Nothing (Text "Hello there!"))
       (parse ": Hello there!")
 
     assertEqual "Parses a single-line say with a speaker"
-      (Right . Script.singleton $ Say (Just "Alice") (Text "Hello there!"))
+      (Right . scriptSingleton $ Say (Just "Alice") (Text "Hello there!"))
       (parse "Alice: Hello there!")
 
 multiLineSayTest :: Test
 multiLineSayTest =
   TestCase $ do
     assertEqual "Parses a multi-line say with no speaker"
-      ( Right . Script.singleton $
+      ( Right . scriptSingleton $
           Say Nothing (Text "Hello there! How are you doing?")
       )
       ( parse
@@ -43,7 +41,7 @@ multiLineSayTest =
       )
 
     assertEqual "Parses a multi-line say with a speaker"
-      ( Right . Script.singleton $
+      ( Right . scriptSingleton $
           Say (Just "Alice") (Text "Hello there! How are you doing?")
       )
       ( parse
@@ -56,13 +54,13 @@ singleLineAppendTest :: Test
 singleLineAppendTest =
   TestCase $ do
     assertEqual "Parses a single-line say with no speaker"
-      ( Right . Script.singleton $
+      ( Right . scriptSingleton $
           Append Nothing (Text "Hello there!")
       )
       (parse "+ Hello there!")
 
     assertEqual "Parses a single-line say with a speaker"
-      ( Right . Script.singleton $
+      ( Right . scriptSingleton $
           Append (Just "Alice") (Text "Hello there!")
       )
       (parse "Alice+ Hello there!")
@@ -71,7 +69,7 @@ multiLineAppendTest :: Test
 multiLineAppendTest =
   TestCase $ do
     assertEqual "Parses a multi-line say with no speaker"
-      ( Right . Script.singleton $
+      ( Right . scriptSingleton $
           Append Nothing (Text "Hello there! How are you doing?")
       )
       ( parse
@@ -81,7 +79,7 @@ multiLineAppendTest =
       )
 
     assertEqual "Parses a multi-line say with a speaker"
-      ( Right . Script.singleton $
+      ( Right . scriptSingleton $
           Append (Just "Alice") (Text "Hello there! How are you doing?")
       )
       ( parse

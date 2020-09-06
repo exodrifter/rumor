@@ -2,10 +2,8 @@ module Rumor.Compiler.SectionParserTest
 ( tests
 ) where
 
-import Rumor.Expression (Expression(..))
 import Rumor.Compiler.Helper (parse)
-import Rumor.Node (Node(..))
-import Rumor.Script (Script(..))
+import Rumor (Expression(..), Node(..), Script(..))
 
 import Test.HUnit
 import qualified Data.List.NonEmpty as NE

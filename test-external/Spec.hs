@@ -1,3 +1,6 @@
+import qualified Rumor.Compiler.DialogParserTest
+import qualified Rumor.Compiler.NodesParserTest
+import qualified Rumor.Compiler.SectionParserTest
 import qualified Rumor.ComplexEvaluateTest
 import qualified Rumor.ComplexSimplifyTest
 import qualified Rumor.Interpreter.RunTest
@@ -12,11 +15,16 @@ main = do
 tests :: Test
 tests =
   TestList
-    [ TestList
+    [ TestList  -- Expression Tests
       [ Rumor.ComplexEvaluateTest.tests
       , Rumor.ComplexSimplifyTest.tests
       ]
-    , TestList
+    , TestList  -- Interpreter Tests
       [ Rumor.Interpreter.RunTest.tests
+      ]
+    , TestList -- Compiler Tests
+      [ Rumor.Compiler.DialogParserTest.tests
+      , Rumor.Compiler.NodesParserTest.tests
+      , Rumor.Compiler.SectionParserTest.tests
       ]
     ]

@@ -1,5 +1,6 @@
 module Rumor.Compiler.Parser
-( parse
+( ParseError
+, parse
 , script
 ) where
 

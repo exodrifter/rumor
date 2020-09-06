@@ -3,10 +3,9 @@ module Rumor.Compiler.NodesParserTest
 ) where
 
 import Rumor.Compiler.Helper (parse)
-import Rumor.Expression (Expression(..))
-import Rumor.Node (Node(..), ClearType(..))
-import Rumor.Script (Script(..))
+import Rumor (ClearType(..), Expression(..), Node(..), Script(..))
 
+import Data.Either (isLeft)
 import Test.HUnit
 import qualified Data.Map.Strict as Map
 

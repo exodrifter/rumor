@@ -4,9 +4,12 @@ module Rumor
 , Rumor.Expression.simplify
 
 , Rumor.Node.Node(..)
-, Rumor.Script.Script
+, Rumor.Node.ClearType(..)
 , Rumor.Value.Value(..)
 
+, Rumor.Script.Script(..)
+
+, Rumor.Compiler.ParseError
 , Rumor.Compiler.parse
 
 , Rumor.Interpreter.Context

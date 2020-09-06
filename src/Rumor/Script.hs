@@ -1,8 +1,6 @@
 module Rumor.Script
 ( Script(..)
 , empty
-, singleton
-
 , lookup
 ) where
 
@@ -20,9 +18,6 @@ data Script r =
 
 empty :: Script r
 empty = Script Map.empty []
-
-singleton :: Node r -> Script r
-singleton n = Script Map.empty [n]
 
 lookup :: Identifier -> Script r -> Maybe (NE.NonEmpty (Node r))
 lookup k s = Map.lookup k (sections s)
