@@ -1,6 +1,6 @@
 module Rumor.Compiler.Helper
-( runNodesParser
-, runTestParser
+( parse
+, runParser
 ) where
 
 import Rumor.Expression (Expression(..))
@@ -12,11 +12,11 @@ import qualified Rumor.Parser as Parser
 import Data.Fixed (E12)
 import qualified Data.Text as T
 
-runNodesParser :: T.Text -> Either ParseError (Script E12)
-runNodesParser = Compiler.parse ""
+parse :: T.Text -> Either ParseError (Script E12)
+parse = Compiler.parse ""
 
-runTestParser ::
+runParser ::
   Parser (Expression E12 a) ->
   T.Text ->
   Either ParseError (Expression E12 a)
-runTestParser parser = Parser.runParser parser ""
+runParser parser = Parser.runParser parser ""

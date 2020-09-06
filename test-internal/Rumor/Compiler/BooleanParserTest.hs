@@ -3,7 +3,7 @@ module Rumor.Compiler.BooleanParserTest
 ) where
 
 import Rumor.Compiler.ExpressionParser (boolean)
-import Rumor.Compiler.Helper (runTestParser)
+import Rumor.Compiler.Helper (runParser)
 import Rumor.Expression (Expression(..))
 
 import Test.HUnit
@@ -19,10 +19,10 @@ falseTest :: Test
 falseTest =
   TestCase $ assertEqual "Parses false"
     (Right $ Boolean False)
-    (runTestParser boolean "false")
+    (runParser boolean "false")
 
 trueTest :: Test
 trueTest =
   TestCase $ assertEqual "Parses true"
     (Right $ Boolean True)
-    (runTestParser boolean "true")
+    (runParser boolean "true")

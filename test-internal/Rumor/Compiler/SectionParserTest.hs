@@ -3,7 +3,7 @@ module Rumor.Compiler.SectionParserTest
 ) where
 
 import Rumor.Expression (Expression(..))
-import Rumor.Compiler.Helper (runNodesParser)
+import Rumor.Compiler.Helper (parse)
 import Rumor.Node (Node(..))
 import Rumor.Script (Script(..))
 
@@ -34,7 +34,7 @@ sectionTest =
       , nodes = []
       }
     )
-    ( runNodesParser
+    ( parse
         "label [foobar] \n\
         \  : Hello world! \n\
         \  : Fizz bazz! \n\
@@ -59,7 +59,7 @@ multiSectionTest =
       , nodes = []
       }
     )
-    ( runNodesParser
+    ( parse
         "label [foo] \n\
         \  : Hello world! \n\
         \    Hello everyone! \n\
@@ -86,7 +86,7 @@ nestedSectionTest =
       , nodes = []
       }
     )
-    ( runNodesParser
+    ( parse
         "label [foo] \n\
         \  : Hi there! \n\
         \  label [bar] \n\
@@ -121,7 +121,7 @@ multiNestedSectionTest =
       , nodes = []
       }
     )
-    ( runNodesParser
+    ( parse
         "label [foo] \n\
         \  : Hello world! \n\
         \    Hello everyone! \n\

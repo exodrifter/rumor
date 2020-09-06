@@ -2,7 +2,7 @@ module Rumor.Compiler.DialogParserTest
 ( tests
 ) where
 
-import Rumor.Compiler.Helper (runNodesParser)
+import Rumor.Compiler.Helper (parse)
 import Rumor.Expression (Expression(..))
 import Rumor.Node (Node(..))
 import qualified Rumor.Script as Script
@@ -23,11 +23,11 @@ singleLineSayTest =
   TestCase $ do
     assertEqual "Parses a single-line say with no speaker"
       (Right . Script.singleton $ Say Nothing (Text "Hello there!"))
-      (runNodesParser ": Hello there!")
+      (parse ": Hello there!")
 
     assertEqual "Parses a single-line say with a speaker"
       (Right . Script.singleton $ Say (Just "Alice") (Text "Hello there!"))
-      (runNodesParser "Alice: Hello there!")
+      (parse "Alice: Hello there!")
 
 multiLineSayTest :: Test
 multiLineSayTest =
@@ -36,7 +36,7 @@ multiLineSayTest =
       ( Right . Script.singleton $
           Say Nothing (Text "Hello there! How are you doing?")
       )
-      ( runNodesParser
+      ( parse
           ": Hello there! \n\
           \  How are you doing? \n\
           \ "
@@ -46,7 +46,7 @@ multiLineSayTest =
       ( Right . Script.singleton $
           Say (Just "Alice") (Text "Hello there! How are you doing?")
       )
-      ( runNodesParser
+      ( parse
           "Alice: Hello there! \n\
           \       How are you doing? \n\
           \ "
@@ -59,13 +59,13 @@ singleLineAppendTest =
       ( Right . Script.singleton $
           Append Nothing (Text "Hello there!")
       )
-      (runNodesParser "+ Hello there!")
+      (parse "+ Hello there!")
 
     assertEqual "Parses a single-line say with a speaker"
       ( Right . Script.singleton $
           Append (Just "Alice") (Text "Hello there!")
       )
-      (runNodesParser "Alice+ Hello there!")
+      (parse "Alice+ Hello there!")
 
 multiLineAppendTest :: Test
 multiLineAppendTest =
@@ -74,7 +74,7 @@ multiLineAppendTest =
       ( Right . Script.singleton $
           Append Nothing (Text "Hello there! How are you doing?")
       )
-      ( runNodesParser
+      ( parse
         "+ Hello there! \n\
         \  How are you doing? \n\
         \ "
@@ -84,7 +84,7 @@ multiLineAppendTest =
       ( Right . Script.singleton $
           Append (Just "Alice") (Text "Hello there! How are you doing?")
       )
-      ( runNodesParser
+      ( parse
         "Alice+ Hello there! \n\
         \       How are you doing? \n\
         \ "
