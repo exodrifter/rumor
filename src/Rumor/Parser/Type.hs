@@ -1,6 +1,7 @@
 module Rumor.Parser.Type
 ( Parser(..)
 , Parsec.ParseError
+, Parsec.SourceName
 , runParser
 
 -- User State

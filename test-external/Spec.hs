@@ -1,5 +1,6 @@
 import qualified Rumor.ComplexEvaluateTest
 import qualified Rumor.ComplexSimplifyTest
+import qualified Rumor.Interpreter.RunTest
 
 import Test.HUnit (Test(..), runTestTT)
 
@@ -11,6 +12,11 @@ main = do
 tests :: Test
 tests =
   TestList
-    [ Rumor.ComplexEvaluateTest.tests
-    , Rumor.ComplexSimplifyTest.tests
+    [ TestList
+      [ Rumor.ComplexEvaluateTest.tests
+      , Rumor.ComplexSimplifyTest.tests
+      ]
+    , TestList
+      [ Rumor.Interpreter.RunTest.tests
+      ]
     ]

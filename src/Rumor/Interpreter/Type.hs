@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 module Rumor.Interpreter.Type
-( Interpreter
+( Interpreter(..)
 ) where
 
 import Rumor.Interpreter.Context
