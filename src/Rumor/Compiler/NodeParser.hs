@@ -1,38 +1,17 @@
-module Rumor.Node.Parser
-( script
+module Rumor.Compiler.NodeParser
+( node
+, identifierLabel
 ) where
 
 import Prelude hiding (return)
+import Rumor.Compiler.ExpressionParser
 import Rumor.Expression
-import Rumor.Node.Type
+import Rumor.Node
 import Rumor.Parser
-import Rumor.Script (Script)
-import qualified Rumor.OneOf as OO
-import qualified Rumor.Script as Script
 
 import GHC.Enum (maxBound)
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified Data.Text as T
-
-script :: HasResolution r => Parser (Script r)
-script = nodeBlock <* restOfFile
-
-nodeBlock :: HasResolution r => Parser (Script r)
-nodeBlock = do
-  spaces
-  sectionsAndNodes <- withPos . many $ do
-    checkIndent
-    n <- OO.First <$> section <|>
-         OO.Second <$> node
-    spaces
-    pure n
-
-  pure $ Script.Script
-    { Script.sections = Map.unions $ OO.firsts sectionsAndNodes
-    , Script.nodes = OO.seconds sectionsAndNodes
-    }
 
 node :: HasResolution r => Parser (Node r)
 node =
@@ -123,20 +102,6 @@ say :: HasResolution r => Parser (Node r)
 say = do
   (s, d) <- dialog ':'
   pure $ Say s d
-
-section :: HasResolution r => Parser (Map Identifier (NE.NonEmpty (Node r)))
-section = withPos $ do
-  _ <- string "label"
-  spaces1
-  i <- identifierLabel
-  restOfLine
-
-  spaces
-  indented
-  s <- nodeBlock
-  case NE.nonEmpty (Script.nodes s) of
-    Just ns -> pure $ Map.insert i ns (Script.sections s)
-    Nothing -> fail "labeled section does not contain anything"
 
 wait :: Parser (Node r)
 wait = do

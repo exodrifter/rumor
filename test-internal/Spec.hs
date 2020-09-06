@@ -1,11 +1,11 @@
-import qualified Rumor.Expression.BooleanParserTest
+import qualified Rumor.Compiler.BooleanParserTest
+import qualified Rumor.Compiler.DialogParserTest
+import qualified Rumor.Compiler.NodesParserTest
+import qualified Rumor.Compiler.NumberParserTest
+import qualified Rumor.Compiler.SectionParserTest
+import qualified Rumor.Compiler.TextParserTest
 import qualified Rumor.Expression.EvaluateTest
-import qualified Rumor.Expression.NumberParserTest
 import qualified Rumor.Expression.SimplifyTest
-import qualified Rumor.Expression.TextParserTest
-import qualified Rumor.Node.DialogParserTest
-import qualified Rumor.Node.NodesParserTest
-import qualified Rumor.Node.SectionTest
 
 import Test.HUnit (Test(..), runTestTT)
 
@@ -18,15 +18,15 @@ tests :: Test
 tests =
   TestList
     [ TestList -- Expression Tests
-      [ Rumor.Expression.BooleanParserTest.tests
-      , Rumor.Expression.EvaluateTest.tests
-      , Rumor.Expression.NumberParserTest.tests
+      [ Rumor.Expression.EvaluateTest.tests
       , Rumor.Expression.SimplifyTest.tests
-      , Rumor.Expression.TextParserTest.tests
       ]
-    , TestList -- Node Tests
-      [ Rumor.Node.DialogParserTest.tests
-      , Rumor.Node.NodesParserTest.tests
-      , Rumor.Node.SectionTest.tests
+    , TestList -- Compiler Tests
+      [ Rumor.Compiler.BooleanParserTest.tests
+      , Rumor.Compiler.DialogParserTest.tests
+      , Rumor.Compiler.NodesParserTest.tests
+      , Rumor.Compiler.NumberParserTest.tests
+      , Rumor.Compiler.SectionParserTest.tests
+      , Rumor.Compiler.TextParserTest.tests
       ]
     ]

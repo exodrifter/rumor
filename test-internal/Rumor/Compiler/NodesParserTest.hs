@@ -1,11 +1,11 @@
-module Rumor.Node.NodesParserTest
+module Rumor.Compiler.NodesParserTest
 ( tests
 ) where
 
-import Rumor.Expression.Type (Expression(..))
-import Rumor.Node.Helper (runNodesParser)
+import Rumor.Compiler.Helper (parse)
+import Rumor.Expression (Expression(..))
+import Rumor.Node (Node(..), ClearType(..))
 import Rumor.Script (Script(..))
-import Rumor.Node.Type (Node(..), ClearType(..))
 
 import Test.HUnit
 import qualified Data.Map.Strict as Map
@@ -41,7 +41,7 @@ nodesTest =
           ]
         }
       )
-      ( runNodesParser
+      ( parse
           ": Hello World! \n\
           \+ Hello World! \n\
           \wait \n\
@@ -72,7 +72,7 @@ sayBlockTest =
           ]
         }
       )
-      ( runNodesParser
+      ( parse
           ": It was a quiet morning that day... \n\
           \Alice: Hello there! \n\
           \       How are you doing? \n\
@@ -84,7 +84,7 @@ sayBlockTest =
 identifierDuplicateTest :: Test
 identifierDuplicateTest =
   TestCase $ do
-    let result = runNodesParser
+    let result = parse
           "label [foo] \n\
           \  : Hello \n\
           \label [foo] \n\

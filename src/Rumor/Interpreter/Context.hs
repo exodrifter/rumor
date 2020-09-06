@@ -8,7 +8,7 @@ module Rumor.Interpreter.Context
 ) where
 
 import Rumor.Script (Script)
-import Rumor.Node.Type (Node)
+import Rumor.Node (Node)
 import Rumor.Interpreter.StackFrame (StackFrame)
 import qualified Rumor.Interpreter.StackFrame as StackFrame
 

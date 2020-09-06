@@ -1,10 +1,10 @@
-module Rumor.Node.DialogParserTest
+module Rumor.Compiler.DialogParserTest
 ( tests
 ) where
 
-import Rumor.Expression.Type (Expression(..))
-import Rumor.Node.Helper (runNodesParser)
-import Rumor.Node.Type (Node(..))
+import Rumor.Compiler.Helper (runNodesParser)
+import Rumor.Expression (Expression(..))
+import Rumor.Node (Node(..))
 import qualified Rumor.Script as Script
 
 import Test.HUnit

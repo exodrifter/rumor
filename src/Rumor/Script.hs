@@ -6,7 +6,7 @@ module Rumor.Script
 , lookup
 ) where
 
-import Rumor.Node.Type
+import Rumor.Node
 
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map

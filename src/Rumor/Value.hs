@@ -1,5 +1,11 @@
 module Rumor.Value
-( module X
+( Value(..)
 ) where
 
-import Rumor.Value.Type as X
+import qualified Data.Text as T
+
+data Value r =
+  BooleanValue Bool |
+  NumberValue (Fixed r) |
+  TextValue T.Text
+  deriving stock (Eq, Show)

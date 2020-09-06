@@ -1,10 +1,10 @@
-module Rumor.Expression.BooleanParserTest
+module Rumor.Compiler.BooleanParserTest
 ( tests
 ) where
 
-import Rumor.Expression.Helper (runTestParser)
-import Rumor.Expression.Parser (boolean)
-import Rumor.Expression.Type (Expression(..))
+import Rumor.Compiler.ExpressionParser (boolean)
+import Rumor.Compiler.Helper (runTestParser)
+import Rumor.Expression (Expression(..))
 
 import Test.HUnit
 

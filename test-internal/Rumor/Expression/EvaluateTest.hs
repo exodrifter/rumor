@@ -2,8 +2,8 @@ module Rumor.Expression.EvaluateTest
 ( tests
 ) where
 
-import Rumor.Expression.Type (Expression(..))
-import qualified Rumor.Expression.Type as Expression
+import Rumor.Expression (Expression(..))
+import qualified Rumor.Expression as Expression
 
 import Data.Fixed (E12)
 import Test.HUnit

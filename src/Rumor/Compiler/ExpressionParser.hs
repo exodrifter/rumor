@@ -1,10 +1,10 @@
-module Rumor.Expression.Parser
+module Rumor.Compiler.ExpressionParser
 ( boolean
 , math
 , text
 ) where
 
-import Rumor.Expression.Type
+import Rumor.Expression
 import Rumor.Parser
 
 import qualified Data.Text as T

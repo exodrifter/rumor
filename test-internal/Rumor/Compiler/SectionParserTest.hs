@@ -1,10 +1,10 @@
-module Rumor.Node.SectionTest
+module Rumor.Compiler.SectionParserTest
 ( tests
 ) where
 
-import Rumor.Expression.Type (Expression(..))
-import Rumor.Node.Helper (runNodesParser)
-import Rumor.Node.Type (Node(..))
+import Rumor.Expression (Expression(..))
+import Rumor.Compiler.Helper (runNodesParser)
+import Rumor.Node (Node(..))
 import Rumor.Script (Script(..))
 
 import Test.HUnit
