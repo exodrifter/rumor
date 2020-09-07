@@ -34,7 +34,7 @@ data Context r =
     { script :: Script r
     , stack :: [StackFrame r]
     , dialog :: Map (Maybe Character) T.Text
-    , choices :: [(Maybe Identifier, T.Text)]
+    , choices :: Map Identifier T.Text
     }
   deriving stock (Eq, Show)
 
@@ -44,7 +44,7 @@ init s =
     { script = s
     , stack = [StackFrame.init (Script.nodes s)]
     , dialog = Map.empty
-    , choices = []
+    , choices = Map.empty
     }
 
 --------------------------------------------------------------------------------
@@ -52,7 +52,7 @@ init s =
 --------------------------------------------------------------------------------
 
 -- Gets the current choices that can currently be seen by the player.
-currentChoices :: Context r -> [(Maybe Identifier, T.Text)]
+currentChoices :: Context r -> Map Identifier T.Text
 currentChoices = choices
 
 -- Gets the current dialog that can currently be seen by the player.
@@ -101,7 +101,7 @@ clearAll =
   . clearDialog
 
 clearChoices :: Context r -> Context r
-clearChoices c = c { choices = [] }
+clearChoices c = c { choices = Map.empty }
 
 clearDialog :: Context r -> Context r
 clearDialog c = c { dialog = Map.empty }

@@ -13,7 +13,7 @@ data Node r =
   -- Adds dialog to the scene
     Append (Maybe Character) (Expression r T.Text)
   -- Add a choice to the scene a user can pick
-  | Choice (Maybe Identifier) (Expression r T.Text)
+  | Choice Identifier (Expression r T.Text)
   -- Waits until the user chooses exactly one choice and removes all choices
   -- from the scene after a choice has been selected
   | Choose

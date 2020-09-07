@@ -20,6 +20,7 @@ module Prelude
 , Control.Applicative.pure
 , Control.Monad.fail
 , Control.Monad.return
+, Control.Monad.sequence
 , Control.Monad.void
 , Data.Either.isLeft
 , Data.Functor.fmap

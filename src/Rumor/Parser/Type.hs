@@ -5,8 +5,10 @@ module Rumor.Parser.Type
 , runParser
 
 -- User State
-, getState
-, modifyState
+, ParserState
+, getRandoms
+, getUsedIdentifiers
+, setUsedIdentifiers
 ) where
 
 import Rumor.Object
@@ -14,9 +16,13 @@ import Rumor.Object
 import Control.Applicative (Applicative(..), Alternative(..))
 import Control.Monad (Monad(..), MonadFail(..))
 import Data.Functor (Functor(..))
+import System.Random (Random(..))
 import Data.Set (Set)
+import qualified Data.Hashable as Hashable
+import qualified Data.List as List
 import qualified Data.Set as Set
 import qualified Data.Text as T
+import qualified System.Random as Random
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.Indent as Parsec
 
@@ -24,7 +30,7 @@ import qualified Text.Parsec.Indent as Parsec
 -- attoparsec.
 newtype Parser a =
   Parser
-    { unParser :: Parsec.IndentParser T.Text (Set Identifier) a
+    { unParser :: Parsec.IndentParser T.Text ParserState a
     }
 
 instance Functor Parser where
@@ -46,14 +52,41 @@ instance MonadFail Parser where
   fail = Parser . Parsec.parserFail
 
 runParser :: Parser a -> Parsec.SourceName -> T.Text -> Either Parsec.ParseError a
-runParser p = Parsec.runIndentParser (unParser p) Set.empty
+runParser p s t =
+  let state =
+        ParserState
+          { usedIdentifiers = Set.empty
+          , pureGen = Random.mkStdGen (Hashable.hash t)
+          }
+  in  Parsec.runIndentParser (unParser p) state s t
 
 --------------------------------------------------------------------------------
 -- User State
 --------------------------------------------------------------------------------
 
-getState :: Parser (Set Identifier)
-getState = Parser Parsec.getState
+data ParserState =
+  ParserState
+    { pureGen :: Random.StdGen
+    , usedIdentifiers :: Set Identifier
+    }
 
-modifyState :: (Set Identifier -> Set Identifier) -> Parser ()
-modifyState = Parser . Parsec.modifyState
+gets :: (ParserState -> a) -> Parser a
+gets fn = Parser $ fn <$> Parsec.getState
+
+modify :: (ParserState -> ParserState) -> Parser ()
+modify = Parser . Parsec.modifyState
+
+getRandom :: Random a => Parser a
+getRandom = do
+  (a, g) <- Random.random <$> gets pureGen
+  modify (\s -> s { pureGen = g })
+  pure a
+
+getRandoms :: Random a => Int -> Parser [a]
+getRandoms l = sequence $ List.replicate l getRandom
+
+getUsedIdentifiers :: Parser (Set Identifier)
+getUsedIdentifiers = gets usedIdentifiers
+
+setUsedIdentifiers :: Set Identifier -> Parser ()
+setUsedIdentifiers a = modify (\s -> s { usedIdentifiers = a })

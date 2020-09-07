@@ -3,6 +3,7 @@ module Rumor.Parser.Combinator
 , many
 , many1
 , manyTill
+, notFollowedBy
 , option
 ) where
 
@@ -24,6 +25,9 @@ manyTill p end =
   Parser $ Parsec.manyTill
     (unParser p)
     (Parsec.try . Parsec.lookAhead $ unParser end)
+
+notFollowedBy :: (Show a) => Parser a -> Parser ()
+notFollowedBy = Parser . Parsec.notFollowedBy . unParser
 
 option :: Parser a -> Parser (Maybe a)
 option p = Just <$> p <|> pure Nothing

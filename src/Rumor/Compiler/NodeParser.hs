@@ -10,8 +10,12 @@ import Rumor.Object
 import Rumor.Parser
 
 import GHC.Enum (maxBound)
+import qualified Crypto.Hash as Hash
+import qualified Data.ByteArray.Encoding as BA
+import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Set as Set
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 
 node :: HasResolution r => Parser (Node r)
 node =
@@ -40,10 +44,10 @@ append = do
 choice :: HasResolution r => Parser (Node r)
 choice = do
   _ <- string "choice"
-  i <- option $ spaces1 *> identifierLabel
   spaces1
+  i <- identifierLabel <* spaces1 <|>
+       generatedIdentifierLabel
   c <- text
-  restOfLine
   pure $ Choice i c
 
 choose :: Parser (Node r)
@@ -125,11 +129,22 @@ dialog symbol = withPos $ do
   d <- text
   pure $ (i, d)
 
+-- A label is the base parser for a character or identifier. It can
+-- contain any alphabetic or numeric unicode characters, but it
+-- *cannot* start with an underscore as these are reserved for use by
+-- Rumor (like when automatically generating labels for choices).
+label :: Parser T.Text
+label = do
+  cs <- many1 alphaNum
+  case cs of
+    '_':_ -> fail "labels cannot start with '_'"
+    _ -> pure $ T.pack cs
+
 character :: Parser Character
-character = Character . T.pack <$> many1 alphaNum
+character = Character <$> label
 
 identifier :: Parser Identifier
-identifier = Identifier . T.pack <$> many1 alphaNum
+identifier = Identifier <$> label
 
 identifierLabel :: Parser Identifier
 identifierLabel = do
@@ -137,14 +152,38 @@ identifierLabel = do
   spaces
 
   i <- identifier
-  usedIdentifiers <- getState
+  markIdentifierAsUsed i
+
+  spaces
+  _ <- char ']'
+  pure i
+
+-- Should be used when an identifier is required, but the user is not
+-- required to supply one. Note the check on the first line which
+-- ensures that it's not being used when a user *tried* to define their
+-- own identifier, because we would still want the original failure in
+-- that case.
+generatedIdentifierLabel :: Parser Identifier
+generatedIdentifierLabel = do
+  notFollowedBy $ char '['
+  str <- getRandoms 120
+  let
+    i = Identifier
+      . ("_" <>)
+      . TE.decodeUtf8
+      . BA.convertToBase BA.Base64
+      . Hash.hashWith Hash.SHA1
+      . BS8.pack
+      $ str
+  markIdentifierAsUsed i
+  pure i
+
+markIdentifierAsUsed :: Identifier -> Parser ()
+markIdentifierAsUsed i = do
+  usedIdentifiers <- getUsedIdentifiers
   if Set.member i usedIdentifiers
   then fail "duplicate identifier label"
   else
     if Set.size usedIdentifiers >= (maxBound :: Int)
     then fail "cannot create any more identifier labels"
-    else modifyState (Set.insert i)
-
-  spaces
-  _ <- char ']'
-  pure i
+    else setUsedIdentifiers (Set.insert i usedIdentifiers)

@@ -34,12 +34,17 @@ ghc-options:
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
 - containers
+- cryptonite
+- hashable
 - indents
 - integer-gmp
+- memory
 - mtl
 - parsec
 - parsec3-numbers
+- random
 - safe
 - text
 

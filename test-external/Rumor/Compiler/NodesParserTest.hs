@@ -49,7 +49,8 @@ nodesTest =
           , Clear ClearDialog
           , Clear ClearChoices
           , Choose
-          , Choice (Just "foo") (Text "Green Door")
+          , Choice "_7/JG9dW4r4RiUuBy2e2RuimxP+s=" (Text "Red Door")
+          , Choice "foo" (Text "Green Door")
           ]
         }
       )
@@ -66,6 +67,7 @@ nodesTest =
           \clear dialog \n\
           \clear choices \n\
           \choose \n\
+          \choice Red Door \n\
           \choice [foo] Green Door \n\
           \ "
       )
