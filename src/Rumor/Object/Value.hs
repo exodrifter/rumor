@@ -1,4 +1,4 @@
-module Rumor.Value
+module Rumor.Object.Value
 ( Value(..)
 ) where
 

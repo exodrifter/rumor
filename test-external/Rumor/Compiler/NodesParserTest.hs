@@ -45,9 +45,9 @@ nodesTest =
           , Pause (Number 150000)
           , Jump "bizzbazz"
           , Return
-          , Clear All
-          , Clear Dialog
-          , Clear Choices
+          , Clear ClearAll
+          , Clear ClearDialog
+          , Clear ClearChoices
           , Choose
           , Choice (Just "foo") (Text "Green Door")
           ]

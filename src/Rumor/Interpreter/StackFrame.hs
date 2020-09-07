@@ -6,7 +6,7 @@ module Rumor.Interpreter.StackFrame
 , increment
 ) where
 
-import Rumor.Node (Node)
+import Rumor.Object.Node (Node)
 
 import qualified Safe
 

@@ -9,7 +9,7 @@ module Rumor.Parser.Type
 , modifyState
 ) where
 
-import Rumor.Node
+import Rumor.Object
 
 import Control.Applicative (Applicative(..), Alternative(..))
 import Control.Monad (Monad(..), MonadFail(..))

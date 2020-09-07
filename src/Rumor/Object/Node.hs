@@ -1,11 +1,11 @@
-module Rumor.Node
+module Rumor.Object.Node
 ( Node(..)
-, Identifier(..)
-, Character(..)
 ) where
 
 import Rumor.Expression (Expression)
-import Rumor.ClearFlag (ClearFlag)
+import Rumor.Object.Character (Character)
+import Rumor.Object.ClearFlag (ClearFlag)
+import Rumor.Object.Identifier (Identifier)
 
 import qualified Data.Text as T
 
@@ -30,11 +30,3 @@ data Node r =
   -- Wait for a user to provide input
   | Wait
   deriving stock (Eq, Show)
-
-newtype Identifier = Identifier { unIdentifier :: T.Text }
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (IsString)
-
-newtype Character = Character { unCharacter :: T.Text }
-  deriving stock (Ord, Eq, Show)
-  deriving newtype (IsString)

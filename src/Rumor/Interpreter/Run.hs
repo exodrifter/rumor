@@ -5,11 +5,10 @@ module Rumor.Interpreter.Run
 
 import Rumor.Interpreter.Context (Context(..))
 import Rumor.Interpreter.Type (Interpreter(..))
-import Rumor.Node (Node(..), Identifier)
-import Rumor.Script (Script(..))
+import Rumor.Object (Identifier, Node(..), Script)
 import qualified Rumor.Expression as Expression
 import qualified Rumor.Interpreter.Context as Context
-import qualified Rumor.Script as Script
+import qualified Rumor.Object.Script as Script
 
 import Control.Monad.State (execState, gets, modify')
 import qualified Data.List.NonEmpty as NE

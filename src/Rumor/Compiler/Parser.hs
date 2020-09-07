@@ -5,10 +5,10 @@ module Rumor.Compiler.Parser
 ) where
 
 import Rumor.Compiler.NodeParser
-import Rumor.Node (Node(..), Identifier)
+import Rumor.Object (Identifier, Node(..), Script)
 import Rumor.Parser
-import Rumor.Script (Script(..))
 import qualified Rumor.OneOf as OO
+import qualified Rumor.Object.Script as Script
 
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
@@ -31,10 +31,9 @@ block = do
     spaces
     pure n
 
-  pure $ Script
-    { sections = Map.unions $ OO.firsts sectionsAndNodes
-    , nodes = OO.seconds sectionsAndNodes
-    }
+  pure $ Script.init
+    (Map.unions $ OO.firsts sectionsAndNodes)
+    (OO.seconds sectionsAndNodes)
 
 section :: HasResolution r => Parser (Map Identifier (NE.NonEmpty (Node r)))
 section = withPos $ do
@@ -46,6 +45,6 @@ section = withPos $ do
   spaces
   indented
   s <- block
-  case NE.nonEmpty (nodes s) of
-    Just ns -> pure $ Map.insert i ns (sections s)
+  case NE.nonEmpty (Script.nodes s) of
+    Just ns -> pure $ Map.insert i ns (Script.sections s)
     Nothing -> fail "labeled section does not contain anything"

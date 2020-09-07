@@ -21,13 +21,10 @@ module Rumor.Interpreter.Context
 , push
 ) where
 
-import Rumor.ClearFlag (ClearFlag)
 import Rumor.Interpreter.StackFrame (StackFrame)
-import Rumor.Node (Character, Identifier, Node)
-import Rumor.Script (Script)
-import qualified Rumor.ClearFlag as ClearFlag
-import qualified Rumor.Script as Script
+import Rumor.Object (Character, ClearFlag(..), Identifier, Node, Script)
 import qualified Rumor.Interpreter.StackFrame as StackFrame
+import qualified Rumor.Object.Script as Script
 
 import qualified Data.Text as T
 import qualified Data.Map.Strict as Map
@@ -94,9 +91,9 @@ addDialog k v c =
 clear :: ClearFlag -> Context r -> Context r
 clear f =
   case f of
-    ClearFlag.Choices -> clearChoices
-    ClearFlag.Dialog -> clearDialog
-    ClearFlag.All -> clearAll
+    ClearChoices -> clearChoices
+    ClearDialog -> clearDialog
+    ClearAll -> clearAll
 
 clearAll :: Context r -> Context r
 clearAll =

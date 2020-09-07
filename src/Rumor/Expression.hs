@@ -12,7 +12,7 @@ module Rumor.Expression
 , simplifyText
 ) where
 
-import Rumor.Value
+import Rumor.Object.Value
 
 import qualified Data.Char as Char
 import qualified Data.Text as T
