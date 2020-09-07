@@ -4,6 +4,7 @@ module Rumor.Interpreter.Context
 
 -- Getters
 , script
+, currentChoices
 , currentDialog
 , currentFrame
 , currentNode
@@ -28,6 +29,7 @@ data Context r =
     { script :: Script r
     , stack :: [StackFrame r]
     , dialog :: Map (Maybe Character) T.Text
+    , choices :: [(Maybe Identifier, T.Text)]
     }
   deriving stock (Eq, Show)
 
@@ -43,6 +45,10 @@ init s =
 --------------------------------------------------------------------------------
 -- Getters
 --------------------------------------------------------------------------------
+
+-- Gets the current choices that can currently be seen by the player.
+currentChoices :: Context r -> [(Maybe Identifier, T.Text)]
+currentChoices = choices
 
 -- Gets the current dialog that can currently be seen by the player.
 currentDialog :: Context r -> Map (Maybe Character) T.Text
