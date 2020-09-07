@@ -13,6 +13,7 @@ module Rumor
 , Rumor.Compiler.parse
 
 , Rumor.Interpreter.Context
+, Rumor.Interpreter.currentDialog
 , Rumor.Interpreter.currentNode
 , Rumor.Interpreter.init
 

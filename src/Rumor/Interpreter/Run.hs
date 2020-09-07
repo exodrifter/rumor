@@ -8,17 +8,13 @@ import Rumor.Interpreter.Type (Interpreter(..))
 import Rumor.Node (Node(..), Identifier)
 import Rumor.Script (Script(..))
 import qualified Rumor.Interpreter.Context as Context
-import qualified Rumor.Interpreter.StackFrame as StackFrame
 import qualified Rumor.Script as Script
 
 import Control.Monad.State (execState, gets, modify')
 import qualified Data.List.NonEmpty as NE
 
 init :: HasResolution r => Script r -> Context r
-init s =
-  execState
-    (unInterpreter fastForward)
-    (Context s [StackFrame.init (Script.nodes s)])
+init s = execState (unInterpreter fastForward) (Context.init s)
 
 -- Called to process nodes that don't require user input
 fastForward :: HasResolution r => Interpreter r ()
