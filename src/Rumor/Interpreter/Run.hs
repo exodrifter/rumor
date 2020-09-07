@@ -7,6 +7,7 @@ import Rumor.Interpreter.Context (Context(..))
 import Rumor.Interpreter.Type (Interpreter(..))
 import Rumor.Node (Node(..), Identifier)
 import Rumor.Script (Script(..))
+import qualified Rumor.Expression as Expression
 import qualified Rumor.Interpreter.Context as Context
 import qualified Rumor.Script as Script
 
@@ -14,13 +15,48 @@ import Control.Monad.State (execState, gets, modify')
 import qualified Data.List.NonEmpty as NE
 
 init :: HasResolution r => Script r -> Context r
-init s = execState (unInterpreter fastForward) (Context.init s)
+init s = execState (unInterpreter initFastForward) (Context.init s)
 
--- Called to process nodes that don't require user input
+-- Called to process the initial nodes in a script when the context is
+-- initialized.
+initFastForward :: HasResolution r => Interpreter r ()
+initFastForward = do
+  -- First, we fast-foward the context.
+  fastForward
+
+  -- Then, we explicity process cases special to the initial load.
+  n <- gets Context.nextNode
+  case n of
+
+    -- We don't want to wait for the user to provide manual input the
+    -- first time these show up; otherwise there won't be any dialog to
+    -- display!
+    Just (Append _ _) -> advance
+    Just (Say _ _) -> advance
+
+    -- We don't automatically process the wait here, because we assume
+    -- that the author may have chosen to display something on screen
+    -- using a binded function call or want an explicit user input for
+    -- some other reason.
+    Just (Wait) -> pure ()
+
+    -- These other cases don't have any special handling related to
+    -- initialization that isn't already taken care of by
+    -- fast-forwarding.
+    Just (Choice _ _) -> pure ()
+    Just (Choose) -> pure ()
+    Just (Clear _) -> pure ()
+    Just (Jump _) -> pure ()
+    Just (Pause _) -> pure ()
+    Just (Return) -> pure ()
+    Nothing -> pure ()
+
+-- Called to process nodes that don't require user input.
 fastForward :: HasResolution r => Interpreter r ()
 fastForward = do
-  n <- gets Context.currentNode
+  n <- gets Context.nextNode
   case n of
+
     Just (Choice _ _) -> do
       -- TODO: implement
       increment
@@ -55,19 +91,20 @@ fastForward = do
     Just (Pause _) -> pure ()
     Just (Wait) -> pure ()
 
--- Called when the user provides input
+-- Called when the user provides input.
 advance :: HasResolution r => Interpreter r ()
 advance = do
-  n <- gets Context.currentNode
+  n <- gets Context.nextNode
   case n of
 
     -- Process user input
-    Just (Append _ _) -> do
-      -- TODO: implement
+    Just (Append k v) -> do
+      modify' $ Context.addDialog k (Expression.evaluateText v)
       increment
       fastForward
-    Just (Say _ _) -> do
-      -- TODO: implement
+    Just (Say k v) -> do
+      modify' $ Context.clearDialog
+      modify' $ Context.addDialog k (Expression.evaluateText v)
       increment
       fastForward
     Just (Wait) -> do
@@ -95,7 +132,7 @@ advance = do
       advance
     Nothing -> do
       fastForward
-      m <- gets Context.currentNode
+      m <- gets Context.nextNode
       case m of
         Just _ -> advance
         Nothing -> pure ()

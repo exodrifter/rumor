@@ -36,5 +36,5 @@ newtype Identifier = Identifier { unIdentifier :: T.Text }
   deriving newtype (IsString)
 
 newtype Character = Character { unCharacter :: T.Text }
-  deriving stock (Eq, Show)
+  deriving stock (Ord, Eq, Show)
   deriving newtype (IsString)

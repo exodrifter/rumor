@@ -6,10 +6,12 @@ module Rumor.Interpreter.Context
 , script
 , currentChoices
 , currentDialog
+, currentDialogFor
 , currentFrame
-, currentNode
+, nextNode
 
 -- Mutators
+, addDialog
 , clear
 , clearAll
 , clearChoices
@@ -60,6 +62,10 @@ currentChoices = choices
 currentDialog :: Context r -> Map (Maybe Character) T.Text
 currentDialog = dialog
 
+-- Gets the current dialog that can currently be seen by the player.
+currentDialogFor :: Maybe Character -> Context r -> Maybe T.Text
+currentDialogFor k = Map.lookup k . dialog
+
 -- Gets the current stack frame the context is pointing to.
 currentFrame :: Context r -> Maybe (StackFrame r)
 currentFrame c =
@@ -67,15 +73,23 @@ currentFrame c =
     x:_ -> Just x
     [] -> Nothing
 
--- Gets the current node the context is pointing to.
-currentNode :: Context r -> Maybe (Node r)
-currentNode c = do
+-- Gets the next node in the context that should be processed
+nextNode :: Context r -> Maybe (Node r)
+nextNode c = do
   sf <- currentFrame c
   StackFrame.current sf
 
 --------------------------------------------------------------------------------
 -- Mutators
 --------------------------------------------------------------------------------
+
+addDialog :: Maybe Character -> T.Text -> Context r -> Context r
+addDialog k v c =
+  let updateDialog mt =
+        case mt of
+          Nothing -> Just v
+          Just t -> Just $ t <> " " <> v
+  in  c { dialog = Map.alter updateDialog k (dialog c) }
 
 clear :: ClearFlag -> Context r -> Context r
 clear f =
