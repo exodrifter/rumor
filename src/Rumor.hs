@@ -13,6 +13,10 @@ module Rumor
 , Rumor.Compiler.parse
 
 , Rumor.Interpreter.Context
+, Rumor.Interpreter.clear
+, Rumor.Interpreter.clearAll
+, Rumor.Interpreter.clearChoices
+, Rumor.Interpreter.clearDialog
 , Rumor.Interpreter.currentChoices
 , Rumor.Interpreter.currentDialog
 , Rumor.Interpreter.currentNode

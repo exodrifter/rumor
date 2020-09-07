@@ -10,14 +10,20 @@ module Rumor.Interpreter.Context
 , currentNode
 
 -- Mutators
+, clear
+, clearAll
+, clearChoices
+, clearDialog
 , increment
 , pop
 , push
 ) where
 
+import Rumor.ClearFlag (ClearFlag)
 import Rumor.Interpreter.StackFrame (StackFrame)
-import Rumor.Node (Character, Node)
+import Rumor.Node (Character, Identifier, Node)
 import Rumor.Script (Script)
+import qualified Rumor.ClearFlag as ClearFlag
 import qualified Rumor.Script as Script
 import qualified Rumor.Interpreter.StackFrame as StackFrame
 
@@ -70,6 +76,24 @@ currentNode c = do
 --------------------------------------------------------------------------------
 -- Mutators
 --------------------------------------------------------------------------------
+
+clear :: ClearFlag -> Context r -> Context r
+clear f =
+  case f of
+    ClearFlag.Choices -> clearChoices
+    ClearFlag.Dialog -> clearDialog
+    ClearFlag.All -> clearAll
+
+clearAll :: Context r -> Context r
+clearAll =
+    clearChoices
+  . clearDialog
+
+clearChoices :: Context r -> Context r
+clearChoices c = c { choices = [] }
+
+clearDialog :: Context r -> Context r
+clearDialog c = c { dialog = Map.empty }
 
 -- Increments the pointer in the current stack
 increment :: Context r -> Context r

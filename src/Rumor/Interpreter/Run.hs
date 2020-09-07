@@ -26,8 +26,8 @@ fastForward = do
       increment
       fastForward
 
-    Just (Clear _) -> do
-      -- TODO: implement
+    Just (Clear f) -> do
+      modify' $ Context.clear f
       increment
       fastForward
 

@@ -3,7 +3,7 @@ module Rumor.Compiler.NodesParserTest
 ) where
 
 import Rumor.Compiler.Helper (parse)
-import Rumor (ClearType(..), Expression(..), Node(..), Script(..))
+import Rumor (ClearFlag(..), Expression(..), Node(..), Script(..))
 
 import Data.Either (isLeft)
 import Test.HUnit
@@ -32,9 +32,9 @@ nodesTest =
           , Pause (Number 150000)
           , Jump "bizzbazz"
           , Return
-          , Clear ClearAll
-          , Clear ClearDialog
-          , Clear ClearChoices
+          , Clear All
+          , Clear Dialog
+          , Clear Choices
           , Choose
           , Choice (Just "foo") (Text "Green Door")
           ]
