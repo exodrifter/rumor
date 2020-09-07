@@ -8,6 +8,7 @@ import Rumor.Compiler.ExpressionParser
 import Rumor.Expression
 import Rumor.Node
 import Rumor.Parser
+import qualified Rumor.ClearFlag as ClearFlag
 
 import GHC.Enum (maxBound)
 import qualified Data.Set as Set
@@ -56,9 +57,9 @@ clear :: Parser (Node r)
 clear = do
   _ <- string "clear"
   spaces1
-  t <- string "dialog" *> pure ClearDialog <|>
-       string "choices" *> pure ClearChoices <|>
-       string "all" *> pure ClearAll
+  t <- string "dialog" *> pure ClearFlag.Dialog <|>
+       string "choices" *> pure ClearFlag.Choices <|>
+       string "all" *> pure ClearFlag.All
   restOfLine
   pure $ Clear t
 

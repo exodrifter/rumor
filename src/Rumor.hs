@@ -3,8 +3,8 @@ module Rumor
 , Rumor.Expression.evaluate
 , Rumor.Expression.simplify
 
+, Rumor.ClearFlag.ClearFlag(..)
 , Rumor.Node.Node(..)
-, Rumor.Node.ClearType(..)
 , Rumor.Value.Value(..)
 
 , Rumor.Script.Script(..)
@@ -26,6 +26,7 @@ import qualified Rumor.Compiler
 import qualified Rumor.Expression
 import qualified Rumor.Interpreter
 import qualified Rumor.Node
+import qualified Rumor.ClearFlag
 import qualified Rumor.Script
 import qualified Rumor.Value
 

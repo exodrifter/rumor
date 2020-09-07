@@ -2,10 +2,10 @@ module Rumor.Node
 ( Node(..)
 , Identifier(..)
 , Character(..)
-, ClearType(..)
 ) where
 
-import Rumor.Expression
+import Rumor.Expression (Expression)
+import Rumor.ClearFlag (ClearFlag)
 
 import qualified Data.Text as T
 
@@ -18,7 +18,7 @@ data Node r =
   -- from the scene after a choice has been selected
   | Choose
   -- Removes all dialog and choices from the scene
-  | Clear ClearType
+  | Clear ClearFlag
   -- Temporarily moves execution to a specified section
   | Jump Identifier
   -- Pauses execution for a specified number of milliseconds
@@ -38,9 +38,3 @@ newtype Identifier = Identifier { unIdentifier :: T.Text }
 newtype Character = Character { unCharacter :: T.Text }
   deriving stock (Eq, Show)
   deriving newtype (IsString)
-
-data ClearType =
-    ClearAll
-  | ClearDialog
-  | ClearChoices
-  deriving stock (Eq, Show)
