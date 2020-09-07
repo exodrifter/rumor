@@ -2,6 +2,7 @@ module Rumor.Parser.Indent
 ( checkIndent
 , checkIndented
 , indented
+, same
 , withPos
 ) where
 
@@ -21,6 +22,10 @@ checkIndented = checkIndent <|> indented
 -- | Parses only when indented past the reference
 indented :: Parser ()
 indented = Parser Parsec.indented
+
+-- | Parses only when on the same line as the reference
+same :: Parser ()
+same = Parser Parsec.same
 
 withPos :: Parser a -> Parser a
 withPos = Parser . Parsec.withPos . unParser

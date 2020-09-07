@@ -118,9 +118,10 @@ dialog ::
   HasResolution r =>
   Char ->
   Parser (Maybe Character, Expression r T.Text)
-dialog symbol = do
+dialog symbol = withPos $ do
   i <- option character
   spaces
+  same
   _ <- char symbol
   d <- text
   pure $ (i, d)

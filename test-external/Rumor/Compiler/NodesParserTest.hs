@@ -12,10 +12,23 @@ import qualified Data.Map.Strict as Map
 tests :: Test
 tests =
   TestList
-    [ nodesTest
+    [ identifierDuplicateTest
+    , nodesTest
+    , noSpeakerTest
     , sayBlockTest
-    , identifierDuplicateTest
     ]
+
+identifierDuplicateTest :: Test
+identifierDuplicateTest =
+  TestCase $ do
+    let result = parse
+          "label [foo] \n\
+          \  : Hello \n\
+          \label [foo] \n\
+          \  : Hello \n\
+          \ "
+    assertBool "Fails to parse nodes that reuse identifiers"
+      (isLeft result)
 
 nodesTest :: Test
 nodesTest =
@@ -57,6 +70,24 @@ nodesTest =
           \ "
       )
 
+noSpeakerTest :: Test
+noSpeakerTest =
+  TestCase $ do
+    assertEqual "A dialog statement with no speaker correctly"
+      ( Right Script
+        { sections = Map.empty
+        , nodes =
+          [ Wait
+          , Say Nothing (Text "Hello!")
+          ]
+        }
+      )
+      ( parse
+          "wait \n\
+          \: Hello! \n\
+          \ "
+      )
+
 sayBlockTest :: Test
 sayBlockTest =
   TestCase $ do
@@ -79,15 +110,3 @@ sayBlockTest =
           \Alice: That's great! \n\
           \ "
       )
-
-identifierDuplicateTest :: Test
-identifierDuplicateTest =
-  TestCase $ do
-    let result = parse
-          "label [foo] \n\
-          \  : Hello \n\
-          \label [foo] \n\
-          \  : Hello \n\
-          \ "
-    assertBool "Fails to parse nodes that reuse identifiers"
-      (isLeft result)
