@@ -20,13 +20,13 @@ tests =
 
 choiceTest :: Test
 choiceTest = TestCase $ do
-  let
-    c0 = compile
-      "choice Red Door\n\
-      \  wait\n\
-      \choice Green Door\n\
-      \  wait\n\
-      \ "
+  let c0 = compile
+        "choice [red] Red Door \n\
+        \  : Hello! \n\
+        \choice [green] Green Door \n\
+        \  wait \n\
+        \choose \n\
+        \ "
 
   assertEqual "Current choices are a red or green door on init"
     ( Set.fromList
@@ -36,18 +36,26 @@ choiceTest = TestCase $ do
     )
     (Set.fromList . fmap snd . Map.toList $ currentChoices c0)
 
-  assertEqual "Next node is Nothing on init"
-    (Nothing)
+  assertEqual "Next node is a choose on init"
+    (Just Choose)
     (nextNode c0)
+
+  let c1 = choose "blue" c0
+  assertEqual "Next node is still a choose after selecting an invalid choice"
+    (Just Choose)
+    (nextNode c1)
+
+  let c2 = choose "green" c1
+  assertEqual "Next node is a wait after selecting a valid choice"
+    (Just Wait)
+    (nextNode c2)
 
 dialogAppendTest :: Test
 dialogAppendTest = TestCase $ do
-  let
-    c0 = compile
-      ": Hello world!\n\
-      \+ How are you?\n\
-      \ "
-    c1 = advance c0
+  let c0 = compile
+        ": Hello world!\n\
+        \+ How are you?\n\
+        \ "
 
   assertEqual "Current dialog is \"Hello world!\" on init"
     (Just "Hello world!")
@@ -57,6 +65,7 @@ dialogAppendTest = TestCase $ do
     (Just $ Append Nothing (Text "How are you?"))
     (nextNode c0)
 
+  let c1 = advance c0
   assertEqual "Current dialog after one advance is \
               \\"Hello world! How are you?\""
     (Just "Hello world! How are you?")
@@ -68,12 +77,10 @@ dialogAppendTest = TestCase $ do
 
 dialogSayTest :: Test
 dialogSayTest = TestCase $ do
-  let
-    c0 = compile
-      ": Hello world!\n\
-      \: How are you?\n\
-      \ "
-    c1 = advance c0
+  let c0 = compile
+        ": Hello world!\n\
+        \: How are you?\n\
+        \ "
 
   assertEqual "Current dialog is \"Hello world!\" on init"
     (Just "Hello world!")
@@ -83,6 +90,7 @@ dialogSayTest = TestCase $ do
     (Just $ Say Nothing (Text "How are you?"))
     (nextNode c0)
 
+  let c1 = advance c0
   assertEqual "Current dialog after one advance is \"How are you?\""
     (Just "How are you?")
     (currentDialogFor Nothing c1)
@@ -93,26 +101,25 @@ dialogSayTest = TestCase $ do
 
 stackFrameTest :: Test
 stackFrameTest = TestCase $ do
-  let
-    c0 = compile
-      "label [a] \n\
-      \  wait \n\
-      \label [b] \n\
-      \  wait \n\
-      \jump a \n\
-      \jump b \n\
-      \ "
-    c1 = advance c0
-    c2 = advance c1
+  let c0 = compile
+        "label [a] \n\
+        \  wait \n\
+        \label [b] \n\
+        \  wait \n\
+        \jump a \n\
+        \jump b \n\
+        \ "
 
   assertEqual "Current initial node is a wait"
     (Just Wait)
     (nextNode c0)
 
+  let c1 = advance c0
   assertEqual "Current node after one advance is a wait"
     (Just Wait)
     (nextNode c1)
 
+  let c2 = advance c1
   assertEqual "Current node after two advances is Nothing"
     (Nothing)
     (nextNode c2)

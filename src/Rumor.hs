@@ -25,9 +25,11 @@ module Rumor
 , Rumor.Interpreter.nextNode
 
 , advance
+, choose
 ) where
 
 import Rumor.Interpreter (Context, unInterpreter)
+import Rumor.Object (Identifier)
 import qualified Rumor.Compiler
 import qualified Rumor.Expression
 import qualified Rumor.Interpreter
@@ -39,3 +41,6 @@ import Control.Monad.State (execState)
 
 advance :: (HasResolution r) => Context r -> Context r
 advance = execState . unInterpreter $ Rumor.Interpreter.advance
+
+choose :: (HasResolution r) => Identifier -> Context r -> Context r
+choose id = execState . unInterpreter $ Rumor.Interpreter.choose id

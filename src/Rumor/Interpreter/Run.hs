@@ -1,5 +1,6 @@
 module Rumor.Interpreter.Run
 ( advance
+, choose
 , init
 ) where
 
@@ -12,6 +13,7 @@ import qualified Rumor.Object.Script as Script
 
 import Control.Monad.State (execState, gets, modify')
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Map.Strict as Map
 
 init :: HasResolution r => Script r -> Context r
 init s = execState (unInterpreter initFastForward) (Context.init s)
@@ -37,17 +39,17 @@ initFastForward = do
     -- that the author may have chosen to display something on screen
     -- using a binded function call or want an explicit user input for
     -- some other reason.
-    Just (Wait) -> pure ()
+    Just Wait -> pure ()
 
     -- These other cases don't have any special handling related to
     -- initialization that isn't already taken care of by
     -- fast-forwarding.
     Just (Choice _ _) -> pure ()
-    Just (Choose) -> pure ()
+    Just Choose -> pure ()
     Just (Clear _) -> pure ()
     Just (Jump _) -> pure ()
     Just (Pause _) -> pure ()
-    Just (Return) -> pure ()
+    Just Return -> pure ()
     Nothing -> pure ()
 
 -- Called to process nodes that don't require user input.
@@ -70,7 +72,7 @@ fastForward = do
       push id
       fastForward
 
-    Just (Return) -> do
+    Just Return -> do
       pop
       increment
       fastForward
@@ -83,12 +85,12 @@ fastForward = do
         Just _ -> fastForward
         Nothing -> pure ()
 
-    -- These require some condition to happen before we can proceed
+    -- These require some condition to happen before we can proceed.
     Just (Append _ _) -> pure ()
     Just (Say _ _) -> pure ()
-    Just (Choose) -> pure ()
+    Just Choose -> pure ()
     Just (Pause _) -> pure ()
-    Just (Wait) -> pure ()
+    Just Wait -> pure ()
 
 -- Called when the user provides input.
 advance :: HasResolution r => Interpreter r ()
@@ -96,25 +98,20 @@ advance = do
   n <- gets Context.nextNode
   case n of
 
-    -- Process user input
     Just (Append k v) -> do
       modify' $ Context.addDialog k (Expression.evaluateText v)
       increment
       fastForward
+
     Just (Say k v) -> do
       modify' $ Context.clearDialog
       modify' $ Context.addDialog k (Expression.evaluateText v)
       increment
       fastForward
-    Just (Wait) -> do
+
+    Just Wait -> do
       increment
       fastForward
-
-    -- The user can't proceed when these are the current node.
-    Just (Choose) ->
-      pure ()
-    Just (Pause _) ->
-      pure ()
 
     -- Fast-forward before we try advancing.
     Just (Choice _ _) -> do
@@ -126,7 +123,7 @@ advance = do
     Just (Jump _) -> do
       fastForward
       advance
-    Just (Return) -> do
+    Just Return -> do
       fastForward
       advance
     Nothing -> do
@@ -135,6 +132,51 @@ advance = do
       case m of
         Just _ -> advance
         Nothing -> pure ()
+
+    -- The user can't proceed when these are the current node.
+    Just Choose -> pure ()
+    Just (Pause _) -> pure ()
+
+-- Called when the user wants to choose a choice.
+choose :: HasResolution r => Identifier -> Interpreter r ()
+choose id = do
+  n <- gets Context.nextNode
+  case n of
+
+    Just Choose -> do
+      choices <- gets Context.currentChoices
+      if Map.member id choices
+      then do
+        push id
+        fastForward
+      else
+        pure ()
+
+    -- Fast-forward before we try choosing a choice.
+    Just (Choice _ _) -> do
+      fastForward
+      choose id
+    Just (Clear _) -> do
+      fastForward
+      choose id
+    Just (Jump _) -> do
+      fastForward
+      choose id
+    Just Return -> do
+      fastForward
+      choose id
+    Nothing -> do
+      fastForward
+      m <- gets Context.nextNode
+      case m of
+        Just _ -> choose id
+        Nothing -> pure ()
+
+    -- The user can't choose a choice when these are the current node.
+    Just (Append _ _) -> pure ()
+    Just (Say _ _) -> pure ()
+    Just Wait -> pure ()
+    Just (Pause _) -> pure ()
 
 -- Moves the pointer to the next node.
 increment :: Interpreter r ()
