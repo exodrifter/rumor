@@ -5,37 +5,38 @@ module Rumor.Compiler.Parser
 ) where
 
 import Rumor.Compiler.NodeParser
-import Rumor.Object (Identifier, Node(..), Script)
+import Rumor.Object (Node(..), Script)
 import Rumor.Parser
-import qualified Rumor.OneOf as OO
 import qualified Rumor.Object.Script as Script
 
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Map.Strict as Map
+import qualified Data.Maybe as Maybe
 import qualified Data.Text as T
 
 parse ::
   (HasResolution r) => SourceName -> T.Text -> Either ParseError (Script r)
 parse = runParser script
 
-script :: HasResolution r => Parser (Script r)
-script = block <* restOfFile
+script :: HasResolution r => Parser r (Script r)
+script = do
+  nodes <- block
+  sections <- getSections
+  restOfFile
 
-block :: HasResolution r => Parser (Script r)
+  pure $ Script.init sections nodes
+
+block :: HasResolution r => Parser r [Node r]
 block = do
   spaces
-  sectionsAndNodes <- withPos . many $ do
+  nodes <- withPos . many $ do
     checkIndent
-    n <- OO.First <$> section <|>
-         OO.Second <$> node
+    n <- section *> pure Nothing <|>
+         Just <$> node
     spaces
     pure n
 
-  pure $ Script.init
-    (Map.unions $ OO.firsts sectionsAndNodes)
-    (OO.seconds sectionsAndNodes)
+  pure $ Maybe.catMaybes nodes
 
-section :: HasResolution r => Parser (Map Identifier (NE.NonEmpty (Node r)))
+section :: HasResolution r => Parser r ()
 section = withPos $ do
   _ <- string "label"
   spaces1
@@ -44,7 +45,6 @@ section = withPos $ do
 
   spaces
   indented
-  s <- block
-  case NE.nonEmpty (Script.nodes s) of
-    Just ns -> pure $ Map.insert i ns (Script.sections s)
-    Nothing -> fail "labeled section does not contain anything"
+  ns <- block
+
+  addSection i ns

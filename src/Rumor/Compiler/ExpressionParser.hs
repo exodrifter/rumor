@@ -9,13 +9,13 @@ import Rumor.Parser
 
 import qualified Data.Text as T
 
-boolean :: Parser (Expression r Bool)
+boolean :: Parser r (Expression r Bool)
 boolean =
   string "true"  *> (pure $ Boolean True) <|>
   string "false" *> (pure $ Boolean False)
 
 -- Number expressions
-math :: HasResolution r => Parser (Expression r (Fixed r))
+math :: HasResolution r => Parser r (Expression r (Fixed r))
 math =
   let piece = parenthesis math <|> number
       -- We chain the multiplication and division operators first to
@@ -28,7 +28,7 @@ math =
       chainedAddition = chainl1 chainedMultiplication additionOperator
   in  simplifyMath <$> chainedAddition
 
-parenthesis :: Parser (Expression r a) -> Parser (Expression r a)
+parenthesis :: Parser r (Expression r a) -> Parser r (Expression r a)
 parenthesis parser = do
   _ <- char '('
   spaces
@@ -39,24 +39,24 @@ parenthesis parser = do
 
 type Operator r a = Expression r a -> Expression r a -> Expression r a
 
-multiplicationOperator :: Parser (Operator r (Fixed r))
+multiplicationOperator :: Parser r (Operator r (Fixed r))
 multiplicationOperator =
   spaces *> char '*' *> spaces *> pure Multiply <|>
   spaces *> char '/' *> spaces *> pure Divide
 
-additionOperator :: Parser (Operator r (Fixed r))
+additionOperator :: Parser r (Operator r (Fixed r))
 additionOperator =
   spaces *> char '+' *> spaces *> pure Add <|>
   spaces *> char '-' *> spaces *> pure Subtract
 
-number :: HasResolution r => Parser (Expression r (Fixed r))
+number :: HasResolution r => Parser r (Expression r (Fixed r))
 number = Number <$> fixed
 
 -- Text expressions
-quote :: HasResolution r => Parser (Expression r T.Text)
+quote :: HasResolution r => Parser r (Expression r T.Text)
 quote = simplifyText <$> (char '\"' *> remainingQuote)
 
-remainingQuote :: HasResolution r => Parser (Expression r T.Text)
+remainingQuote :: HasResolution r => Parser r (Expression r T.Text)
 remainingQuote = do
   beginning <- T.pack <$> manyTill anyChar (oneOf ['{', '\\', '\"'])
   result <-
@@ -76,10 +76,10 @@ remainingQuote = do
       )
   pure result
 
-text :: HasResolution r => Parser (Expression r T.Text)
+text :: HasResolution r => Parser r (Expression r T.Text)
 text = withPos $ simplifyText <$> remainingText
 
-remainingText :: HasResolution r => Parser (Expression r T.Text)
+remainingText :: HasResolution r => Parser r (Expression r T.Text)
 remainingText = do
   beginning <- T.pack <$>
     manyTill anyChar (void (char '{') <|> eol <|> eof)
@@ -105,7 +105,7 @@ remainingText = do
       )
   pure result
 
-substitution :: HasResolution r => Parser (Expression r T.Text)
+substitution :: HasResolution r => Parser r (Expression r T.Text)
 substitution = do
   _ <- char '{'
   spaces
@@ -117,7 +117,7 @@ substitution = do
   _ <- char '}'
   pure result
 
-escape :: Parser T.Text
+escape :: Parser r T.Text
 escape =
   string "\\n"  *> pure "\n" <|>
   string "\\r"  *> pure "\r" <|>

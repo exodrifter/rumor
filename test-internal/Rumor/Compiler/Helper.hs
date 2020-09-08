@@ -10,7 +10,7 @@ import Data.Fixed (E12)
 import qualified Data.Text as T
 
 runParser ::
-  Parser (Expression E12 a) ->
+  Parser E12 (Expression E12 a) ->
   T.Text ->
   Either ParseError (Expression E12 a)
 runParser parser = Parser.runParser parser ""

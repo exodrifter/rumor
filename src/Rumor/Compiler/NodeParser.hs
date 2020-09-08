@@ -17,7 +17,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 
-node :: HasResolution r => Parser (Node r)
+node :: HasResolution r => Parser r (Node r)
 node =
   append <|>
   choice <|>
@@ -36,12 +36,12 @@ node =
 -- * Assume that they start parsing where the command for the node is
 -- * Consume all of the input on the line, including the newline characters
 
-append :: HasResolution r => Parser (Node r)
+append :: HasResolution r => Parser r (Node r)
 append = do
   (s, d) <- dialog '+'
   pure $ Append s d
 
-choice :: HasResolution r => Parser (Node r)
+choice :: HasResolution r => Parser r (Node r)
 choice = do
   _ <- string "choice"
   spaces1
@@ -50,13 +50,13 @@ choice = do
   c <- text
   pure $ Choice i c
 
-choose :: Parser (Node r)
+choose :: Parser r (Node r)
 choose = do
   _ <- string "choose"
   restOfLine
   pure Choose
 
-clear :: Parser (Node r)
+clear :: Parser r (Node r)
 clear = do
   _ <- string "clear"
   spaces1
@@ -66,7 +66,7 @@ clear = do
   restOfLine
   pure $ Clear t
 
-jump :: Parser (Node r)
+jump :: Parser r (Node r)
 jump = do
   _ <- string "jump"
   spaces1
@@ -74,7 +74,7 @@ jump = do
   restOfLine
   pure $ Jump i
 
-pause :: HasResolution r => Parser (Node r)
+pause :: HasResolution r => Parser r (Node r)
 pause = do
   let millisecondsParser = do
         n <- math
@@ -96,18 +96,18 @@ pause = do
   restOfLine
   pure $ Pause t
 
-return :: Parser (Node r)
+return :: Parser r (Node r)
 return = do
   _ <- string "return"
   restOfLine
   pure Return
 
-say :: HasResolution r => Parser (Node r)
+say :: HasResolution r => Parser r (Node r)
 say = do
   (s, d) <- dialog ':'
   pure $ Say s d
 
-wait :: Parser (Node r)
+wait :: Parser r (Node r)
 wait = do
   _ <- string "wait"
   restOfLine
@@ -120,7 +120,7 @@ wait = do
 dialog ::
   HasResolution r =>
   Char ->
-  Parser (Maybe Character, Expression r T.Text)
+  Parser r (Maybe Character, Expression r T.Text)
 dialog symbol = withPos $ do
   i <- option character
   spaces
@@ -133,20 +133,20 @@ dialog symbol = withPos $ do
 -- contain any alphabetic or numeric unicode characters, but it
 -- *cannot* start with an underscore as these are reserved for use by
 -- Rumor (like when automatically generating labels for choices).
-label :: Parser T.Text
+label :: Parser r T.Text
 label = do
   cs <- many1 alphaNum
   case cs of
     '_':_ -> fail "labels cannot start with '_'"
     _ -> pure $ T.pack cs
 
-character :: Parser Character
+character :: Parser r Character
 character = Character <$> label
 
-identifier :: Parser Identifier
+identifier :: Parser r Identifier
 identifier = Identifier <$> label
 
-identifierLabel :: Parser Identifier
+identifierLabel :: Parser r Identifier
 identifierLabel = do
   _ <- char '['
   spaces
@@ -163,7 +163,7 @@ identifierLabel = do
 -- ensures that it's not being used when a user *tried* to define their
 -- own identifier, because we would still want the original failure in
 -- that case.
-generatedIdentifierLabel :: Parser Identifier
+generatedIdentifierLabel :: Parser r Identifier
 generatedIdentifierLabel = do
   notFollowedBy $ char '['
   str <- getRandoms 120
@@ -178,7 +178,7 @@ generatedIdentifierLabel = do
   markIdentifierAsUsed i
   pure i
 
-markIdentifierAsUsed :: Identifier -> Parser ()
+markIdentifierAsUsed :: Identifier -> Parser r ()
 markIdentifierAsUsed i = do
   usedIdentifiers <- getUsedIdentifiers
   if Set.member i usedIdentifiers
