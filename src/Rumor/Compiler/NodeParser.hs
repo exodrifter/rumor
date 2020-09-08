@@ -8,12 +8,10 @@ import Rumor.Expression
 import Rumor.Object
 import Rumor.Parser
 
-import GHC.Enum (maxBound)
 import qualified Crypto.Hash as Hash
 import qualified Data.ByteArray.Encoding as BA
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.Maybe as Maybe
-import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 
@@ -73,6 +71,12 @@ choice = do
   i <- identifierLabel <* spaces1 <|>
        generatedIdentifierLabel
   c <- text
+
+  spaces
+  indented
+  ns <- block
+
+  addSection i ns
   pure $ Choice i c
 
 choose :: Parser r (Node r)
@@ -175,10 +179,7 @@ identifierLabel :: Parser r Identifier
 identifierLabel = do
   _ <- char '['
   spaces
-
   i <- identifier
-  markIdentifierAsUsed i
-
   spaces
   _ <- char ']'
   pure i
@@ -200,15 +201,4 @@ generatedIdentifierLabel = do
       . Hash.hashWith Hash.SHA1
       . BS8.pack
       $ str
-  markIdentifierAsUsed i
   pure i
-
-markIdentifierAsUsed :: Identifier -> Parser r ()
-markIdentifierAsUsed i = do
-  usedIdentifiers <- getUsedIdentifiers
-  if Set.member i usedIdentifiers
-  then fail "duplicate identifier label"
-  else
-    if Set.size usedIdentifiers >= (maxBound :: Int)
-    then fail "cannot create any more identifier labels"
-    else setUsedIdentifiers (Set.insert i usedIdentifiers)

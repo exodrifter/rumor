@@ -6,6 +6,7 @@ import Rumor.Compiler.Helper (parse)
 import Rumor (ClearFlag(..), Expression(..), Node(..), Script(..))
 
 import Data.Either (isLeft)
+import Data.List.NonEmpty (NonEmpty(..))
 import Test.HUnit
 import qualified Data.Map.Strict as Map
 
@@ -35,7 +36,10 @@ nodesTest =
   TestCase $ do
     assertEqual "Parses multiple nodes in a block"
       ( Right Script
-        { sections = Map.empty
+        { sections = Map.fromList
+          [ ("_OQnGaSIYM6asEWkOyyDeirLr4Qc=", Wait :| [])
+          , ("foo", Wait :| [])
+          ]
         , nodes =
           [ Say Nothing (Text "Hello World!")
           , Append Nothing (Text "Hello World!")
@@ -49,7 +53,7 @@ nodesTest =
           , Clear ClearDialog
           , Clear ClearChoices
           , Choose
-          , Choice "_7/JG9dW4r4RiUuBy2e2RuimxP+s=" (Text "Red Door")
+          , Choice "_OQnGaSIYM6asEWkOyyDeirLr4Qc=" (Text "Red Door")
           , Choice "foo" (Text "Green Door")
           ]
         }
@@ -68,7 +72,9 @@ nodesTest =
           \clear choices \n\
           \choose \n\
           \choice Red Door \n\
+          \  wait \n\
           \choice [foo] Green Door \n\
+          \  wait \n\
           \ "
       )
 

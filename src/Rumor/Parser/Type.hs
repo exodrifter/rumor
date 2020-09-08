@@ -9,8 +9,6 @@ module Rumor.Parser.Type
 , addSection
 , getRandoms
 , getSections
-, getUsedIdentifiers
-, setUsedIdentifiers
 ) where
 
 import Rumor.Object
@@ -18,14 +16,12 @@ import Rumor.Object
 import Control.Applicative (Applicative(..), Alternative(..))
 import Control.Monad (Monad(..), MonadFail(..))
 import Data.Functor (Functor(..))
-import Data.Set (Set)
 import GHC.Enum (maxBound)
 import System.Random (Random(..))
 import qualified Data.Hashable as Hashable
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map.Strict as Map
-import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified System.Random as Random
 import qualified Text.Parsec as Parsec
@@ -62,7 +58,6 @@ runParser p s t =
         ParserState
           { pureGen = Random.mkStdGen (Hashable.hash t)
           , sections = Map.empty
-          , usedIdentifiers = Set.empty
           }
   in  Parsec.runIndentParser (unParser p) state s t
 
@@ -74,7 +69,6 @@ data ParserState r =
   ParserState
     { pureGen :: Random.StdGen
     , sections :: Map Identifier (NE.NonEmpty (Node r))
-    , usedIdentifiers :: Set Identifier
     }
 
 gets :: (ParserState r -> a) -> Parser r a
@@ -107,9 +101,3 @@ getRandoms l = sequence $ List.replicate l getRandom
 
 getSections :: Parser r (Map Identifier (NE.NonEmpty (Node r)))
 getSections = gets sections
-
-getUsedIdentifiers :: Parser r (Set Identifier)
-getUsedIdentifiers = gets usedIdentifiers
-
-setUsedIdentifiers :: Set Identifier -> Parser r ()
-setUsedIdentifiers a = modify (\s -> s { usedIdentifiers = a })

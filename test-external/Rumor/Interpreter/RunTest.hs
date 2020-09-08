@@ -23,7 +23,9 @@ choiceTest = TestCase $ do
   let
     c0 = compile
       "choice Red Door\n\
+      \  wait\n\
       \choice Green Door\n\
+      \  wait\n\
       \ "
 
   assertEqual "Current choices are a red or green door on init"
