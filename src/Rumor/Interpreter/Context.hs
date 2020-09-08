@@ -11,6 +11,7 @@ module Rumor.Interpreter.Context
 , nextNode
 
 -- Mutators
+, addChoice
 , addDialog
 , clear
 , clearAll
@@ -79,6 +80,9 @@ nextNode c = do
 --------------------------------------------------------------------------------
 -- Mutators
 --------------------------------------------------------------------------------
+
+addChoice :: Identifier -> T.Text -> Context r -> Context r
+addChoice k v c = c { choices = Map.insert k v (choices c) }
 
 addDialog :: Maybe Character -> T.Text -> Context r -> Context r
 addDialog k v c =

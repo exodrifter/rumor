@@ -56,8 +56,8 @@ fastForward = do
   n <- gets Context.nextNode
   case n of
 
-    Just (Choice _ _) -> do
-      -- TODO: implement
+    Just (Choice k v) -> do
+      modify' $ Context.addChoice k (Expression.evaluateText v)
       increment
       fastForward
 

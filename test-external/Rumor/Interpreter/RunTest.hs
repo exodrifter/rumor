@@ -6,14 +6,37 @@ import Rumor
 import Rumor.Interpreter.Helper (compile)
 
 import Test.HUnit
+import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 tests :: Test
 tests =
   TestList
-    [ dialogAppendTest
+    [ choiceTest
+    , dialogAppendTest
     , dialogSayTest
     , stackFrameTest
     ]
+
+choiceTest :: Test
+choiceTest = TestCase $ do
+  let
+    c0 = compile
+      "choice Red Door\n\
+      \choice Green Door\n\
+      \ "
+
+  assertEqual "Current choices are a red or green door on init"
+    ( Set.fromList
+      [ "Red Door"
+      , "Green Door"
+      ]
+    )
+    (Set.fromList . fmap snd . Map.toList $ currentChoices c0)
+
+  assertEqual "Next node is Nothing on init"
+    (Nothing)
+    (nextNode c0)
 
 dialogAppendTest :: Test
 dialogAppendTest = TestCase $ do

@@ -12,6 +12,7 @@ module Rumor
 , Rumor.Compiler.parse
 
 , Rumor.Interpreter.Context
+, Rumor.Interpreter.addChoice
 , Rumor.Interpreter.addDialog
 , Rumor.Interpreter.clear
 , Rumor.Interpreter.clearAll
