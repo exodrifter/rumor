@@ -5,11 +5,10 @@ module Rumor.Compiler.Parser
 ) where
 
 import Rumor.Compiler.NodeParser
-import Rumor.Object (Node(..), Script)
+import Rumor.Object (Script)
 import Rumor.Parser
 import qualified Rumor.Object.Script as Script
 
-import qualified Data.Maybe as Maybe
 import qualified Data.Text as T
 
 parse ::
@@ -23,28 +22,3 @@ script = do
   restOfFile
 
   pure $ Script.init sections nodes
-
-block :: HasResolution r => Parser r [Node r]
-block = do
-  spaces
-  nodes <- withPos . many $ do
-    checkIndent
-    n <- section *> pure Nothing <|>
-         Just <$> node
-    spaces
-    pure n
-
-  pure $ Maybe.catMaybes nodes
-
-section :: HasResolution r => Parser r ()
-section = withPos $ do
-  _ <- string "label"
-  spaces1
-  i <- identifierLabel
-  restOfLine
-
-  spaces
-  indented
-  ns <- block
-
-  addSection i ns

@@ -1,6 +1,5 @@
 module Rumor.Compiler.NodeParser
-( node
-, identifierLabel
+( block
 ) where
 
 import Prelude hiding (return)
@@ -13,9 +12,35 @@ import GHC.Enum (maxBound)
 import qualified Crypto.Hash as Hash
 import qualified Data.ByteArray.Encoding as BA
 import qualified Data.ByteString.Char8 as BS8
+import qualified Data.Maybe as Maybe
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+
+block :: HasResolution r => Parser r [Node r]
+block = do
+  spaces
+  nodes <- withPos . many $ do
+    checkIndent
+    n <- section *> pure Nothing <|>
+         Just <$> node
+    spaces
+    pure n
+
+  pure $ Maybe.catMaybes nodes
+
+section :: HasResolution r => Parser r ()
+section = withPos $ do
+  _ <- string "label"
+  spaces1
+  i <- identifierLabel
+  restOfLine
+
+  spaces
+  indented
+  ns <- block
+
+  addSection i ns
 
 node :: HasResolution r => Parser r (Node r)
 node =
