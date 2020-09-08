@@ -26,6 +26,7 @@ module Rumor
 
 , advance
 , choose
+, update
 ) where
 
 import Rumor.Interpreter (Context, unInterpreter)
@@ -44,3 +45,6 @@ advance = execState . unInterpreter $ Rumor.Interpreter.advance
 
 choose :: (HasResolution r) => Identifier -> Context r -> Context r
 choose id = execState . unInterpreter $ Rumor.Interpreter.choose id
+
+update :: (HasResolution r) => Fixed r -> Context r -> Context r
+update delta = execState . unInterpreter $ Rumor.Interpreter.update delta

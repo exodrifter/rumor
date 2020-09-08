@@ -2,6 +2,7 @@ module Rumor.Interpreter.Run
 ( advance
 , choose
 , init
+, update
 ) where
 
 import Rumor.Interpreter.Context (Context(..))
@@ -95,43 +96,37 @@ fastForward = do
 -- Called when the user provides input.
 advance :: HasResolution r => Interpreter r ()
 advance = do
+  let handleInput = do
+        increment
+        fastForward
+      ff = do
+        fastForward
+        m <- gets Context.nextNode
+        case m of
+          Just _ -> advance
+          Nothing -> pure ()
+
   n <- gets Context.nextNode
   case n of
 
     Just (Append k v) -> do
       modify' $ Context.addDialog k (Expression.evaluateText v)
-      increment
-      fastForward
+      handleInput
 
     Just (Say k v) -> do
       modify' $ Context.clearDialog
       modify' $ Context.addDialog k (Expression.evaluateText v)
-      increment
-      fastForward
+      handleInput
 
-    Just Wait -> do
-      increment
-      fastForward
+    Just Wait ->
+      handleInput
 
     -- Fast-forward before we try advancing.
-    Just (Choice _ _) -> do
-      fastForward
-      advance
-    Just (Clear _) -> do
-      fastForward
-      advance
-    Just (Jump _) -> do
-      fastForward
-      advance
-    Just Return -> do
-      fastForward
-      advance
-    Nothing -> do
-      fastForward
-      m <- gets Context.nextNode
-      case m of
-        Just _ -> advance
-        Nothing -> pure ()
+    Just (Choice _ _) -> ff
+    Just (Clear _) -> ff
+    Just (Jump _) -> ff
+    Just Return -> ff
+    Nothing -> ff
 
     -- The user can't proceed when these are the current node.
     Just Choose -> pure ()
@@ -140,6 +135,13 @@ advance = do
 -- Called when the user wants to choose a choice.
 choose :: HasResolution r => Identifier -> Interpreter r ()
 choose id = do
+  let ff = do
+        fastForward
+        m <- gets Context.nextNode
+        case m of
+          Just _ -> choose id
+          Nothing -> pure ()
+
   n <- gets Context.nextNode
   case n of
 
@@ -153,30 +155,55 @@ choose id = do
         pure ()
 
     -- Fast-forward before we try choosing a choice.
-    Just (Choice _ _) -> do
-      fastForward
-      choose id
-    Just (Clear _) -> do
-      fastForward
-      choose id
-    Just (Jump _) -> do
-      fastForward
-      choose id
-    Just Return -> do
-      fastForward
-      choose id
-    Nothing -> do
-      fastForward
-      m <- gets Context.nextNode
-      case m of
-        Just _ -> choose id
-        Nothing -> pure ()
+    Just (Choice _ _) -> ff
+    Just (Clear _) -> ff
+    Just (Jump _) -> ff
+    Just Return -> ff
+    Nothing -> ff
 
     -- The user can't choose a choice when these are the current node.
     Just (Append _ _) -> pure ()
     Just (Say _ _) -> pure ()
     Just Wait -> pure ()
     Just (Pause _) -> pure ()
+
+update :: HasResolution r => Fixed r -> Interpreter r ()
+update delta = do
+  let updateIdleTime =
+        modify' $ Context.updateIdle delta
+      ff = do
+        fastForward
+        m <- gets Context.nextNode
+        case m of
+          Just _ -> do
+            modify' Context.resetIdle
+            update delta
+          Nothing ->
+            updateIdleTime
+
+  n <- gets Context.nextNode
+  case n of
+
+    -- Update the idle time and maybe take an action.
+    Just (Pause t) -> do
+      updateIdleTime
+      elapsed <- gets Context.millisecondsIdle
+      if elapsed < Expression.evaluateNumber t
+      then pure ()
+      else increment *> ff
+
+    -- Update the idle time only.
+    Just (Append _ _) -> updateIdleTime
+    Just Choose -> updateIdleTime
+    Just (Say _ _) -> updateIdleTime
+    Just Wait -> updateIdleTime
+
+    -- Fast-forward before we update the idle time.
+    Just (Choice _ _) -> ff
+    Just (Clear _) -> ff
+    Just (Jump _) -> ff
+    Just Return -> ff
+    Nothing -> ff
 
 -- Moves the pointer to the next node.
 increment :: Interpreter r ()

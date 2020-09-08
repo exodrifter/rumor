@@ -3,12 +3,13 @@ module Rumor.Interpreter.Context
 , init
 
 -- Getters
-, script
 , currentChoices
 , currentDialog
 , currentDialogFor
 , currentFrame
+, millisecondsIdle
 , nextNode
+, script
 
 -- Mutators
 , addChoice
@@ -20,6 +21,8 @@ module Rumor.Interpreter.Context
 , increment
 , pop
 , push
+, resetIdle
+, updateIdle
 ) where
 
 import Rumor.Interpreter.StackFrame (StackFrame)
@@ -36,6 +39,7 @@ data Context r =
     , stack :: [StackFrame r]
     , dialog :: Map (Maybe Character) T.Text
     , choices :: Map Identifier T.Text
+    , millisecondsIdle :: Fixed r
     }
   deriving stock (Eq, Show)
 
@@ -46,6 +50,7 @@ init s =
     , stack = [StackFrame.init (Script.nodes s)]
     , dialog = Map.empty
     , choices = Map.empty
+    , millisecondsIdle = MkFixed 0
     }
 
 --------------------------------------------------------------------------------
@@ -128,3 +133,9 @@ pop c =
 -- Pushes a new stack frame onto the stack.
 push :: [Node r] -> Context r -> Context r
 push ns c = c { stack = StackFrame.init ns : stack c }
+
+resetIdle :: Context r -> Context r
+resetIdle c = c { millisecondsIdle = MkFixed 0 }
+
+updateIdle :: (HasResolution r) => Fixed r -> Context r -> Context r
+updateIdle delta c = c { millisecondsIdle = (millisecondsIdle c) + delta }

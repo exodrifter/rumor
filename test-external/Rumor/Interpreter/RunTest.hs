@@ -15,6 +15,7 @@ tests =
     [ choiceTest
     , dialogAppendTest
     , dialogSayTest
+    , pauseTest
     , stackFrameTest
     ]
 
@@ -98,6 +99,31 @@ dialogSayTest = TestCase $ do
   assertEqual "Next node after one advance is Nothing"
     (Nothing)
     (nextNode c1)
+
+pauseTest :: Test
+pauseTest = TestCase $ do
+  let c0 = compile
+        "pause 5 seconds \n\
+        \ "
+
+  assertEqual "Current initial node is a pause"
+    (Just (Pause (Number 5000)))
+    (nextNode c0)
+
+  let c1 = advance c0
+  assertEqual "Current node after one advance is still a pause"
+    (Just (Pause (Number 5000)))
+    (nextNode c1)
+
+  let c2 = update 3000 c1
+  assertEqual "Current node after waiting 3 seconds is still a pause"
+    (Just (Pause (Number 5000)))
+    (nextNode c2)
+
+  let c3 = update 3000 c2
+  assertEqual "Current node after waiting another 3 seconds is Nothing"
+    (Nothing)
+    (nextNode c3)
 
 stackFrameTest :: Test
 stackFrameTest = TestCase $ do
