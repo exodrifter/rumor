@@ -52,6 +52,10 @@ library:
   source-dirs: src
   exposed-modules:
     - Rumor
+  ghc-options:
+    - -shared
+    - -static
+    - src/Rumor.def
 
 tests:
   rumor-internal-test:

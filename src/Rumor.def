@@ -1,0 +1,12 @@
+EXPORTS
+  hs_init = hs_init
+  hs_exit = hs_exit
+
+  free = free
+
+  parse = parse
+  init = init
+
+  advance = advance
+  choose = choose
+  update = update

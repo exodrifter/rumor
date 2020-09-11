@@ -4,6 +4,7 @@ module Rumor
 , Rumor.Expression.simplify
 
 , Rumor.Object.ClearFlag.ClearFlag(..)
+, Rumor.Object.Identifier(..)
 , Rumor.Object.Node(..)
 , Rumor.Object.Script.Script(..)
 , Rumor.Object.Value(..)
@@ -11,6 +12,7 @@ module Rumor
 , Rumor.Compiler.ParseError
 , Rumor.Compiler.parse
 
+, Rumor.Interpreter.Interpreter(..)
 , Rumor.Interpreter.Context
 , Rumor.Interpreter.addChoice
 , Rumor.Interpreter.addDialog
