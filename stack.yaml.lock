@@ -5,80 +5,15 @@
 
 packages:
 - completed:
-    hackage: basement-0.0.11@sha256:af43e2e334e515b52ca309919b135c51b5e9411e6d4c68d0e8950d61eb5f25d1,5711
-    pantry-tree:
-      size: 5859
-      sha256: 2b5bdb5b5a3ede3676aef58f0524c38881128338aede213913e64e0c4430906e
-  original:
-    hackage: basement-0.0.11
-- completed:
-    hackage: call-stack-0.2.0@sha256:5ce796b78d5f964468ec6fe0717b4e7d0430817f37370c47b3e6b38e345b6643,1202
-    pantry-tree:
-      size: 500
-      sha256: 30cc02f50a7f660db6b5c4218b4021cd78cae90b135d893d55f32a1c8b1e1c08
-  original:
-    hackage: call-stack-0.2.0
-- completed:
-    hackage: cryptonite-0.27@sha256:b75ec07ef0244574aa5374f0a1b349dff8c8f84583cb6c58fd95e565245716d4,18143
-    pantry-tree:
-      size: 22989
-      sha256: 1a63bb79748aeb2c0312d6a166fe8436a139929b017bf208f002e79073d21966
-  original:
-    hackage: cryptonite-0.27
-- completed:
-    hackage: hashable-1.3.0.0@sha256:4c70f1407881059e93550d3742191254296b2737b793a742bd901348fb3e1fb1,5206
-    pantry-tree:
-      size: 1521
-      sha256: 84aba72926c33debd71fb9c670869d842025f8ea45ad10084289a34f0448250f
-  original:
-    hackage: hashable-1.3.0.0
-- completed:
-    hackage: HUnit-1.6.0.0@sha256:8014b27c884becd8041214a1ab263fa92244ca62700a911aff604a1047869298,1570
-    pantry-tree:
-      size: 878
-      sha256: 270a6f8d6ef23eba3a9a1697aa244576abb168d10cb8e4736cf4add2b09eb650
-  original:
-    hackage: HUnit-1.6.0.0
-- completed:
-    hackage: indents-0.5.0.1@sha256:ee53395fda933cb696a28d9fd2fe0afdb08e3ba1275bd4249fa25319c87b5735,1539
-    pantry-tree:
-      size: 545
-      sha256: 9c0ca196629397378373ce062e2e518ec1276f0532ffd5bb6ac6b89c12d49713
-  original:
-    hackage: indents-0.5.0.1
-- completed:
-    hackage: memory-0.15.0@sha256:be7024b50e876a9c3b7febaefdd81d5dc67268c58a7b4e6b3825bdc58274d88c,5002
-    pantry-tree:
-      size: 2509
-      sha256: df13688e9516d23eab08bbec9d26338d072e85bf760b654335dc14289162988f
-  original:
-    hackage: memory-0.15.0
-- completed:
     hackage: parsec3-numbers-0.1.0@sha256:2f32295f9f4023f7f97da851549aaaf5e72866e98bf016a1ac3c6e8715bbaf8a,685
     pantry-tree:
       size: 264
       sha256: a3d23f56cc2a9d17ed24ac5119a7b2102d40c0afeed5271f6b41b7597f181df0
   original:
     hackage: parsec3-numbers-0.1.0
+snapshots:
 - completed:
-    hackage: random-1.2.0@sha256:5ca8674e95c46c7eb90f520c26aea22d403625c97697275434afba66ebd32b05,5897
-    pantry-tree:
-      size: 1259
-      sha256: 8ba46c3d6b1cd0d4a4ee472922497f8d0778a1aaf7bbcac328a0b06b4d153309
-  original:
-    hackage: random-1.2.0
-- completed:
-    hackage: safe-0.3.19@sha256:0910dafb8898f52bde4c646e560228a0fd08b1fca5457f222d2f5c0fad6d2039,2317
-    pantry-tree:
-      size: 564
-      sha256: 40010636c24cebf3f3e29e9b3b8e6c35f249f5e5d253925433140bb0b4e3f891
-  original:
-    hackage: safe-0.3.19
-- completed:
-    hackage: splitmix-0.1.0.1@sha256:22f9662e7e8b173421872241edd39350078a9ed4bb9e9f503948c5b483c79276,5253
-    pantry-tree:
-      size: 1149
-      sha256: b9a0c60e2d4786bbb276ce6606027a99615bf703fa3e0f01911e8c6a656c5161
-  original:
-    hackage: splitmix-0.1.0.1
-snapshots: []
+    size: 532381
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/13.yaml
+    sha256: 6ee17f7996e5bc75ae4406250841f1362ad4196418a4d90a0615ff4f26ac98df
+  original: lts-16.13
