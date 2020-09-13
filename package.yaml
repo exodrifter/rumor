@@ -53,15 +53,7 @@ library:
   exposed-modules:
     - Rumor
   ghc-options:
-    - -shared
-    - -static
     - src/Rumor.def
-
-    # Debugging options
-    - -O0
-    - -g
-    - -dcore-lint
-    - -debug
 
 tests:
   rumor-internal-test:

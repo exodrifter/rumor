@@ -2,11 +2,11 @@ EXPORTS
   hs_init = hs_init
   hs_exit = hs_exit
 
-  free = free
+  rumor_free = rumor_free
 
-  parse = parse
-  init = init
+  rumor_parse = rumor_parse
+  rumor_init = rumor_init
 
-  advance = advance
-  choose = choose
-  update = update
+  rumor_advance = rumor_advance
+  rumor_choose = rumor_choose
+  rumor_update = rumor_update
