@@ -18,6 +18,12 @@ module Rumor.FFI
 , rumor_advance
 , rumor_choose
 , rumor_update
+
+, rumor_add_choice
+, rumor_add_dialog
+, rumor_clear_all
+, rumor_clear_choices
+, rumor_clear_dialog
 ) where
 
 import qualified Rumor
@@ -96,3 +102,61 @@ rumor_update :: CULLong -> ContextPtr -> IO ContextPtr
 rumor_update delta contextPtr = do
   context <- deRefStablePtr contextPtr
   newStablePtr $ Rumor.update (fromIntegral delta) context
+
+--------------------------------------------------------------------------------
+-- Context mutators
+--------------------------------------------------------------------------------
+
+foreign export ccall
+  rumor_add_choice :: CString -> CString -> ContextPtr -> IO ContextPtr
+
+rumor_add_choice :: CString -> CString -> ContextPtr -> IO ContextPtr
+rumor_add_choice c_id c_choice contextPtr = do
+  id <- T.pack <$> peekCString c_id
+  choice <- T.pack <$> peekCString c_choice
+  context <- deRefStablePtr contextPtr
+  newStablePtr $ Rumor.addChoice (Rumor.Identifier id) choice context
+
+foreign export ccall
+  rumor_add_dialog :: CString -> CString -> ContextPtr -> IO ContextPtr
+
+rumor_add_dialog :: CString -> CString -> ContextPtr -> IO ContextPtr
+rumor_add_dialog c_character c_dialog contextPtr = do
+  character <- nonEmptyText <$> peekCString c_character
+  dialog <- T.pack <$> peekCString c_dialog
+  context <- deRefStablePtr contextPtr
+  newStablePtr $ Rumor.addDialog (Rumor.Character <$> character) dialog context
+
+foreign export ccall
+  rumor_clear_all :: ContextPtr -> IO ContextPtr
+
+rumor_clear_all :: ContextPtr -> IO ContextPtr
+rumor_clear_all contextPtr = do
+  context <- deRefStablePtr contextPtr
+  newStablePtr $ Rumor.clearAll context
+
+foreign export ccall
+  rumor_clear_choices :: ContextPtr -> IO ContextPtr
+
+rumor_clear_choices :: ContextPtr -> IO ContextPtr
+rumor_clear_choices contextPtr = do
+  context <- deRefStablePtr contextPtr
+  newStablePtr $ Rumor.clearChoices context
+
+foreign export ccall
+  rumor_clear_dialog :: ContextPtr -> IO ContextPtr
+
+rumor_clear_dialog :: ContextPtr -> IO ContextPtr
+rumor_clear_dialog contextPtr = do
+  context <- deRefStablePtr contextPtr
+  newStablePtr $ Rumor.clearDialog context
+
+--------------------------------------------------------------------------------
+-- Utility functions
+--------------------------------------------------------------------------------
+
+nonEmptyText :: [Char] -> Maybe T.Text
+nonEmptyText str =
+  case str of
+    [] -> Nothing
+    _ -> Just $ T.pack str

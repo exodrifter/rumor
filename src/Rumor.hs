@@ -3,10 +3,11 @@ module Rumor
 , Rumor.Expression.evaluate
 , Rumor.Expression.simplify
 
-, Rumor.Object.ClearFlag.ClearFlag(..)
+, Rumor.Object.Character(..)
+, Rumor.Object.ClearFlag(..)
 , Rumor.Object.Identifier(..)
 , Rumor.Object.Node(..)
-, Rumor.Object.Script.Script(..)
+, Rumor.Object.Script
 , Rumor.Object.Value(..)
 
 , Rumor.Compiler.ParseError
@@ -37,8 +38,6 @@ import qualified Rumor.Compiler
 import qualified Rumor.Expression
 import qualified Rumor.Interpreter
 import qualified Rumor.Object
-import qualified Rumor.Object.ClearFlag
-import qualified Rumor.Object.Script
 
 import Control.Monad.State (execState)
 

@@ -10,3 +10,9 @@ EXPORTS
   rumor_advance = rumor_advance
   rumor_choose = rumor_choose
   rumor_update = rumor_update
+
+  rumor_add_choice = rumor_add_choice
+  rumor_add_dialog = rumor_add_dialog
+  rumor_clear_all = rumor_clear_all
+  rumor_clear_choices = rumor_clear_choices
+  rumor_clear_dialog = rumor_clear_dialog
