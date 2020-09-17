@@ -2,7 +2,8 @@ EXPORTS
   hs_init = hs_init
   hs_exit = hs_exit
 
-  rumor_free = rumor_free
+  rumor_free_ptr = rumor_free_ptr
+  rumor_free_stable_ptr = rumor_free_stable_ptr
 
   rumor_parse = rumor_parse
   rumor_init = rumor_init
@@ -10,6 +11,8 @@ EXPORTS
   rumor_advance = rumor_advance
   rumor_choose = rumor_choose
   rumor_update = rumor_update
+
+  rumor_current_dialog_for = rumor_current_dialog_for
 
   rumor_add_choice = rumor_add_choice
   rumor_add_dialog = rumor_add_dialog
