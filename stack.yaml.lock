@@ -5,6 +5,13 @@
 
 packages:
 - completed:
+    hackage: c-storable-deriving-0.1.3@sha256:510aa8423d6b3df57a39365569195ddc5bd4b04b0ff58ba1345c1f309ae6f89e,1030
+    pantry-tree:
+      size: 369
+      sha256: 17a631450a907af3253c3aa95414239b1adea9c5d9777705d6beab712cdf61a6
+  original:
+    hackage: c-storable-deriving-0.1.3
+- completed:
     hackage: parsec3-numbers-0.1.0@sha256:2f32295f9f4023f7f97da851549aaaf5e72866e98bf016a1ac3c6e8715bbaf8a,685
     pantry-tree:
       size: 264

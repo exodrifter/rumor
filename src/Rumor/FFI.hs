@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 
 -- This module is used to create a shared library which can be used by another
@@ -34,12 +36,17 @@ import qualified Rumor
 
 import Data.Fixed (E12)
 import Foreign.C.Types (CULLong(..))
+import Foreign.CStorable (CStorable(..))
 import Foreign.Marshal.Alloc (free)
+import Foreign.Marshal.Array (newArray0, peekArray0)
 import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.StablePtr (StablePtr, deRefStablePtr, freeStablePtr, newStablePtr)
+import Foreign.Storable (Storable(..))
 import GHC.Err (error)
+import GHC.Generics (Generic)
 import GHC.Real (fromIntegral)
 import qualified Data.Text as T
+import qualified Data.Map.Strict as Map
 
 type ScriptPtr = StablePtr (Rumor.Script E12)
 type ContextPtr = StablePtr (Rumor.Context E12)
@@ -120,6 +127,49 @@ rumor_update delta contextPtr = do
 --------------------------------------------------------------------------------
 -- Context getters
 --------------------------------------------------------------------------------
+
+data Choice = Choice CUtf8 CUtf8
+  deriving stock (Eq, Generic, Show)
+  deriving anyclass (CStorable)
+
+instance Storable Choice where
+ peek      = cPeek
+ poke      = cPoke
+ alignment = cAlignment
+ sizeOf    = cSizeOf
+
+nullChoice :: Choice
+nullChoice = Choice nullCUtf8 nullCUtf8
+
+newChoice :: (Rumor.Identifier, T.Text) -> IO Choice
+newChoice (id, t) =
+  Choice
+    <$> newCUtf8 (Rumor.unIdentifier id)
+    <*> newCUtf8 t
+
+freeChoice :: Choice -> IO ()
+freeChoice (Choice id t) = do
+  rumor_free_ptr $ unCUtf8 id
+  rumor_free_ptr $ unCUtf8 t
+
+foreign export ccall
+  rumor_free_current_choices :: Ptr Choice -> IO ()
+
+rumor_free_current_choices :: Ptr Choice -> IO ()
+rumor_free_current_choices choicePtr = do
+  choices <- peekArray0 nullChoice choicePtr
+  _ <- sequence $ freeChoice <$> choices
+  free choicePtr
+
+foreign export ccall
+  rumor_current_choices :: ContextPtr -> IO (Ptr Choice)
+
+rumor_current_choices :: ContextPtr -> IO (Ptr Choice)
+rumor_current_choices contextPtr = do
+  context <- deRefStablePtr contextPtr
+  let c = Map.toList $ Rumor.currentChoices context
+  choices <- sequence $ newChoice <$> c
+  newArray0 nullChoice choices
 
 foreign export ccall
   rumor_current_dialog_for :: CUtf8 -> ContextPtr -> IO CUtf8

@@ -9,9 +9,10 @@ module Rumor.FFI.Types
 ) where
 
 import Data.Word (Word8)
-import Foreign.Marshal.Alloc (mallocBytes)
 import Foreign.C.String (CString, peekCString)
+import Foreign.CStorable (CStorable(..))
 import Foreign.ForeignPtr (withForeignPtr)
+import Foreign.Marshal.Alloc (mallocBytes)
 import Foreign.Ptr (castPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, pokeByteOff)
 import qualified Data.ByteString as BS
@@ -20,8 +21,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 
 -- Represents a UTF-8 encoded string in C.
-newtype CUtf8 = CUtf8 CString
-  deriving newtype (Eq, Show, Storable)
+newtype CUtf8 = CUtf8 { unCUtf8 :: CString }
+  deriving newtype (Eq, Show, CStorable, Storable)
 
 -- Marshal a Haskell Text into a NUL terminated UTF-8 encoded C string.
 -- * The Haskell string may not contain any NUL characters.
