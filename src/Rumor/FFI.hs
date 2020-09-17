@@ -29,23 +29,17 @@ module Rumor.FFI
 , rumor_clear_dialog
 ) where
 
+import Rumor.FFI.Types
 import qualified Rumor
 
 import Data.Fixed (E12)
-import Data.Word (Word8)
-import Foreign.C.String (CString, peekCString)
 import Foreign.C.Types (CULLong(..))
-import Foreign.ForeignPtr (withForeignPtr)
-import Foreign.Marshal.Alloc (mallocBytes, free)
-import Foreign.Ptr (Ptr, castPtr, nullPtr, plusPtr)
+import Foreign.Marshal.Alloc (free)
+import Foreign.Ptr (Ptr, nullPtr)
 import Foreign.StablePtr (StablePtr, deRefStablePtr, freeStablePtr, newStablePtr)
-import Foreign.Storable (pokeByteOff)
 import GHC.Err (error)
 import GHC.Real (fromIntegral)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Internal as BSI
 
 type ScriptPtr = StablePtr (Rumor.Script E12)
 type ContextPtr = StablePtr (Rumor.Context E12)
@@ -74,12 +68,12 @@ rumor_free_stable_ptr = freeStablePtr
 --------------------------------------------------------------------------------
 
 foreign export ccall
-  rumor_parse :: CString -> CString -> IO ScriptPtr
+  rumor_parse :: CString -> CUtf8 -> IO ScriptPtr
 
-rumor_parse :: CString -> CString -> IO ScriptPtr
+rumor_parse :: CString -> CUtf8 -> IO ScriptPtr
 rumor_parse c_sourceName c_text = do
-  sourceName <- cstring c_sourceName
-  text <- ctext c_text
+  sourceName <- readCString c_sourceName
+  text <- readCUtf8 c_text
   case Rumor.parse sourceName text of
     Left err -> error $ show err
     Right script -> do
@@ -106,11 +100,11 @@ rumor_advance contextPtr = do
   newStablePtr $ Rumor.advance context
 
 foreign export ccall
-  rumor_choose :: CString -> ContextPtr -> IO ContextPtr
+  rumor_choose :: CUtf8 -> ContextPtr -> IO ContextPtr
 
-rumor_choose :: CString -> ContextPtr -> IO ContextPtr
+rumor_choose :: CUtf8 -> ContextPtr -> IO ContextPtr
 rumor_choose c_id contextPtr = do
-  id <- ctext c_id
+  id <- readCUtf8 c_id
   context <- deRefStablePtr contextPtr
   newStablePtr $
     Rumor.choose (Rumor.Identifier id) context
@@ -128,37 +122,37 @@ rumor_update delta contextPtr = do
 --------------------------------------------------------------------------------
 
 foreign export ccall
-  rumor_current_dialog_for :: CString -> ContextPtr -> IO CString
+  rumor_current_dialog_for :: CUtf8 -> ContextPtr -> IO CUtf8
 
-rumor_current_dialog_for :: CString -> ContextPtr -> IO CString
+rumor_current_dialog_for :: CUtf8 -> ContextPtr -> IO CUtf8
 rumor_current_dialog_for c_speaker contextPtr = do
-  speaker <- nonEmptyText <$> ctext c_speaker
+  speaker <- nonEmptyText <$> readCUtf8 c_speaker
   context <- deRefStablePtr contextPtr
   case Rumor.currentDialogFor (Rumor.Character <$> speaker) context of
-    Just dialog -> textToCString dialog
-    Nothing -> pure $ nullPtr
+    Just dialog -> newCUtf8 dialog
+    Nothing -> pure nullCUtf8
 
 --------------------------------------------------------------------------------
 -- Context mutators
 --------------------------------------------------------------------------------
 
 foreign export ccall
-  rumor_add_choice :: CString -> CString -> ContextPtr -> IO ContextPtr
+  rumor_add_choice :: CUtf8 -> CUtf8 -> ContextPtr -> IO ContextPtr
 
-rumor_add_choice :: CString -> CString -> ContextPtr -> IO ContextPtr
+rumor_add_choice :: CUtf8 -> CUtf8 -> ContextPtr -> IO ContextPtr
 rumor_add_choice c_id c_choice contextPtr = do
-  id <- ctext c_id
-  choice <- ctext c_choice
+  id <- readCUtf8 c_id
+  choice <- readCUtf8 c_choice
   context <- deRefStablePtr contextPtr
   newStablePtr $ Rumor.addChoice (Rumor.Identifier id) choice context
 
 foreign export ccall
-  rumor_add_dialog :: CString -> CString -> ContextPtr -> IO ContextPtr
+  rumor_add_dialog :: CUtf8 -> CUtf8 -> ContextPtr -> IO ContextPtr
 
-rumor_add_dialog :: CString -> CString -> ContextPtr -> IO ContextPtr
+rumor_add_dialog :: CUtf8 -> CUtf8 -> ContextPtr -> IO ContextPtr
 rumor_add_dialog c_character c_dialog contextPtr = do
-  character <- nonEmptyText <$> ctext c_character
-  dialog <- ctext c_dialog
+  character <- nonEmptyText <$> readCUtf8 c_character
+  dialog <- readCUtf8 c_dialog
   context <- deRefStablePtr contextPtr
   newStablePtr $ Rumor.addDialog (Rumor.Character <$> character) dialog context
 
@@ -190,37 +184,9 @@ rumor_clear_dialog contextPtr = do
 -- Utility functions
 --------------------------------------------------------------------------------
 
-cstring :: CString -> IO [Char]
-cstring ptr =
-  if nullPtr == ptr
-  then pure []
-  else peekCString ptr
-
--- Decodes a CString as a UTF-8 encoded bytestring.
-ctext :: CString -> IO T.Text
-ctext ptr =
-  if nullPtr == ptr
-  then pure T.empty
-  else do
-    TE.decodeUtf8 <$> BS.packCString ptr
-
 -- Returns Nothing if the Text is null
 nonEmptyText :: T.Text -> Maybe T.Text
 nonEmptyText t =
   if T.null t
   then Nothing
   else Just t
-
--- Encodes a Text as a UTF-8 encoded bytestring. The allocated CString must be
--- explicity freed by rumor_free_ptr.
-textToCString :: T.Text -> IO CString
-textToCString t = do
-  let BSI.PS fp o l = TE.encodeUtf8 t
-
-  buf <- mallocBytes $ l + 1
-
-  withForeignPtr fp $ \p ->
-    BSI.memcpy buf (p `plusPtr` o) l
-  pokeByteOff buf l (0 :: Word8)
-
-  pure $ castPtr buf
