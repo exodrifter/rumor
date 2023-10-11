@@ -14,13 +14,41 @@ copyright: 2023 Ava Pek
 category: Video Games
 extra-source-files: CHANGELOG.md
 
-executable rumor
-  hs-source-dirs: app
-  main-is: Main.hs
-  -- other-modules:
+library
+  hs-source-dirs: src
+  exposed-modules:
+    Rumor,
+    Rumor.Internal.Types
 
   default-language:
     Haskell2010
-  -- other-extensions:
+  default-extensions:
+    BlockArguments,
+    OverloadedStrings
+  ghc-options:
+    -Wall
+
   build-depends:
-    base ^>=4.17.2.0
+    base ^>=4.17.2.0,
+    megaparsec,
+    text
+
+test-suite test-rumor
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: test
+  main-is: Main.hs
+
+  default-language:
+    Haskell2010
+  default-extensions:
+    BlockArguments,
+    OverloadedStrings
+  ghc-options:
+    -Wall
+
+  build-depends:
+    base ^>=4.17.2.0,
+    HUnit,
+    rumor,
+    text
