@@ -1,10 +1,12 @@
 module Rumor where
 
+import Data.Functor (($>))
 import Data.Text (Text)
 import Data.Void (Void)
+import Text.Megaparsec ((<?>))
 
 import qualified Data.Char as Char
-import qualified Data.Maybe as Maybe
+import qualified Data.List as List
 import qualified Data.Text as T
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -22,7 +24,7 @@ parse fileName fileContents =
 
 parser :: Parser [Rumor.Node]
 parser =
-  Mega.many (lexeme node <* space) <* Mega.eof
+  Mega.manyTill (hlexeme node <* space) Mega.eof
 
 node :: Parser Rumor.Node
 node =
@@ -33,32 +35,97 @@ node =
 
 say :: Parser Rumor.Node
 say =
-  lexeme (dialog ':' Rumor.Say)
+  hlexeme (dialog ':' Rumor.Say)
 
 add :: Parser Rumor.Node
 add =
-  lexeme (dialog '+' Rumor.Add)
+  hlexeme (dialog '+' Rumor.Add)
 
 dialog ::
-  Char -> (Maybe Rumor.Speaker -> Text -> Rumor.Node) -> Parser Rumor.Node
+  Char ->
+  (Maybe Rumor.Speaker -> Rumor.Expression Text -> Rumor.Node) ->
+  Parser Rumor.Node
 dialog sep cons =
   let
     mkDialog speaker texts =
-      cons (Rumor.Speaker <$> speaker) (T.strip (T.intercalate " " texts))
+      cons
+        (Rumor.Speaker <$> speaker)
+        ( mconcat
+            ( List.intersperse
+                (Rumor.String " ")
+                (List.filter (/= mempty) texts)
+            )
+        )
 
     dialogIndent = do
-      speaker <- lexeme (Mega.optional identifier)
-      _ <- lexeme (Char.char sep)
-      firstText <- Maybe.fromMaybe "" <$> (Mega.optional line)
+      speaker <- hlexeme (Mega.optional identifier)
+      _ <- hlexeme (Char.char sep)
+      firstText <- unquotedLine
       pure
         ( Lexer.IndentMany
             Nothing
             (\texts -> pure (mkDialog speaker (firstText:texts)))
-            line
+            unquotedLine
         )
 
   in
     Lexer.indentBlock space dialogIndent
+
+--------------------------------------------------------------------------------
+-- Expression
+--------------------------------------------------------------------------------
+
+interpolation :: Parser (Rumor.Expression Text)
+interpolation = do
+  _ <- lexeme (Char.char '{')
+  text <- lexeme textExpression
+  _ <- Char.char '}' <?> "end interpolation"
+  pure text
+
+textExpression :: Parser (Rumor.Expression Text)
+textExpression = do
+  _ <- Char.char '"'
+  text <- unquotedLine
+  _ <- Char.char '"' <?> "end double quote"
+  pure text
+
+unquotedLine :: Parser (Rumor.Expression Text)
+unquotedLine = do
+  let escapedChar = do
+        _ <- Char.char '\\'
+        Rumor.String <$>
+          Mega.choice
+            [ Char.char 'n' $> "\n"
+            , Char.char 'r' $> "\r"
+            , Char.char '\\' $> "\\"
+            , Char.char '{' $> "{"
+            , Char.char '}' $> "}"
+            , Char.char '"' $> "\""
+            ]
+      literalString = do
+        literal <-
+          Mega.takeWhile1P
+            (Just "literal char")
+            (`notElem` ['\n', '\r', '\\', '{', '"'])
+            :: Parser Text
+
+        -- Strip the end of the text if this is at the end of the line
+        next <- Mega.lookAhead
+          (Mega.optional (Mega.choice [Char.char '\n', Char.char '\r']))
+        if next == Just '\n' || next == Just '\r'
+        then pure (Rumor.String (T.stripEnd literal))
+        else pure (Rumor.String literal)
+
+  text <-
+      ( Mega.many
+        ( Mega.choice
+          [ literalString
+          , escapedChar
+          , interpolation
+          ]
+        )
+      )
+  pure (mconcat text)
 
 --------------------------------------------------------------------------------
 -- Helpers
@@ -75,7 +142,10 @@ line =
   Mega.takeWhile1P Nothing (`notElem` ['\n', '\r'])
 
 lexeme :: Parser a -> Parser a
-lexeme = Lexer.lexeme hspace
+lexeme = Lexer.lexeme space
+
+hlexeme :: Parser a -> Parser a
+hlexeme = Lexer.lexeme hspace
 
 space :: Parser ()
 space = Lexer.space Char.space1 lineComment blockComment

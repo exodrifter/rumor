@@ -12,6 +12,7 @@ tests =
   HUnit.TestList
     [ addTests
     , sayTests
+    , interpolationTests
     , smokeTest
     ]
 
@@ -19,13 +20,13 @@ addTests :: HUnit.Test
 addTests =
   let
     expected speaker line =
-      Right [Rumor.Add (Just (Rumor.Speaker speaker)) line]
+      Right [Rumor.Add (Just (Rumor.Speaker speaker)) (Rumor.String line)]
 
   in
     HUnit.TestList
       [ HUnit.TestCase do
           HUnit.assertEqual "add with no speaker"
-            (Right [Rumor.Add Nothing "Hello World"])
+            (Right [Rumor.Add Nothing (Rumor.String "Hello World")])
             (Rumor.parse "" "+ Hello World")
 
       , HUnit.TestCase do
@@ -64,6 +65,11 @@ addTests =
             (Rumor.parse "" "alice+\n Hello\n World\n")
 
       , HUnit.TestCase do
+          HUnit.assertEqual "multiline add multiple paragraphs"
+            (expected "alice" "Hello World")
+            (Rumor.parse "" "alice+\n Hello\n\n World\n")
+
+      , HUnit.TestCase do
           HUnit.assertEqual "empty add"
             (expected "alice" "")
             (Rumor.parse "" "alice+")
@@ -89,13 +95,13 @@ sayTests :: HUnit.Test
 sayTests =
   let
     expected speaker line =
-      Right [Rumor.Say (Just (Rumor.Speaker speaker)) line]
+      Right [Rumor.Say (Just (Rumor.Speaker speaker)) (Rumor.String line)]
 
   in
     HUnit.TestList
       [ HUnit.TestCase do
           HUnit.assertEqual "say with no speaker"
-            (Right [Rumor.Say Nothing "Hello World"])
+            (Right [Rumor.Say Nothing (Rumor.String "Hello World")])
             (Rumor.parse "" ": Hello World")
 
       , HUnit.TestCase do
@@ -134,6 +140,11 @@ sayTests =
             (Rumor.parse "" "alice:\n Hello\n World\n")
 
       , HUnit.TestCase do
+          HUnit.assertEqual "multiline say multiple paragraphs"
+            (expected "alice" "Hello World")
+            (Rumor.parse "" "alice:\n Hello\n\n World\n")
+
+      , HUnit.TestCase do
           HUnit.assertEqual "empty say"
             (expected "alice" "")
             (Rumor.parse "" "alice:")
@@ -155,22 +166,68 @@ sayTests =
             (Rumor.parse "" "alice Hello World  \n")
       ]
 
+interpolationTests :: HUnit.Test
+interpolationTests =
+  let
+    expected line =
+      Right [Rumor.Say Nothing (Rumor.String line)]
+  in
+    HUnit.TestList
+      [ HUnit.TestCase do
+          HUnit.assertEqual "iterpolation"
+            (expected "Hello World")
+            (Rumor.parse "" ": Hello {\"World\"}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "standalone iterpolation"
+            (expected "Hello World")
+            (Rumor.parse "" ": {\"Hello World\"}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "iterpolation with whitespace"
+            (expected "Hello  World")
+            (Rumor.parse "" ": {  \"Hello  World\"  }\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "iterpolation with newlines"
+            (expected "Hello World")
+            (Rumor.parse "" ": {\n\"Hello World\"\n}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "iterpolation in an interpolation"
+            (expected " Hello World ")
+            (Rumor.parse "" ": {\" {\"Hello World\"} \"}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "string interpolation with unexpected newline"
+            ( Left "1:13:\n\
+                   \  |\n\
+                   \1 | : {\" {\"Hello\n  |             ^\n\
+                   \unexpected newline\n\
+                   \expecting '\\', '{', end double quote, end of input, or literal char\n"
+            )
+            (Rumor.parse "" ": {\" {\"Hello\nWorld\"} \"}\n")
+      ]
+
 smokeTest :: HUnit.Test
 smokeTest =
   HUnit.TestCase do
+    let mkDialog cons speaker line =
+          cons (Just (Rumor.Speaker speaker)) (Rumor.String line)
+
     HUnit.assertEqual "smoke test 1"
       ( Right
-          [ Rumor.Say (Just (Rumor.Speaker "yuu"))
+          [ mkDialog Rumor.Say "yuu"
               "Wah! Nanami-senpai!"
-          , Rumor.Say (Just (Rumor.Speaker "touko"))
+          , mkDialog Rumor.Say "touko"
               "Yuu!"
-          , Rumor.Add (Just (Rumor.Speaker "touko"))
+          , mkDialog Rumor.Add "touko"
               "Oh, thank you for finding those for us!"
-          , Rumor.Say (Just (Rumor.Speaker "yuu"))
+          , mkDialog Rumor.Say "yuu"
               "No problem. Umm..."
-          , Rumor.Add (Just (Rumor.Speaker "yuu"))
+          , mkDialog Rumor.Add "yuu"
               "Why are you coming in?"
-          , Rumor.Say (Just (Rumor.Speaker "touko"))
+          , mkDialog Rumor.Say "touko"
               "Hmm?"
           ]
       )
