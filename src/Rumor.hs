@@ -30,7 +30,8 @@ node :: Parser Rumor.Node
 node =
   Mega.choice
     [ Mega.try say
-    , add
+    , Mega.try add
+    , action
     ]
 
 say :: Parser Rumor.Node
@@ -70,6 +71,52 @@ dialog sep cons =
 
   in
     Lexer.indentBlock space dialogIndent
+
+action :: Parser Rumor.Node
+action = do
+  actionName <- hlexeme identifier
+  _ <- Char.char '('
+  result <- Mega.choice
+    [ Mega.try (action4 actionName)
+    , Mega.try (action3 actionName)
+    , Mega.try (action2 actionName)
+    , Mega.try (action1 actionName)
+    , pure (Rumor.Action0 actionName)
+    ]
+  _ <- Char.char ')'
+  pure result
+
+action1 :: Text -> Parser Rumor.Node
+action1 actionName = do
+  param1 <- lexeme textExpression
+  pure (Rumor.Action1 actionName param1)
+
+action2 :: Text -> Parser Rumor.Node
+action2 actionName = do
+  param1 <- lexeme textExpression
+  _ <- lexeme (Char.char ',')
+  param2 <- lexeme textExpression
+  pure (Rumor.Action2 actionName param1 param2)
+
+action3 :: Text -> Parser Rumor.Node
+action3 actionName = do
+  param1 <- lexeme textExpression
+  _ <- lexeme (Char.char ',')
+  param2 <- lexeme textExpression
+  _ <- lexeme (Char.char ',')
+  param3 <- lexeme textExpression
+  pure (Rumor.Action3 actionName param1 param2 param3)
+
+action4 :: Text -> Parser Rumor.Node
+action4 actionName = do
+  param1 <- lexeme textExpression
+  _ <- lexeme (Char.char ',')
+  param2 <- lexeme textExpression
+  _ <- lexeme (Char.char ',')
+  param3 <- lexeme textExpression
+  _ <- lexeme (Char.char ',')
+  param4 <- lexeme textExpression
+  pure (Rumor.Action4 actionName param1 param2 param3 param4)
 
 --------------------------------------------------------------------------------
 -- Expression

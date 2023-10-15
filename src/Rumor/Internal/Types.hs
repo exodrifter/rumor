@@ -21,6 +21,11 @@ newtype Speaker = Speaker Text
 data Node =
     Say (Maybe Speaker) (Expression Text)
   | Add (Maybe Speaker) (Expression Text)
+  | Action0 Text
+  | Action1 Text (Expression Text)
+  | Action2 Text (Expression Text) (Expression Text)
+  | Action3 Text (Expression Text) (Expression Text) (Expression Text)
+  | Action4 Text (Expression Text) (Expression Text) (Expression Text) (Expression Text)
   deriving (Eq, Show)
 
 -- | Represents expressions in a Rumor dialog.

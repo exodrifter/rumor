@@ -13,6 +13,7 @@ tests =
     [ addTests
     , sayTests
     , interpolationTests
+    , actionTests
     , smokeTest
     ]
 
@@ -86,7 +87,7 @@ addTests =
                    \1 | alice Hello World  \n\
                    \  |       ^\n\
                    \unexpected 'H'\n\
-                   \expecting '+' or ':'\n"
+                   \expecting '(', '+', or ':'\n"
             )
             (Rumor.parse "" "alice Hello World  \n")
       ]
@@ -161,7 +162,7 @@ sayTests =
                    \1 | alice Hello World  \n\
                    \  |       ^\n\
                    \unexpected 'H'\n\
-                   \expecting '+' or ':'\n"
+                   \expecting '(', '+', or ':'\n"
             )
             (Rumor.parse "" "alice Hello World  \n")
       ]
@@ -174,27 +175,27 @@ interpolationTests =
   in
     HUnit.TestList
       [ HUnit.TestCase do
-          HUnit.assertEqual "iterpolation"
+          HUnit.assertEqual "interpolation"
             (expected "Hello World")
             (Rumor.parse "" ": Hello {\"World\"}\n")
 
       , HUnit.TestCase do
-          HUnit.assertEqual "standalone iterpolation"
+          HUnit.assertEqual "standalone interpolation"
             (expected "Hello World")
             (Rumor.parse "" ": {\"Hello World\"}\n")
 
       , HUnit.TestCase do
-          HUnit.assertEqual "iterpolation with whitespace"
+          HUnit.assertEqual "interpolation with whitespace"
             (expected "Hello  World")
             (Rumor.parse "" ": {  \"Hello  World\"  }\n")
 
       , HUnit.TestCase do
-          HUnit.assertEqual "iterpolation with newlines"
+          HUnit.assertEqual "interpolation with newlines"
             (expected "Hello World")
             (Rumor.parse "" ": {\n\"Hello World\"\n}\n")
 
       , HUnit.TestCase do
-          HUnit.assertEqual "iterpolation in an interpolation"
+          HUnit.assertEqual "interpolation in an interpolation"
             (expected " Hello World ")
             (Rumor.parse "" ": {\" {\"Hello World\"} \"}\n")
 
@@ -208,6 +209,66 @@ interpolationTests =
             )
             (Rumor.parse "" ": {\" {\"Hello\nWorld\"} \"}\n")
       ]
+
+actionTests :: HUnit.Test
+actionTests =
+  HUnit.TestList
+    [ HUnit.TestCase do
+        HUnit.assertEqual "action with zero arguments"
+          (Right [Rumor.Action0 "foobar"])
+          (Rumor.parse "" "foobar()")
+
+    , HUnit.TestCase do
+        HUnit.assertEqual "action with one string argument"
+          (Right [Rumor.Action1 "foobar" (Rumor.String "Hello World!")])
+          (Rumor.parse "" "foobar(\"Hello World!\")")
+
+    , HUnit.TestCase do
+        HUnit.assertEqual "action with two string arguments"
+          (Right
+            [ Rumor.Action2 "foobar"
+                (Rumor.String "Hello")
+                (Rumor.String "World!")
+            ]
+          )
+          (Rumor.parse "" "foobar(\"Hello\", \"World!\")")
+
+    , HUnit.TestCase do
+        HUnit.assertEqual "action with three string arguments"
+          (Right
+            [ Rumor.Action3 "foobar"
+                (Rumor.String "Hello")
+                (Rumor.String "World")
+                (Rumor.String "!")
+            ]
+          )
+          (Rumor.parse "" "foobar(\"Hello\", \"World\", \"!\")")
+
+    , HUnit.TestCase do
+        HUnit.assertEqual "action with four string arguments"
+          (Right
+            [ Rumor.Action4 "foobar"
+                (Rumor.String "Hello")
+                (Rumor.String " ")
+                (Rumor.String "World")
+                (Rumor.String "!")
+            ]
+          )
+          (Rumor.parse "" "foobar(\"Hello\", \" \", \"World\", \"!\")")
+
+    , HUnit.TestCase do
+        HUnit.assertEqual "multiline action with four string arguments"
+          (Right
+            [ Rumor.Action4 "foobar"
+                (Rumor.String "Hello")
+                (Rumor.String " ")
+                (Rumor.String "World")
+                (Rumor.String "!")
+            ]
+          )
+          (Rumor.parse "" "foobar(\"Hello\"\n,\n \" \"\n,\n \"World\"\n,\n \"!\")")
+    ]
+
 
 smokeTest :: HUnit.Test
 smokeTest =
