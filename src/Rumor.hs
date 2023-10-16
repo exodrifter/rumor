@@ -1,9 +1,10 @@
 module Rumor where
 
 import Data.Functor (($>))
+import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Void (Void)
-import Text.Megaparsec ((<?>))
+import Text.Megaparsec ((<?>), (<|>))
 
 import qualified Data.Char as Char
 import qualified Data.List as List
@@ -12,6 +13,7 @@ import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Megaparsec.Error as Error
+import qualified Text.Parser.Combinators as Combinators
 import qualified Rumor.Internal.Types as Rumor
 
 type Parser a = Mega.Parsec Void Text a
@@ -125,7 +127,11 @@ action4 actionName = do
 interpolation :: Parser (Rumor.Expression Text)
 interpolation = do
   _ <- lexeme (Char.char '{')
-  text <- lexeme textExpression
+  text <-
+    Mega.choice
+      [ lexeme textExpression
+      , Rumor.NumberToString <$> lexeme numberExpression
+      ]
   _ <- Char.char '}' <?> "end interpolation"
   pure text
 
@@ -135,6 +141,24 @@ textExpression = do
   text <- unquotedLine
   _ <- Char.char '"' <?> "end double quote"
   pure text
+
+numberExpression :: Parser (Rumor.Expression Scientific)
+numberExpression =
+  let
+    lit = Rumor.Number <$> lexeme (Lexer.signed hspace Lexer.scientific)
+
+    expr   = term `Combinators.chainl1` addop
+    term   = factor `Combinators.chainl1` mulop
+    factor = lexeme (parenthesis expr) <|> lit
+
+    mulop  = Rumor.Multiply <$ lexeme (Char.char '*')
+         <|> Rumor.Divide <$ lexeme (Char.char '/')
+
+    addop  = Rumor.Addition <$ lexeme (Char.char '+')
+         <|> Rumor.Subtraction <$ lexeme (Char.char '-')
+
+  in
+    Rumor.simplify <$> expr
 
 unquotedLine :: Parser (Rumor.Expression Text)
 unquotedLine = do
@@ -205,3 +229,10 @@ lineComment = Lexer.skipLineComment "//"
 
 blockComment :: Parser ()
 blockComment = Lexer.skipBlockComment "/*" "*/"
+
+parenthesis :: Parser a -> Parser a
+parenthesis inner = do
+  _ <- lexeme (Char.char '(')
+  result <- lexeme inner
+  _ <- Char.char ')'
+  pure result

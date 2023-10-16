@@ -169,33 +169,40 @@ sayTests =
 
 interpolationTests :: HUnit.Test
 interpolationTests =
+  HUnit.TestList
+    [ stringInterpolationTests
+    , numberInterpolationTests
+    ]
+
+stringInterpolationTests :: HUnit.Test
+stringInterpolationTests =
   let
     expected line =
       Right [Rumor.Say Nothing (Rumor.String line)]
   in
     HUnit.TestList
       [ HUnit.TestCase do
-          HUnit.assertEqual "interpolation"
+          HUnit.assertEqual "string interpolation"
             (expected "Hello World")
             (Rumor.parse "" ": Hello {\"World\"}\n")
 
       , HUnit.TestCase do
-          HUnit.assertEqual "standalone interpolation"
+          HUnit.assertEqual "standalone string interpolation"
             (expected "Hello World")
             (Rumor.parse "" ": {\"Hello World\"}\n")
 
       , HUnit.TestCase do
-          HUnit.assertEqual "interpolation with whitespace"
+          HUnit.assertEqual "string interpolation with whitespace"
             (expected "Hello  World")
             (Rumor.parse "" ": {  \"Hello  World\"  }\n")
 
       , HUnit.TestCase do
-          HUnit.assertEqual "interpolation with newlines"
+          HUnit.assertEqual "string interpolation with newlines"
             (expected "Hello World")
             (Rumor.parse "" ": {\n\"Hello World\"\n}\n")
 
       , HUnit.TestCase do
-          HUnit.assertEqual "interpolation in an interpolation"
+          HUnit.assertEqual "string interpolation in a string interpolation"
             (expected " Hello World ")
             (Rumor.parse "" ": {\" {\"Hello World\"} \"}\n")
 
@@ -208,6 +215,59 @@ interpolationTests =
                    \expecting '\\', '{', end double quote, end of input, or literal char\n"
             )
             (Rumor.parse "" ": {\" {\"Hello\nWorld\"} \"}\n")
+      ]
+
+numberInterpolationTests :: HUnit.Test
+numberInterpolationTests =
+  let
+    expected value =
+      Right [Rumor.Say Nothing (Rumor.String value)]
+  in
+    HUnit.TestList
+      [ HUnit.TestCase do
+          HUnit.assertEqual "number interpolation"
+            (expected "Balance: 4.01")
+            (Rumor.parse "" ": Balance: {4.01}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "standalone number interpolation"
+            (expected "4.01")
+            (Rumor.parse "" ": {4.01}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "number interpolation with whitespace"
+            (expected "4.01")
+            (Rumor.parse "" ": {  4.01  }\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "number interpolation with newlines"
+            (expected "4.01")
+            (Rumor.parse "" ": {\n4.01\n}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "negative number interpolation"
+            (expected "Balance: -4.01")
+            (Rumor.parse "" ": Balance: {-4.01}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "standalone negative number interpolation"
+            (expected "-4.01")
+            (Rumor.parse "" ": {-4.01}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "negative number interpolation with whitespace"
+            (expected "-4.01")
+            (Rumor.parse "" ": {  -  4.01  }\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "negative number interpolation with newlines"
+            (expected "-4.01")
+            (Rumor.parse "" ": {\n-4.01\n}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "math interpolation"
+            (expected "13")
+            (Rumor.parse "" ": { 5 * 3 + -4 / 2 }\n")
       ]
 
 actionTests :: HUnit.Test
