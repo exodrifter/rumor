@@ -30,11 +30,9 @@ parser =
 
 node :: Parser Rumor.Node
 node =
-  Mega.choice
-    [ Mega.try say
-    , Mega.try add
-    , action
-    ]
+      Mega.try say
+  <|> Mega.try add
+  <|> action
 
 say :: Parser Rumor.Node
 say =
@@ -77,27 +75,28 @@ dialog sep cons =
 action :: Parser Rumor.Node
 action = do
   actionName <- hlexeme identifier
-  _ <- Char.char '('
-  result <- Mega.choice
-    [ Mega.try (action4 actionName)
-    , Mega.try (action3 actionName)
-    , Mega.try (action2 actionName)
-    , Mega.try (action1 actionName)
-    , pure (Rumor.Action0 actionName)
-    ]
-  _ <- Char.char ')'
+  _ <- lexeme (Char.char '(')
+
+  result <-
+        Mega.try (lexeme (action4 actionName))
+    <|> Mega.try (lexeme (action3 actionName))
+    <|> Mega.try (lexeme (action2 actionName))
+    <|> Mega.try (lexeme (action1 actionName))
+    <|> pure (Rumor.Action0 actionName)
+
+  _ <- Char.char ')' <?> "end parenthesis"
   pure result
 
 action1 :: Text -> Parser Rumor.Node
 action1 actionName = do
-  param1 <- lexeme textExpression
+  param1 <- textExpression
   pure (Rumor.Action1 actionName param1)
 
 action2 :: Text -> Parser Rumor.Node
 action2 actionName = do
   param1 <- lexeme textExpression
   _ <- lexeme (Char.char ',')
-  param2 <- lexeme textExpression
+  param2 <- textExpression
   pure (Rumor.Action2 actionName param1 param2)
 
 action3 :: Text -> Parser Rumor.Node
@@ -106,7 +105,7 @@ action3 actionName = do
   _ <- lexeme (Char.char ',')
   param2 <- lexeme textExpression
   _ <- lexeme (Char.char ',')
-  param3 <- lexeme textExpression
+  param3 <- textExpression
   pure (Rumor.Action3 actionName param1 param2 param3)
 
 action4 :: Text -> Parser Rumor.Node
@@ -117,7 +116,7 @@ action4 actionName = do
   _ <- lexeme (Char.char ',')
   param3 <- lexeme textExpression
   _ <- lexeme (Char.char ',')
-  param4 <- lexeme textExpression
+  param4 <- textExpression
   pure (Rumor.Action4 actionName param1 param2 param3 param4)
 
 --------------------------------------------------------------------------------
@@ -127,11 +126,11 @@ action4 actionName = do
 interpolation :: Parser (Rumor.Expression Text)
 interpolation = do
   _ <- lexeme (Char.char '{')
+
   text <-
-    Mega.choice
-      [ lexeme textExpression
-      , Rumor.NumberToString <$> lexeme numberExpression
-      ]
+        lexeme textExpression
+    <|> Rumor.NumberToString <$> numberExpression
+
   _ <- Char.char '}' <?> "end interpolation"
   pure text
 
@@ -145,11 +144,11 @@ textExpression = do
 numberExpression :: Parser (Rumor.Expression Scientific)
 numberExpression =
   let
-    lit = Rumor.Number <$> lexeme (Lexer.signed hspace Lexer.scientific)
+    lit = Rumor.Number <$> Lexer.signed hspace Lexer.scientific
 
     expr   = term `Combinators.chainl1` addop
     term   = factor `Combinators.chainl1` mulop
-    factor = lexeme (parenthesis expr) <|> lit
+    factor = lexeme (parenthesis expr <|> lit)
 
     mulop  = Rumor.Multiply <$ lexeme (Char.char '*')
          <|> Rumor.Divide <$ lexeme (Char.char '/')
@@ -164,38 +163,27 @@ unquotedLine :: Parser (Rumor.Expression Text)
 unquotedLine = do
   let escapedChar = do
         _ <- Char.char '\\'
-        Rumor.String <$>
-          Mega.choice
-            [ Char.char 'n' $> "\n"
-            , Char.char 'r' $> "\r"
-            , Char.char '\\' $> "\\"
-            , Char.char '{' $> "{"
-            , Char.char '}' $> "}"
-            , Char.char '"' $> "\""
-            ]
+        ch <- Char.char 'n' $> "\n"
+          <|> Char.char 'r' $> "\r"
+          <|> Char.char '\\' $> "\\"
+          <|> Char.char '{' $> "{"
+          <|> Char.char '}' $> "}"
+          <|> Char.char '"' $> "\""
+        pure (Rumor.String ch)
+
       literalString = do
         literal <-
           Mega.takeWhile1P
             (Just "literal char")
             (`notElem` ['\n', '\r', '\\', '{', '"'])
-            :: Parser Text
-
         -- Strip the end of the text if this is at the end of the line
         next <- Mega.lookAhead
-          (Mega.optional (Mega.choice [Char.char '\n', Char.char '\r']))
-        if next == Just '\n' || next == Just '\r'
+          (Mega.optional (Char.char '\n' <|> Char.char '\r'))
+        if next `elem` (Just <$> ['\n', '\r'])
         then pure (Rumor.String (T.stripEnd literal))
         else pure (Rumor.String literal)
 
-  text <-
-      ( Mega.many
-        ( Mega.choice
-          [ literalString
-          , escapedChar
-          , interpolation
-          ]
-        )
-      )
+  text <- Mega.many (literalString <|> escapedChar <|> interpolation)
   pure (mconcat text)
 
 --------------------------------------------------------------------------------
@@ -234,5 +222,5 @@ parenthesis :: Parser a -> Parser a
 parenthesis inner = do
   _ <- lexeme (Char.char '(')
   result <- lexeme inner
-  _ <- Char.char ')'
+  _ <- Char.char ')' <?> "end parenthesis"
   pure result
