@@ -1,6 +1,7 @@
 module Rumor where
 
 import Data.Functor (($>))
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.Void (Void)
@@ -26,13 +27,14 @@ parse fileName fileContents =
 
 parser :: Parser [Rumor.Node]
 parser =
-  Mega.manyTill (hlexeme node <* space) Mega.eof
+  Mega.manyTill (hlexeme node <* space) (Mega.hidden Mega.eof)
 
 node :: Parser Rumor.Node
 node =
       Mega.try say
   <|> Mega.try add
-  <|> action
+  <|> Mega.try action
+  <|> control
 
 say :: Parser Rumor.Node
 say =
@@ -71,6 +73,25 @@ dialog sep cons =
 
   in
     Lexer.indentBlock space dialogIndent
+
+control :: Parser Rumor.Node
+control = do
+  _ <- hlexeme (Char.string "if")
+  condition <- braces booleanExpression <|> booleanExpression
+
+  let
+    indentedNodes = do
+      Lexer.indentBlock space do
+        firstNode <- node
+        pure (Lexer.IndentMany Nothing (pure . (firstNode :|)) node)
+  successBlock <- indentedNodes <?> "indented nodes"
+
+  let elseBlock = do
+        _ <- hlexeme (Char.string "else")
+        indentedNodes <?> "indented nodes"
+  failureBlock <- Mega.optional elseBlock
+
+  pure (Rumor.Control condition successBlock failureBlock)
 
 action :: Parser Rumor.Node
 action = do
@@ -277,4 +298,11 @@ parenthesis inner = do
   _ <- lexeme (char '(')
   result <- lexeme inner
   _ <- char ')' <?> "end parenthesis"
+  pure result
+
+braces :: Parser a -> Parser a
+braces inner = do
+  _ <- lexeme (char '{')
+  result <- inner
+  _ <- lexeme (char '}') <?> "end braces"
   pure result

@@ -1,5 +1,7 @@
 module Main where
 
+import Data.List.NonEmpty (NonEmpty(..))
+
 import qualified Rumor
 import qualified Rumor.Internal.Types as Rumor
 import qualified Test.HUnit as HUnit
@@ -13,6 +15,7 @@ tests =
     [ addTests
     , sayTests
     , interpolationTests
+    , controlFlowTests
     , actionTests
     , smokeTest
     ]
@@ -213,7 +216,7 @@ stringInterpolationTests =
                    \  |\n\
                    \1 | : {\" {\"Hello\n  |             ^\n\
                    \unexpected newline\n\
-                   \expecting '\\', '{', end double quote, end of input, or literal char\n"
+                   \expecting '\\', '{', end double quote, or literal char\n"
             )
             (Rumor.parse "" ": {\" {\"Hello\nWorld\"} \"}\n")
       ]
@@ -317,6 +320,59 @@ booleanInterpolationTests =
           HUnit.assertEqual "boolean equality interpolation"
             (expected "true")
             (Rumor.parse "" ": { true == true && true /= false }\n")
+      ]
+
+controlFlowTests :: HUnit.Test
+controlFlowTests =
+  HUnit.TestList
+    [ ifTest
+    , ifElseTests
+    ]
+
+ifTest :: HUnit.Test
+ifTest =
+  let
+    expected =
+      Right
+        [ Rumor.Control
+            (Rumor.Boolean True)
+            (Rumor.Say Nothing (Rumor.String "Hello world!") :| [])
+            Nothing
+        ]
+  in
+    HUnit.TestList
+      [ HUnit.TestCase do
+          HUnit.assertEqual "if statement"
+            expected
+            (Rumor.parse "" "if true\n  : Hello world!")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "if statement with optional braces"
+            expected
+            (Rumor.parse "" "if { true }\n  : Hello world!")
+      ]
+
+ifElseTests :: HUnit.Test
+ifElseTests =
+  let
+    expected =
+      Right
+        [ Rumor.Control
+            (Rumor.Boolean True)
+            (Rumor.Say Nothing (Rumor.String "Hello!") :| [])
+            (Just (Rumor.Say Nothing (Rumor.String "World!") :| []))
+        ]
+  in
+    HUnit.TestList
+      [ HUnit.TestCase do
+          HUnit.assertEqual "if/else statement"
+            expected
+            (Rumor.parse "" "if true\n  : Hello!\nelse\n  : World!")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "if/else statement with optional braces"
+            expected
+            (Rumor.parse "" "if { true }\n  : Hello!\nelse\n  : World!")
       ]
 
 actionTests :: HUnit.Test

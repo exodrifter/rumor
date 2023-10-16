@@ -11,6 +11,7 @@ module Rumor.Internal.Types
   , simplify
   ) where
 
+import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
 import Data.Scientific (Scientific)
 
@@ -26,6 +27,7 @@ newtype Speaker = Speaker Text
 data Node =
     Say (Maybe Speaker) (Expression Text)
   | Add (Maybe Speaker) (Expression Text)
+  | Control (Expression Bool) (NonEmpty Node) (Maybe (NonEmpty Node))
   | Action0 Text
   | Action1 Text (Expression Text)
   | Action2 Text (Expression Text) (Expression Text)
