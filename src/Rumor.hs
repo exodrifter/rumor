@@ -128,8 +128,9 @@ interpolation = do
   _ <- lexeme (Char.char '{')
 
   text <-
-        lexeme textExpression
-    <|> Rumor.NumberToString <$> numberExpression
+        Mega.try (Rumor.BooleanToString <$> booleanExpression)
+    <|> Mega.try (Rumor.NumberToString <$> numberExpression)
+    <|> lexeme textExpression
 
   _ <- Char.char '}' <?> "end interpolation"
   pure text
@@ -151,10 +152,60 @@ numberExpression =
     factor = lexeme (parenthesis expr <|> lit)
 
     mulop  = Rumor.Multiply <$ lexeme (Char.char '*')
-         <|> Rumor.Divide <$ lexeme (Char.char '/')
+         <|> Rumor.Divide <$
+                ( Mega.try do
+                    _ <- lexeme (char '/')
+                    Mega.try (Mega.notFollowedBy (char '='))
+                )
 
     addop  = Rumor.Addition <$ lexeme (Char.char '+')
          <|> Rumor.Subtraction <$ lexeme (Char.char '-')
+
+  in
+    Rumor.simplify <$> expr
+
+booleanExpression :: Parser (Rumor.Expression Bool)
+booleanExpression =
+  let
+    lit = Rumor.Boolean <$> lexeme
+      (Char.string "true" $> True <|> Char.string "false" $> False)
+
+    expr = andTerm `Combinators.chainl1` orOp
+    andTerm = xorTerm `Combinators.chainl1` andOp
+    xorTerm = neqTerm `Combinators.chainl1` xorOp
+    neqTerm = eqTerm `Combinators.chainl1` neqOp
+    eqTerm = factor `Combinators.chainl1` eqOp
+    factor = lexeme (parenthesis expr <|> equalities <|> notOp lit <|> lit)
+
+    notOp inner = do
+      _ <- lexeme (Char.string "!" <|> Char.string "not")
+      Rumor.LogicalNot <$> inner
+    eqOp = Rumor.EqualBoolean <$ lexeme (Char.string "==")
+    neqOp = Rumor.NotEqualBoolean <$ lexeme (Char.string "/=")
+      <|> Rumor.NotEqualBoolean <$ lexeme (Char.string "!=")
+    xorOp = Rumor.LogicalXor <$ lexeme (Char.string "^")
+      <|> Rumor.LogicalXor <$ lexeme (Char.string "xor")
+    andOp = Rumor.LogicalAnd <$ lexeme (Char.string "&&")
+      <|> Rumor.LogicalAnd <$ lexeme (Char.string "and")
+    orOp = Rumor.LogicalOr <$ lexeme (Char.string "||")
+      <|> Rumor.LogicalOr <$ lexeme (Char.string "or")
+
+    equalities =
+          Mega.try (valueEquality textExpression Rumor.EqualString Rumor.NotEqualString)
+      <|> valueEquality numberExpression Rumor.EqualNumber Rumor.NotEqualNumber
+
+    valueEquality :: Show a => Parser a
+                  -> (a -> a -> Rumor.Expression Bool)
+                  -> (a -> a -> Rumor.Expression Bool)
+                  -> Parser (Rumor.Expression Bool)
+    valueEquality arg eqCons neqCons = do
+      l <- lexeme arg
+      f <- eqCons <$ lexeme (Char.string "==")
+        <|> neqCons <$ lexeme (Char.string "/=")
+        <|> neqCons <$ lexeme (Char.string "!=")
+        
+      r <- lexeme arg
+      pure (f l r)
 
   in
     Rumor.simplify <$> expr

@@ -44,6 +44,20 @@ data Expression typ where
   Divide :: Expression Scientific -> Expression Scientific -> Expression Scientific
   NumberToString :: Expression Scientific -> Expression Text
 
+  Boolean :: Bool -> Expression Bool
+  LogicalNot :: Expression Bool -> Expression Bool
+  LogicalAnd :: Expression Bool -> Expression Bool -> Expression Bool
+  LogicalOr :: Expression Bool -> Expression Bool -> Expression Bool
+  LogicalXor :: Expression Bool -> Expression Bool -> Expression Bool
+  BooleanToString :: Expression Bool -> Expression Text
+
+  EqualString :: Expression Text -> Expression Text -> Expression Bool
+  NotEqualString :: Expression Text -> Expression Text -> Expression Bool
+  EqualNumber :: Expression Scientific -> Expression Scientific -> Expression Bool
+  NotEqualNumber :: Expression Scientific -> Expression Scientific -> Expression Bool
+  EqualBoolean :: Expression Bool -> Expression Bool -> Expression Bool
+  NotEqualBoolean :: Expression Bool -> Expression Bool -> Expression Bool
+
 deriving instance Eq (Expression a)
 deriving instance Show (Expression a)
 
@@ -57,6 +71,8 @@ instance Semigroup (Expression Text) where
             string
           NumberToString fixed ->
             numberToString fixed
+          BooleanToString fixed ->
+            booleanToString fixed
     in
       String (toString l <> toString r)
 
@@ -75,6 +91,20 @@ simplify expression =
     Divide _ _ -> Number (calculateNumber expression)
     NumberToString numberExpression -> String (numberToString numberExpression)
 
+    Boolean _ -> expression
+    LogicalNot _ -> Boolean (calculateBoolean expression)
+    LogicalAnd _ _ -> Boolean (calculateBoolean expression)
+    LogicalOr _ _ -> Boolean (calculateBoolean expression)
+    LogicalXor _ _ -> Boolean (calculateBoolean expression)
+    BooleanToString booleanExpression -> String (booleanToString booleanExpression)
+
+    EqualString _ _ -> Boolean (calculateBoolean expression)
+    NotEqualString _ _ -> Boolean (calculateBoolean expression)
+    EqualNumber _ _ -> Boolean (calculateBoolean expression)
+    NotEqualNumber _ _ -> Boolean (calculateBoolean expression)
+    EqualBoolean _ _ -> Boolean (calculateBoolean expression)
+    NotEqualBoolean _ _ -> Boolean (calculateBoolean expression)
+
 calculateNumber :: Expression Scientific -> Scientific
 calculateNumber expression =
   case expression of
@@ -84,6 +114,22 @@ calculateNumber expression =
     Multiply l r -> calculateNumber l * calculateNumber r
     Divide l r -> calculateNumber l / calculateNumber r
 
+calculateBoolean :: Expression Bool -> Bool
+calculateBoolean expression =
+  case expression of
+    Boolean n -> n
+    LogicalNot n -> not (calculateBoolean n)
+    LogicalAnd l r -> calculateBoolean l && calculateBoolean r
+    LogicalOr l r -> calculateBoolean l || calculateBoolean r
+    LogicalXor l r -> calculateBoolean l /= calculateBoolean r
+
+    EqualString l r -> l == r
+    NotEqualString l r -> l /= r
+    EqualNumber l r -> calculateNumber l == calculateNumber r
+    NotEqualNumber l r -> calculateNumber l /= calculateNumber r
+    EqualBoolean l r -> calculateBoolean l == calculateBoolean r
+    NotEqualBoolean l r -> calculateBoolean l /= calculateBoolean r
+
 numberToString :: Expression Scientific -> Text
 numberToString expression =
   let
@@ -91,3 +137,9 @@ numberToString expression =
     string = T.pack (S.formatScientific S.Fixed Nothing number)
   in
     Maybe.fromMaybe string (T.stripSuffix ".0" string)
+
+booleanToString :: Expression Bool -> Text
+booleanToString expression =
+  if calculateBoolean expression
+  then "true"
+  else "false"

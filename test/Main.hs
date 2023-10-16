@@ -172,6 +172,7 @@ interpolationTests =
   HUnit.TestList
     [ stringInterpolationTests
     , numberInterpolationTests
+    , booleanInterpolationTests
     ]
 
 stringInterpolationTests :: HUnit.Test
@@ -268,6 +269,54 @@ numberInterpolationTests =
           HUnit.assertEqual "math interpolation"
             (expected "13")
             (Rumor.parse "" ": { 5 * 3 + -4 / 2 }\n")
+      ]
+
+booleanInterpolationTests :: HUnit.Test
+booleanInterpolationTests =
+  let
+    expected value =
+      Right [Rumor.Say Nothing (Rumor.String value)]
+  in
+    HUnit.TestList
+      [ HUnit.TestCase do
+          HUnit.assertEqual "boolean interpolation"
+            (expected "Balance: true")
+            (Rumor.parse "" ": Balance: {true}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "standalone boolean interpolation"
+            (expected "false")
+            (Rumor.parse "" ": {false}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "boolean interpolation with whitespace"
+            (expected "true")
+            (Rumor.parse "" ": {  true  }\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "boolean interpolation with newlines"
+            (expected "true")
+            (Rumor.parse "" ": {\ntrue\n}\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "logic interpolation"
+            (expected "true")
+            (Rumor.parse "" ": { true && false || true ^ false }\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "string equality interpolation"
+            (expected "true")
+            (Rumor.parse "" ": { \"apple\" == \"apple\" && \"apple\" /= \"orange\" }\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "number equality interpolation"
+            (expected "true")
+            (Rumor.parse "" ": { 1.5 == 1.5 && 1.5 /= 2 }\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "boolean equality interpolation"
+            (expected "true")
+            (Rumor.parse "" ": { true == true && true /= false }\n")
       ]
 
 actionTests :: HUnit.Test
