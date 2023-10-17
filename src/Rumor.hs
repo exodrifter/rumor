@@ -27,7 +27,8 @@ parse fileName fileContents =
 
 parser :: Parser [Rumor.Node]
 parser =
-  Mega.manyTill (hlexeme node <* space) (Mega.hidden Mega.eof)
+  Lexer.nonIndented space do
+    Mega.manyTill (hlexeme node) (Mega.hidden Mega.eof)
 
 node :: Parser Rumor.Node
 node =
@@ -76,17 +77,21 @@ dialog sep cons =
 
 control :: Parser Rumor.Node
 control = do
+  currentIndentation <- Lexer.indentGuard space EQ =<< Lexer.indentLevel
+
   _ <- hlexeme (Char.string "if")
   condition <- braces booleanExpression <|> booleanExpression
 
   let
     indentedNodes = do
       Lexer.indentBlock space do
+        ref <- Lexer.indentGuard space GT currentIndentation
         firstNode <- node
-        pure (Lexer.IndentMany Nothing (pure . (firstNode :|)) node)
+        pure (Lexer.IndentMany (Just ref) (pure . (firstNode :|)) node)
   successBlock <- indentedNodes <?> "indented nodes"
 
   let elseBlock = do
+        _ <- Lexer.indentGuard space EQ currentIndentation
         _ <- hlexeme (Char.string "else")
         indentedNodes <?> "indented nodes"
   failureBlock <- Mega.optional elseBlock

@@ -84,6 +84,16 @@ addTests =
             (Rumor.parse "" "alice+\n")
 
       , HUnit.TestCase do
+          HUnit.assertEqual "indented add"
+            ( Left "1:3:\n\
+                   \  |\n\
+                   \1 |   alice+ Hello World  \n\
+                   \  |   ^\n\
+                   \incorrect indentation (got 3, should be equal to 1)\n"
+            )
+            (Rumor.parse "" "  alice+ Hello World  \n")
+
+      , HUnit.TestCase do
           HUnit.assertEqual "add with a missing plus"
             ( Left "1:7:\n\
                    \  |\n\
@@ -157,6 +167,16 @@ sayTests =
           HUnit.assertEqual "empty say with newline"
             (expected "alice" "")
             (Rumor.parse "" "alice:\n")
+
+      , HUnit.TestCase do
+          HUnit.assertEqual "indented say"
+            ( Left "1:3:\n\
+                   \  |\n\
+                   \1 |   alice: Hello World  \n\
+                   \  |   ^\n\
+                   \incorrect indentation (got 3, should be equal to 1)\n"
+            )
+            (Rumor.parse "" "  alice: Hello World  \n")
 
       , HUnit.TestCase do
           HUnit.assertEqual "say with a missing colon"
