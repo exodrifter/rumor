@@ -57,3 +57,20 @@ test-suite test-rumor
     base ^>=4.17.2.0,
     HUnit,
     rumor
+
+test-suite doctests
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: doctests
+  main-is: Main.hs
+
+  default-language:
+    Haskell2010
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Werror
+
+  build-depends:
+    base ^>=4.17.2.0,
+    doctest
