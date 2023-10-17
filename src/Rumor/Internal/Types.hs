@@ -39,12 +39,13 @@ data Node =
 -- | Represents expressions in a Rumor dialog.
 data Expression typ where
   String :: Text -> Expression Text
+  Concat :: Expression Text -> Expression Text -> Expression Text
 
   Number :: Scientific -> Expression Scientific
   Addition :: Expression Scientific -> Expression Scientific -> Expression Scientific
   Subtraction :: Expression Scientific -> Expression Scientific -> Expression Scientific
-  Multiply :: Expression Scientific -> Expression Scientific -> Expression Scientific
-  Divide :: Expression Scientific -> Expression Scientific -> Expression Scientific
+  Multiplication :: Expression Scientific -> Expression Scientific -> Expression Scientific
+  Division :: Expression Scientific -> Expression Scientific -> Expression Scientific
   NumberToString :: Expression Scientific -> Expression Text
 
   Boolean :: Bool -> Expression Bool
@@ -65,33 +66,27 @@ deriving instance Eq (Expression a)
 deriving instance Show (Expression a)
 
 instance Semigroup (Expression Text) where
-  l <> r =
-    let
-      toString :: Expression Text -> Text
-      toString expression =
-        case expression of
-          String string ->
-            string
-          NumberToString fixed ->
-            numberToString fixed
-          BooleanToString fixed ->
-            booleanToString fixed
-    in
-      String (toString l <> toString r)
+  l <> r = Concat l r
 
 instance Monoid (Expression Text) where
   mempty = String ""
+  mconcat arr =
+    case arr of
+      [] -> mempty
+      [x] -> x
+      x:rest -> Concat x (mconcat rest)
 
 simplify :: Expression typ -> Expression typ
 simplify expression =
   case expression of
     String _ -> expression
+    Concat _ _ -> String (calculateText expression)
 
     Number _ -> expression
     Addition _ _ -> Number (calculateNumber expression)
     Subtraction _ _ -> Number (calculateNumber expression)
-    Multiply _ _ -> Number (calculateNumber expression)
-    Divide _ _ -> Number (calculateNumber expression)
+    Multiplication _ _ -> Number (calculateNumber expression)
+    Division _ _ -> Number (calculateNumber expression)
     NumberToString numberExpression -> String (numberToString numberExpression)
 
     Boolean _ -> expression
@@ -108,14 +103,26 @@ simplify expression =
     EqualBoolean _ _ -> Boolean (calculateBoolean expression)
     NotEqualBoolean _ _ -> Boolean (calculateBoolean expression)
 
+calculateText :: Expression Text -> Text
+calculateText expression =
+  case expression of
+    String string ->
+      string
+    Concat l r ->
+      calculateText l <> calculateText r
+    NumberToString fixed ->
+      numberToString fixed
+    BooleanToString fixed ->
+      booleanToString fixed
+
 calculateNumber :: Expression Scientific -> Scientific
 calculateNumber expression =
   case expression of
     Number n -> n
     Addition l r -> calculateNumber l + calculateNumber r
     Subtraction l r -> calculateNumber l - calculateNumber r
-    Multiply l r -> calculateNumber l * calculateNumber r
-    Divide l r -> calculateNumber l / calculateNumber r
+    Multiplication l r -> calculateNumber l * calculateNumber r
+    Division l r -> calculateNumber l / calculateNumber r
 
 calculateBoolean :: Expression Bool -> Bool
 calculateBoolean expression =

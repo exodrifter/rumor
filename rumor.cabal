@@ -23,12 +23,13 @@ custom-setup
 library
   hs-source-dirs: src
   exposed-modules:
-    Rumor,
+    Rumor
     Rumor.Internal.Types
-    Rumor.Parser,
-    Rumor.Parser.Common,
-    Rumor.Parser.Identifier,
-    Rumor.Parser.Lexeme,
+    Rumor.Parser
+    Rumor.Parser.Common
+    Rumor.Parser.Expression
+    Rumor.Parser.Identifier
+    Rumor.Parser.Lexeme
     Rumor.Parser.Surround
 
   default-language:

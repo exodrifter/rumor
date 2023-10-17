@@ -1,6 +1,7 @@
 module Rumor.Parser.Surround
 ( parentheses
 , braces
+, doubleQuotes
 ) where
 
 import Rumor.Parser.Common (Parser, (<?>))
@@ -99,6 +100,59 @@ braces inner =
     (Lexeme.lexeme (Char.char '{') <?> "open brace")
     (Char.char '}' <?> "close brace")
     (Lexeme.lexeme inner)
+
+{-| Parses double quotes surrounding an inner parser. No space is allowed
+  between the double quotes and the inner parser.
+
+  Examples:
+  >>> parseTest (doubleQuotes "foobar") "\"foobar\""
+  "foobar"
+
+  >>> parseTest (doubleQuotes "foobar") "\"  foobar  \""
+  1:2:
+    |
+  1 | "  foobar  "
+    |  ^^^^^^
+  unexpected "  foob"
+  expecting "foobar"
+
+  >>> parseTest (doubleQuotes "foobar") "\"\nfoobar\n\""
+  1:2:
+    |
+  1 | "
+    |  ^
+  unexpected "<newline>fooba"
+  expecting "foobar"
+
+  >>> parseTest (doubleQuotes "foobar") "\"foobar"
+  1:8:
+    |
+  1 | "foobar
+    |        ^
+  unexpected end of input
+  expecting close double quotes
+
+  >>> parseTest (doubleQuotes "foobar") "foobar\""
+  1:1:
+    |
+  1 | foobar"
+    | ^
+  unexpected 'f'
+  expecting open double quotes
+
+  >>> parseTest (doubleQuotes "foobar") "\"\""
+  1:2:
+    |
+  1 | ""
+    |  ^
+  unexpected '"'
+  expecting "foobar"
+-}
+doubleQuotes :: Parser a -> Parser a
+doubleQuotes =
+  surround
+    (Char.char '"' <?> "open double quotes")
+    (Char.char '"' <?> "close double quotes")
 
 surround :: Parser a -> Parser b -> Parser c -> Parser c
 surround begin end inner = do

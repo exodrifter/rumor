@@ -2,7 +2,6 @@ module Rumor where
 
 import Data.Functor (($>))
 import Data.List.NonEmpty (NonEmpty(..))
-import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Data.NonEmptyText (NonEmptyText)
 import Text.Megaparsec ((<?>), (<|>))
@@ -10,11 +9,12 @@ import Rumor.Parser
   ( Parser
   , braces
   , hlexeme
-  , hspace
   , identifier
   , lexeme
-  , parentheses
   , space
+  , interpolation
+  , stringExpression
+  , booleanExpression
   )
 
 import qualified Data.List as List
@@ -23,7 +23,6 @@ import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Megaparsec.Error as Error
-import qualified Text.Parser.Combinators as Combinators
 import qualified Rumor.Internal.Types as Rumor
 
 parse :: String -> T.Text -> Either String [Rumor.Node]
@@ -122,126 +121,39 @@ action = do
 
 action1 :: NonEmptyText -> Parser Rumor.Node
 action1 actionName = do
-  param1 <- textExpression
+  param1 <- stringExpression
   pure (Rumor.Action1 actionName param1)
 
 action2 :: NonEmptyText -> Parser Rumor.Node
 action2 actionName = do
-  param1 <- lexeme textExpression
+  param1 <- lexeme stringExpression
   _ <- lexeme (char ',')
-  param2 <- textExpression
+  param2 <- stringExpression
   pure (Rumor.Action2 actionName param1 param2)
 
 action3 :: NonEmptyText -> Parser Rumor.Node
 action3 actionName = do
-  param1 <- lexeme textExpression
+  param1 <- lexeme stringExpression
   _ <- lexeme (char ',')
-  param2 <- lexeme textExpression
+  param2 <- lexeme stringExpression
   _ <- lexeme (char ',')
-  param3 <- textExpression
+  param3 <- stringExpression
   pure (Rumor.Action3 actionName param1 param2 param3)
 
 action4 :: NonEmptyText -> Parser Rumor.Node
 action4 actionName = do
-  param1 <- lexeme textExpression
+  param1 <- lexeme stringExpression
   _ <- lexeme (char ',')
-  param2 <- lexeme textExpression
+  param2 <- lexeme stringExpression
   _ <- lexeme (char ',')
-  param3 <- lexeme textExpression
+  param3 <- lexeme stringExpression
   _ <- lexeme (char ',')
-  param4 <- textExpression
+  param4 <- stringExpression
   pure (Rumor.Action4 actionName param1 param2 param3 param4)
 
 --------------------------------------------------------------------------------
 -- Expression
 --------------------------------------------------------------------------------
-
-interpolation :: Parser (Rumor.Expression Text)
-interpolation = do
-  _ <- lexeme (char '{')
-
-  text <-
-        Mega.try (Rumor.BooleanToString <$> booleanExpression)
-    <|> Mega.try (Rumor.NumberToString <$> numberExpression)
-    <|> lexeme textExpression
-
-  _ <- char '}' <?> "end interpolation"
-  pure text
-
-textExpression :: Parser (Rumor.Expression Text)
-textExpression = do
-  _ <- char '"'
-  text <- unquotedLine
-  _ <- char '"' <?> "end double quote"
-  pure text
-
-numberExpression :: Parser (Rumor.Expression Scientific)
-numberExpression =
-  let
-    lit = Rumor.Number <$> Lexer.signed hspace Lexer.scientific
-
-    expr   = term `Combinators.chainl1` addop
-    term   = factor `Combinators.chainl1` mulop
-    factor = lexeme (parentheses expr <|> lit)
-
-    mulop  = Rumor.Multiply <$ lexeme (char '*')
-         <|> Rumor.Divide <$
-                ( Mega.try do
-                    _ <- lexeme (char '/')
-                    Mega.try (Mega.notFollowedBy (char '='))
-                )
-
-    addop  = Rumor.Addition <$ lexeme (char '+')
-         <|> Rumor.Subtraction <$ lexeme (char '-')
-
-  in
-    Rumor.simplify <$> expr
-
-booleanExpression :: Parser (Rumor.Expression Bool)
-booleanExpression =
-  let
-    lit = Rumor.Boolean <$> lexeme
-      (Char.string "true" $> True <|> Char.string "false" $> False)
-
-    expr = andTerm `Combinators.chainl1` orOp
-    andTerm = xorTerm `Combinators.chainl1` andOp
-    xorTerm = neqTerm `Combinators.chainl1` xorOp
-    neqTerm = eqTerm `Combinators.chainl1` neqOp
-    eqTerm = factor `Combinators.chainl1` eqOp
-    factor = lexeme (parentheses expr <|> equalities <|> notOp lit <|> lit)
-
-    notOp inner = do
-      _ <- lexeme (Char.string "!" <|> Char.string "not")
-      Rumor.LogicalNot <$> inner
-    eqOp = Rumor.EqualBoolean <$ lexeme (Char.string "==")
-    neqOp = Rumor.NotEqualBoolean <$ lexeme (Char.string "/=")
-      <|> Rumor.NotEqualBoolean <$ lexeme (Char.string "!=")
-    xorOp = Rumor.LogicalXor <$ lexeme (Char.string "^")
-      <|> Rumor.LogicalXor <$ lexeme (Char.string "xor")
-    andOp = Rumor.LogicalAnd <$ lexeme (Char.string "&&")
-      <|> Rumor.LogicalAnd <$ lexeme (Char.string "and")
-    orOp = Rumor.LogicalOr <$ lexeme (Char.string "||")
-      <|> Rumor.LogicalOr <$ lexeme (Char.string "or")
-
-    equalities =
-          valueEquality textExpression Rumor.EqualString Rumor.NotEqualString
-      <|> valueEquality numberExpression Rumor.EqualNumber Rumor.NotEqualNumber
-
-    valueEquality :: Show a => Parser a
-                  -> (a -> a -> Rumor.Expression Bool)
-                  -> (a -> a -> Rumor.Expression Bool)
-                  -> Parser (Rumor.Expression Bool)
-    valueEquality arg eqCons neqCons = do
-      l <- lexeme arg
-      f <- eqCons <$ lexeme (Char.string "==")
-        <|> neqCons <$ lexeme (Char.string "/=")
-        <|> neqCons <$ lexeme (Char.string "!=")
-        
-      r <- lexeme arg
-      pure (f l r)
-
-  in
-    Rumor.simplify <$> expr
 
 unquotedLine :: Parser (Rumor.Expression Text)
 unquotedLine = do
