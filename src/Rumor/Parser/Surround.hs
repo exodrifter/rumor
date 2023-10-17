@@ -1,25 +1,104 @@
 module Rumor.Parser.Surround
-( parenthesis
+( parentheses
 , braces
 ) where
 
-import Rumor.Parser.Common (Parser)
-import Text.Megaparsec ((<?>))
+import Rumor.Parser.Common (Parser, (<?>))
 
 import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Text.Megaparsec.Char as Char
 
-parenthesis :: Parser a -> Parser a
-parenthesis =
-  surround
-    (Lexeme.lexeme (Char.char '('))
-    (Lexeme.lexeme (Char.char ')') <?> "end parenthesis")
+-- $setup
+-- >>> import qualified Text.Megaparsec as Mega
+-- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
 
-braces :: Parser a -> Parser a
-braces =
+{-| Parses parentheses surrounding an inner parser. Any amount of space,
+  including newlines, is allowed between the parentheses and the inner parser.
+
+  Examples:
+  >>> parseTest (parentheses "foobar") "(foobar)"
+  "foobar"
+
+  >>> parseTest (parentheses "foobar") "(  foobar  )"
+  "foobar"
+
+  >>> parseTest (parentheses "foobar") "(\nfoobar\n)"
+  "foobar"
+
+  >>> parseTest (parentheses "foobar") "(foobar"
+  1:8:
+    |
+  1 | (foobar
+    |        ^
+  unexpected end of input
+  expecting close parenthesis
+
+  >>> parseTest (parentheses "foobar") "foobar)"
+  1:1:
+    |
+  1 | foobar)
+    | ^
+  unexpected 'f'
+  expecting open parenthesis
+
+  >>> parseTest (parentheses "foobar") "()"
+  1:2:
+    |
+  1 | ()
+    |  ^
+  unexpected ')'
+  expecting "foobar"
+-}
+parentheses :: Parser a -> Parser a
+parentheses inner =
   surround
-    (Lexeme.lexeme (Char.char '{'))
-    (Lexeme.lexeme (Char.char '}') <?> "end braces")
+    (Lexeme.lexeme (Char.char '(' <?> "open parenthesis"))
+    (Char.char ')' <?> "close parenthesis")
+    (Lexeme.lexeme inner)
+
+{-| Parses braces surrounding an inner parser. Any amount of space,
+  including newlines, is allowed between the braces and the inner parser.
+
+  Examples:
+  >>> parseTest (braces "foobar") "{foobar}"
+  "foobar"
+
+  >>> parseTest (braces "foobar") "{  foobar  }"
+  "foobar"
+
+  >>> parseTest (braces "foobar") "{\nfoobar\n}"
+  "foobar"
+
+  >>> parseTest (braces "foobar") "{foobar"
+  1:8:
+    |
+  1 | {foobar
+    |        ^
+  unexpected end of input
+  expecting close brace
+
+  >>> parseTest (braces "foobar") "foobar}"
+  1:1:
+    |
+  1 | foobar}
+    | ^
+  unexpected 'f'
+  expecting open brace
+
+  >>> parseTest (braces "foobar") "{}"
+  1:2:
+    |
+  1 | {}
+    |  ^
+  unexpected '}'
+  expecting "foobar"
+-}
+braces :: Parser a -> Parser a
+braces inner =
+  surround
+    (Lexeme.lexeme (Char.char '{') <?> "open brace")
+    (Char.char '}' <?> "close brace")
+    (Lexeme.lexeme inner)
 
 surround :: Parser a -> Parser b -> Parser c -> Parser c
 surround begin end inner = do

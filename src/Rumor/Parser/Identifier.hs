@@ -4,8 +4,7 @@ module Rumor.Parser.Identifier
 
 import Data.Char (isLetter, isMark, isDigit)
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser)
-import Text.Megaparsec ((<?>))
+import Rumor.Parser.Common (Parser, (<?>))
 
 import qualified Text.Megaparsec as Mega
 

@@ -12,7 +12,7 @@ import Rumor.Parser
   , hspace
   , identifier
   , lexeme
-  , parenthesis
+  , parentheses
   , space
   )
 
@@ -116,7 +116,7 @@ action = do
     <|> Mega.try (lexeme (action1 actionName))
     <|> pure (Rumor.Action0 actionName)
 
-  _ <- char ')' <?> "end parenthesis"
+  _ <- char ')' <?> "end parentheses"
   pure result
 
 action1 :: Text -> Parser Rumor.Node
@@ -181,7 +181,7 @@ numberExpression =
 
     expr   = term `Combinators.chainl1` addop
     term   = factor `Combinators.chainl1` mulop
-    factor = lexeme (parenthesis expr <|> lit)
+    factor = lexeme (parentheses expr <|> lit)
 
     mulop  = Rumor.Multiply <$ lexeme (char '*')
          <|> Rumor.Divide <$
@@ -207,7 +207,7 @@ booleanExpression =
     xorTerm = neqTerm `Combinators.chainl1` xorOp
     neqTerm = eqTerm `Combinators.chainl1` neqOp
     eqTerm = factor `Combinators.chainl1` eqOp
-    factor = lexeme (parenthesis expr <|> equalities <|> notOp lit <|> lit)
+    factor = lexeme (parentheses expr <|> equalities <|> notOp lit <|> lit)
 
     notOp inner = do
       _ <- lexeme (Char.string "!" <|> Char.string "not")
