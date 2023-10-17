@@ -20,14 +20,17 @@ import qualified Text.Megaparsec as Mega
   >>> parseTest identifier "alice"
   "alice"
 
+  >>> parseTest identifier "alícia"
+  "al\237cia"
+
   >>> parseTest identifier "アリス"
   "\12450\12522\12473"
 
-  >>> parseTest identifier "alice-アリス"
-  "alice-\12450\12522\12473"
+  >>> parseTest identifier "alice-alícia-アリス"
+  "alice-al\237cia-\12450\12522\12473"
 
-  >>> parseTest identifier "alice_アリス"
-  "alice_\12450\12522\12473"
+  >>> parseTest identifier "alice_alícia_アリス"
+  "alice_al\237cia_\12450\12522\12473"
 
   >>> parseTest identifier ""
   1:1:
@@ -37,10 +40,10 @@ import qualified Text.Megaparsec as Mega
   unexpected end of input
   expecting identifier
 
-  >>> parseTest identifier "alice アリス"
+  >>> parseTest identifier "alice alícia アリス"
   1:6:
     |
-  1 | alice アリス
+  1 | alice alícia アリス
     |      ^
   unexpected space
   expecting valid identifier character
