@@ -13,6 +13,12 @@ maintainer: code@exodrifter.space
 copyright: 2023 Ava Pek
 category: Video Games
 extra-source-files: CHANGELOG.md
+build-type: Custom
+
+custom-setup
+ setup-depends:
+   base >= 4 && <5,
+   cabal-doctest >= 1 && <1.1
 
 library
   hs-source-dirs: src
