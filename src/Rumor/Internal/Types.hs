@@ -13,6 +13,7 @@ module Rumor.Internal.Types
 
 import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
+import Data.NonEmptyText (NonEmptyText)
 import Data.Scientific (Scientific)
 
 import qualified Data.Maybe as Maybe
@@ -20,7 +21,7 @@ import qualified Data.Scientific as S
 import qualified Data.Text as T
 
 -- | The identifier for a character who is saying something.
-newtype Speaker = Speaker Text
+newtype Speaker = Speaker NonEmptyText
   deriving (Eq, Show)
 
 -- | The nodes represent the abstract syntax tree of a Rumor dialog.
@@ -28,11 +29,11 @@ data Node =
     Say (Maybe Speaker) (Expression Text)
   | Add (Maybe Speaker) (Expression Text)
   | Control (Expression Bool) (NonEmpty Node) (Maybe (NonEmpty Node))
-  | Action0 Text
-  | Action1 Text (Expression Text)
-  | Action2 Text (Expression Text) (Expression Text)
-  | Action3 Text (Expression Text) (Expression Text) (Expression Text)
-  | Action4 Text (Expression Text) (Expression Text) (Expression Text) (Expression Text)
+  | Action0 NonEmptyText
+  | Action1 NonEmptyText (Expression Text)
+  | Action2 NonEmptyText (Expression Text) (Expression Text)
+  | Action3 NonEmptyText (Expression Text) (Expression Text) (Expression Text)
+  | Action4 NonEmptyText (Expression Text) (Expression Text) (Expression Text) (Expression Text)
   deriving (Eq, Show)
 
 -- | Represents expressions in a Rumor dialog.

@@ -3,17 +3,18 @@ module Rumor.Parser.Identifier
 ) where
 
 import Data.Char (isLetter, isMark, isDigit)
-import Data.Text (Text)
+import Data.NonEmptyText (NonEmptyText)
 import Rumor.Parser.Common (Parser, (<?>))
 
+import qualified Data.NonEmptyText as NET
 import qualified Text.Megaparsec as Mega
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
 -- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
 
-{-| Parses an identifier, which is defined as any consecutive sequence of
-  letters, digits, marks, underscores, and dashes.
+{-| Parses an identifier, which is defined as any non-empty consecutive sequence
+  of letters, digits, marks, underscores, and dashes.
 
   Examples:
   >>> parseTest identifier "alice"
@@ -28,6 +29,14 @@ import qualified Text.Megaparsec as Mega
   >>> parseTest identifier "alice_アリス"
   "alice_\12450\12522\12473"
 
+  >>> parseTest identifier ""
+  1:1:
+    |
+  1 | <empty line>
+    | ^
+  unexpected end of input
+  expecting identifier
+
   >>> parseTest identifier "alice アリス"
   1:6:
     |
@@ -36,7 +45,7 @@ import qualified Text.Megaparsec as Mega
   unexpected space
   expecting valid identifier character
 -}
-identifier :: Parser Text
+identifier :: Parser NonEmptyText
 identifier =
   let
     validChar ch =
@@ -45,9 +54,12 @@ identifier =
       || isDigit ch
       || ch == '-'
       || ch == '_'
-    ident =
-      Mega.takeWhile1P
-        (Just "valid identifier character")
-        validChar
+
+    label = "valid identifier character"
+    parser = do
+      first <- Mega.satisfy validChar <?> label
+      rest <- Mega.takeWhileP (Just label) validChar
+      pure (NET.new first rest)
+
   in
-    ident <?> "identifier"
+    parser <?> "identifier"

@@ -4,6 +4,7 @@ import Data.Functor (($>))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
+import Data.NonEmptyText (NonEmptyText)
 import Text.Megaparsec ((<?>), (<|>))
 import Rumor.Parser
   ( Parser
@@ -119,19 +120,19 @@ action = do
   _ <- char ')' <?> "end parentheses"
   pure result
 
-action1 :: Text -> Parser Rumor.Node
+action1 :: NonEmptyText -> Parser Rumor.Node
 action1 actionName = do
   param1 <- textExpression
   pure (Rumor.Action1 actionName param1)
 
-action2 :: Text -> Parser Rumor.Node
+action2 :: NonEmptyText -> Parser Rumor.Node
 action2 actionName = do
   param1 <- lexeme textExpression
   _ <- lexeme (char ',')
   param2 <- textExpression
   pure (Rumor.Action2 actionName param1 param2)
 
-action3 :: Text -> Parser Rumor.Node
+action3 :: NonEmptyText -> Parser Rumor.Node
 action3 actionName = do
   param1 <- lexeme textExpression
   _ <- lexeme (char ',')
@@ -140,7 +141,7 @@ action3 actionName = do
   param3 <- textExpression
   pure (Rumor.Action3 actionName param1 param2 param3)
 
-action4 :: Text -> Parser Rumor.Node
+action4 :: NonEmptyText -> Parser Rumor.Node
 action4 actionName = do
   param1 <- lexeme textExpression
   _ <- lexeme (char ',')

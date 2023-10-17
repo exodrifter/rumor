@@ -5,6 +5,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Rumor
 import qualified Rumor.Internal.Types as Rumor
 import qualified Test.HUnit as HUnit
+import qualified Data.NonEmptyText as NET
 
 main :: IO ()
 main = HUnit.runTestTTAndExit tests
@@ -24,7 +25,11 @@ addTests :: HUnit.Test
 addTests =
   let
     expected speaker line =
-      Right [Rumor.Add (Just (Rumor.Speaker speaker)) (Rumor.String line)]
+      Right
+        [ Rumor.Add
+            (Rumor.Speaker <$> NET.fromText speaker)
+            (Rumor.String line)
+        ]
 
   in
     HUnit.TestList
@@ -109,7 +114,11 @@ sayTests :: HUnit.Test
 sayTests =
   let
     expected speaker line =
-      Right [Rumor.Say (Just (Rumor.Speaker speaker)) (Rumor.String line)]
+      Right
+        [ Rumor.Say
+            (Rumor.Speaker <$> NET.fromText speaker)
+            (Rumor.String line)
+        ]
 
   in
     HUnit.TestList
@@ -400,18 +409,18 @@ actionTests =
   HUnit.TestList
     [ HUnit.TestCase do
         HUnit.assertEqual "action with zero arguments"
-          (Right [Rumor.Action0 "foobar"])
+          (Right [Rumor.Action0 (NET.new 'f' "oobar")])
           (Rumor.parse "" "foobar()")
 
     , HUnit.TestCase do
         HUnit.assertEqual "action with one string argument"
-          (Right [Rumor.Action1 "foobar" (Rumor.String "Hello World!")])
+          (Right [Rumor.Action1 (NET.new 'f' "oobar") (Rumor.String "Hello World!")])
           (Rumor.parse "" "foobar(\"Hello World!\")")
 
     , HUnit.TestCase do
         HUnit.assertEqual "action with two string arguments"
           (Right
-            [ Rumor.Action2 "foobar"
+            [ Rumor.Action2 (NET.new 'f' "oobar")
                 (Rumor.String "Hello")
                 (Rumor.String "World!")
             ]
@@ -421,7 +430,7 @@ actionTests =
     , HUnit.TestCase do
         HUnit.assertEqual "action with three string arguments"
           (Right
-            [ Rumor.Action3 "foobar"
+            [ Rumor.Action3 (NET.new 'f' "oobar")
                 (Rumor.String "Hello")
                 (Rumor.String "World")
                 (Rumor.String "!")
@@ -432,7 +441,7 @@ actionTests =
     , HUnit.TestCase do
         HUnit.assertEqual "action with four string arguments"
           (Right
-            [ Rumor.Action4 "foobar"
+            [ Rumor.Action4 (NET.new 'f' "oobar")
                 (Rumor.String "Hello")
                 (Rumor.String " ")
                 (Rumor.String "World")
@@ -444,7 +453,7 @@ actionTests =
     , HUnit.TestCase do
         HUnit.assertEqual "multiline action with four string arguments"
           (Right
-            [ Rumor.Action4 "foobar"
+            [ Rumor.Action4 (NET.new 'f' "oobar")
                 (Rumor.String "Hello")
                 (Rumor.String " ")
                 (Rumor.String "World")
@@ -460,20 +469,22 @@ smokeTest =
   HUnit.TestCase do
     let mkDialog cons speaker line =
           cons (Just (Rumor.Speaker speaker)) (Rumor.String line)
+        yuu = (NET.new 'y' "uu")
+        touko = (NET.new 't' "ouko")
 
     HUnit.assertEqual "smoke test 1"
       ( Right
-          [ mkDialog Rumor.Say "yuu"
+          [ mkDialog Rumor.Say yuu
               "Wah! Nanami-senpai!"
-          , mkDialog Rumor.Say "touko"
+          , mkDialog Rumor.Say touko
               "Yuu!"
-          , mkDialog Rumor.Add "touko"
+          , mkDialog Rumor.Add touko
               "Oh, thank you for finding those for us!"
-          , mkDialog Rumor.Say "yuu"
+          , mkDialog Rumor.Say yuu
               "No problem. Umm..."
-          , mkDialog Rumor.Add "yuu"
+          , mkDialog Rumor.Add yuu
               "Why are you coming in?"
-          , mkDialog Rumor.Say "touko"
+          , mkDialog Rumor.Say touko
               "Hmm?"
           ]
       )
