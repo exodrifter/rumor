@@ -4,10 +4,18 @@ import Data.Functor (($>))
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Scientific (Scientific)
 import Data.Text (Text)
-import Data.Void (Void)
 import Text.Megaparsec ((<?>), (<|>))
+import Rumor.Parser
+  ( Parser
+  , braces
+  , hlexeme
+  , hspace
+  , identifier
+  , lexeme
+  , parenthesis
+  , space
+  )
 
-import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Text as T
 import qualified Text.Megaparsec as Mega
@@ -16,8 +24,6 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Megaparsec.Error as Error
 import qualified Text.Parser.Combinators as Combinators
 import qualified Rumor.Internal.Types as Rumor
-
-type Parser a = Mega.Parsec Void Text a
 
 parse :: String -> T.Text -> Either String [Rumor.Node]
 parse fileName fileContents =
@@ -267,47 +273,5 @@ unquotedLine = do
 -- Helpers
 --------------------------------------------------------------------------------
 
-identifier :: Parser Text
-identifier =
-  Mega.takeWhile1P
-    (Just "letter, mark, or digit character")
-    (\ch -> Char.isLetter ch || Char.isMark ch || Char.isDigit ch)
-
 char :: Char -> Parser Char
 char = Char.char
-
-line :: Parser Text
-line =
-  Mega.takeWhile1P Nothing (`notElem` ['\n', '\r'])
-
-lexeme :: Parser a -> Parser a
-lexeme = Lexer.lexeme space
-
-hlexeme :: Parser a -> Parser a
-hlexeme = Lexer.lexeme hspace
-
-space :: Parser ()
-space = Lexer.space Char.space1 lineComment blockComment
-
-hspace :: Parser ()
-hspace = Lexer.space Char.hspace1 lineComment blockComment
-
-lineComment :: Parser ()
-lineComment = Lexer.skipLineComment "//"
-
-blockComment :: Parser ()
-blockComment = Lexer.skipBlockComment "/*" "*/"
-
-parenthesis :: Parser a -> Parser a
-parenthesis inner = do
-  _ <- lexeme (char '(')
-  result <- lexeme inner
-  _ <- char ')' <?> "end parenthesis"
-  pure result
-
-braces :: Parser a -> Parser a
-braces inner = do
-  _ <- lexeme (char '{')
-  result <- inner
-  _ <- lexeme (char '}') <?> "end braces"
-  pure result

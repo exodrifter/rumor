@@ -19,6 +19,11 @@ library
   exposed-modules:
     Rumor,
     Rumor.Internal.Types
+    Rumor.Parser,
+    Rumor.Parser.Common,
+    Rumor.Parser.Identifier,
+    Rumor.Parser.Lexeme,
+    Rumor.Parser.Surround
 
   default-language:
     Haskell2010
