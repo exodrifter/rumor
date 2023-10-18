@@ -54,10 +54,10 @@ library
     scientific,
     text
 
-test-suite test-rumor
+test-suite smokes
   type: exitcode-stdio-1.0
 
-  hs-source-dirs: test
+  hs-source-dirs: smokes
   main-is: Main.hs
 
   default-language:
@@ -72,6 +72,7 @@ test-suite test-rumor
 
   build-depends:
     base ^>=4.17.2.0,
+    heredoc,
     HUnit,
     non-empty-text,
     rumor
