@@ -26,6 +26,7 @@ library
     Rumor
     Rumor.Internal.Types
     Rumor.Parser
+    Rumor.Parser.Action
     Rumor.Parser.Common
     Rumor.Parser.Control
     Rumor.Parser.Dialog

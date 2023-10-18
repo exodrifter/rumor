@@ -5,6 +5,8 @@ module Rumor.Parser.Node
 
 import Rumor.Parser.Common (Parser)
 
+import Rumor.Parser.Action as Action
+import Rumor.Parser.Control as Control
 import Rumor.Parser.Dialog as Dialog
 import Rumor.Parser.Lexeme as Lexeme
 import Rumor.Internal.Types as Rumor
@@ -20,3 +22,5 @@ node :: Parser Rumor.Node
 node =
       Mega.try Dialog.say
   <|> Mega.try Dialog.add
+  <|> Mega.try Action.action
+  <|> Control.control node
