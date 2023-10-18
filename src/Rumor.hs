@@ -12,8 +12,8 @@ import Rumor.Parser
   , space
   , stringExpression
   , booleanExpression
-  , say
-  , add
+  , node
+  , nodes
   )
 
 import qualified Data.Text as T
@@ -25,21 +25,9 @@ import qualified Rumor.Internal.Types as Rumor
 
 parse :: String -> T.Text -> Either String [Rumor.Node]
 parse fileName fileContents =
-  case Mega.runParser parser fileName fileContents of
+  case Mega.runParser nodes fileName fileContents of
     Right result -> Right result
     Left err -> Left (Error.errorBundlePretty err)
-
-parser :: Parser [Rumor.Node]
-parser =
-  Lexer.nonIndented space do
-    Mega.manyTill (hlexeme node) (Mega.hidden Mega.eof)
-
-node :: Parser Rumor.Node
-node =
-      Mega.try say
-  <|> Mega.try add
-  <|> Mega.try action
-  <|> control
 
 control :: Parser Rumor.Node
 control = do

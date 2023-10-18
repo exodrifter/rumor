@@ -31,6 +31,7 @@ library
     Rumor.Parser.Expression
     Rumor.Parser.Identifier
     Rumor.Parser.Lexeme
+    Rumor.Parser.Node
     Rumor.Parser.Surround
 
   default-language:
