@@ -102,8 +102,8 @@ braces inner =
     (Char.char '}' <?> "close brace")
     (Lexeme.lexeme inner)
 
-{-| Parses brackets surrounding an inner parser. Any amount of space,
-  including newlines, is allowed between the brackets and the inner parser.
+{-| Parses brackets surrounding an inner parser. Any amount of horizontal
+  whitespace is allowed between the brackets and the inner parser.
 
   Examples:
   >>> parseTest (brackets "foobar") "[foobar]"
@@ -113,7 +113,12 @@ braces inner =
   "foobar"
 
   >>> parseTest (brackets "foobar") "[\nfoobar\n]"
-  "foobar"
+  1:2:
+    |
+  1 | [
+    |  ^
+  unexpected "<newline>fooba"
+  expecting "foobar"
 
   >>> parseTest (brackets "foobar") "[foobar"
   1:8:
@@ -142,9 +147,9 @@ braces inner =
 brackets :: Parser a -> Parser a
 brackets inner =
   surround
-    (Lexeme.lexeme (Char.char '[') <?> "open bracket")
+    (Lexeme.hlexeme (Char.char '[') <?> "open bracket")
     (Char.char ']' <?> "close bracket")
-    (Lexeme.lexeme inner)
+    (Lexeme.hlexeme inner)
 
 {-| Parses double quotes surrounding an inner parser. No space is allowed
   between the double quotes and the inner parser.

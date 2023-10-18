@@ -5,7 +5,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Rumor.Internal.Types
-  ( Speaker(..)
+  ( Label(..)
+  , Speaker(..)
   , Node(..)
   , Expression(..)
   , simplify
@@ -19,6 +20,10 @@ import Data.Scientific (Scientific)
 import qualified Data.Maybe as Maybe
 import qualified Data.Scientific as S
 import qualified Data.Text as T
+
+-- | The identifier for a node.
+newtype Label = Label NonEmptyText
+  deriving (Eq, Show)
 
 -- | The identifier for a character who is saying something.
 newtype Speaker = Speaker NonEmptyText
@@ -34,7 +39,7 @@ data Node =
   | Action2 NonEmptyText (Expression Text) (Expression Text)
   | Action3 NonEmptyText (Expression Text) (Expression Text) (Expression Text)
   | Action4 NonEmptyText (Expression Text) (Expression Text) (Expression Text) (Expression Text)
-  | Choice NonEmptyText (Expression Text) (Maybe (NonEmpty Node))
+  | Choice Label (Expression Text) (Maybe (NonEmpty Node))
   deriving (Eq, Show)
 
 -- | Represents expressions in a Rumor dialog.
