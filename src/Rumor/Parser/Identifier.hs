@@ -26,6 +26,9 @@ import qualified Text.Megaparsec as Mega
   >>> parseTest identifier "アリス"
   "\12450\12522\12473"
 
+  >>> parseTest identifier "123" -- You can start with numbers!
+  "123"
+
   >>> parseTest identifier "alice-alícia-アリス"
   "alice-al\237cia-\12450\12522\12473"
 
