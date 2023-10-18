@@ -1,7 +1,7 @@
 module Rumor.Parser.Expression
 ( booleanExpression
 , numberExpression
-, stringExpression, characterEscapes, escapedChar, interpolation
+, stringExpression, stringEscapes, escape, interpolation
 ) where
 
 import Data.Scientific (Scientific)
@@ -537,21 +537,21 @@ stringExpression = do
       string <-
         Mega.takeWhile1P
           (Just "literal char")
-          (`notElem` (fst <$> characterEscapes))
+          (`notElem` (fst <$> stringEscapes))
       pure (Rumor.String string)
 
   Surround.doubleQuotes do
     texts <- Mega.many
       (     Mega.try literalString
-        <|> Mega.try escapedChar
+        <|> Mega.try (escape stringEscapes)
         <|> Mega.try interpolation
       )
     pure (mconcat texts)
 
 {-| The characters that can be escaped, and their corresponding escape code.
 -}
-characterEscapes :: [(Char, Text)]
-characterEscapes =
+stringEscapes :: [(Char, Text)]
+stringEscapes =
   [ ('\n', "n")
   , ('\r', "r")
   , ('\\', "\\")
@@ -562,25 +562,25 @@ characterEscapes =
 
 {-| Parses a character escape sequence.
 
-  >>> parseTest escapedChar "\\n"
+  >>> parseTest (escape stringEscapes) "\\n"
   String "\n"
 
-  >>> parseTest escapedChar "\\r"
+  >>> parseTest (escape stringEscapes) "\\r"
   String "\r"
 
-  >>> parseTest escapedChar "\\\\"
+  >>> parseTest (escape stringEscapes) "\\\\"
   String "\\"
 
-  >>> parseTest escapedChar "\\{"
+  >>> parseTest (escape stringEscapes) "\\{"
   String "{"
 
-  >>> parseTest escapedChar "\\}"
+  >>> parseTest (escape stringEscapes) "\\}"
   String "}"
 
-  >>> parseTest escapedChar "\\\""
+  >>> parseTest (escape stringEscapes) "\\\""
   String "\""
 
-  >>> parseTest escapedChar "\\"
+  >>> parseTest (escape stringEscapes) "\\"
   1:2:
     |
   1 | \
@@ -588,15 +588,15 @@ characterEscapes =
   unexpected end of input
   expecting '"', '\', 'n', 'r', '{', or '}'
 -}
-escapedChar :: Parser (Rumor.Expression Text)
-escapedChar = do
+escape :: [(Char, Text)] -> Parser (Rumor.Expression Text)
+escape escapes = do
   let
-    escape (ch, escapeCode) = do
+    escapeParser (ch, escapeCode) = do
       _ <- Char.string escapeCode
       pure (Rumor.String (T.singleton ch))
 
   _ <- Char.char '\\'
-  Mega.choice (escape <$> characterEscapes)
+  Mega.choice (escapeParser <$> escapes)
 
 {-| Parses a string interpolation, which is a boolean, number, or string
   expression surrounded by braces.

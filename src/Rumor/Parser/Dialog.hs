@@ -6,7 +6,6 @@ module Rumor.Parser.Dialog
 import Data.Text (Text)
 import Rumor.Parser.Common (Parser)
 
-import qualified Data.List as List
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Rumor.Parser.Lexeme as Lexeme
@@ -147,31 +146,14 @@ dialog ::
   Char ->
   (Maybe Rumor.Speaker -> Rumor.Expression Text -> Rumor.Node) ->
   Parser Rumor.Node
-dialog sep cons =
+dialog sep constructor = do
   let
-    mkDialog speaker texts =
-      cons
-        (Rumor.Speaker <$> speaker)
-        ( mconcat
-            ( List.intersperse
-                (Rumor.String " ")
-                (List.filter (/= mempty) texts)
-            )
-        )
+    dialogFront = do
+      speaker <- Lexeme.hlexeme
+        (Mega.optional (Rumor.Speaker <$> Identifier.identifier))
+      _ <- Char.char sep
+      pure speaker
 
-    dialogIndent = do
-      speaker <- Lexeme.hlexeme (Mega.optional Identifier.identifier)
-      _ <- Lexeme.hlexeme (Char.char sep)
-      firstText <- Unquoted.unquotedLine
-      pure
-        ( Lexer.IndentMany
-            Nothing
-            (\texts -> pure (mkDialog speaker (firstText:texts)))
-            Unquoted.unquotedLine
-        )
-
-  in do
-    -- Make sure we aren't indented
-    _ <- Lexer.indentGuard Lexeme.space EQ =<< Lexer.indentLevel
-
-    Lexer.indentBlock Lexeme.space dialogIndent
+  -- Make sure we aren't indented
+  _ <- Lexer.indentGuard Lexeme.space EQ =<< Lexer.indentLevel
+  Unquoted.unquotedBlock dialogFront constructor
