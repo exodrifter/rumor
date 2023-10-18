@@ -1,8 +1,6 @@
 module Rumor where
 
-import Data.Functor (($>))
 import Data.List.NonEmpty (NonEmpty(..))
-import Data.Text (Text)
 import Data.NonEmptyText (NonEmptyText)
 import Text.Megaparsec ((<?>), (<|>))
 import Rumor.Parser
@@ -12,12 +10,12 @@ import Rumor.Parser
   , identifier
   , lexeme
   , space
-  , interpolation
   , stringExpression
   , booleanExpression
+  , say
+  , add
   )
 
-import qualified Data.List as List
 import qualified Data.Text as T
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -42,44 +40,6 @@ node =
   <|> Mega.try add
   <|> Mega.try action
   <|> control
-
-say :: Parser Rumor.Node
-say =
-  hlexeme (dialog ':' Rumor.Say)
-
-add :: Parser Rumor.Node
-add =
-  hlexeme (dialog '+' Rumor.Add)
-
-dialog ::
-  Char ->
-  (Maybe Rumor.Speaker -> Rumor.Expression Text -> Rumor.Node) ->
-  Parser Rumor.Node
-dialog sep cons =
-  let
-    mkDialog speaker texts =
-      cons
-        (Rumor.Speaker <$> speaker)
-        ( mconcat
-            ( List.intersperse
-                (Rumor.String " ")
-                (List.filter (/= mempty) texts)
-            )
-        )
-
-    dialogIndent = do
-      speaker <- hlexeme (Mega.optional identifier)
-      _ <- hlexeme (char sep)
-      firstText <- unquotedLine
-      pure
-        ( Lexer.IndentMany
-            Nothing
-            (\texts -> pure (mkDialog speaker (firstText:texts)))
-            unquotedLine
-        )
-
-  in
-    Lexer.indentBlock space dialogIndent
 
 control :: Parser Rumor.Node
 control = do
@@ -150,37 +110,6 @@ action4 actionName = do
   _ <- lexeme (char ',')
   param4 <- stringExpression
   pure (Rumor.Action4 actionName param1 param2 param3 param4)
-
---------------------------------------------------------------------------------
--- Expression
---------------------------------------------------------------------------------
-
-unquotedLine :: Parser (Rumor.Expression Text)
-unquotedLine = do
-  let escapedChar = do
-        _ <- char '\\'
-        ch <- char 'n' $> "\n"
-          <|> char 'r' $> "\r"
-          <|> char '\\' $> "\\"
-          <|> char '{' $> "{"
-          <|> char '}' $> "}"
-          <|> char '"' $> "\""
-        pure (Rumor.String ch)
-
-      literalString = do
-        literal <-
-          Mega.takeWhile1P
-            (Just "literal char")
-            (`notElem` ['\n', '\r', '\\', '{', '"'])
-        -- Strip the end of the text if this is at the end of the line
-        next <- Mega.lookAhead
-          (Mega.optional (char '\n' <|> char '\r'))
-        if next `elem` (Just <$> ['\n', '\r'])
-        then pure (Rumor.String (T.stripEnd literal))
-        else pure (Rumor.String literal)
-
-  text <- Mega.many (literalString <|> escapedChar <|> interpolation)
-  pure (mconcat text)
 
 --------------------------------------------------------------------------------
 -- Helpers

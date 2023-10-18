@@ -3,6 +3,7 @@ module Rumor.Parser
 ) where
 
 import Rumor.Parser.Common as X
+import Rumor.Parser.Dialog as X
 import Rumor.Parser.Expression as X
 import Rumor.Parser.Identifier as X
 import Rumor.Parser.Lexeme as X

@@ -1,14 +1,14 @@
 module Rumor.Parser.Expression
 ( booleanExpression
 , numberExpression
-, stringExpression
-, interpolation
+, stringExpression, characterEscapes, escapedChar, interpolation
 ) where
 
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Rumor.Parser.Common (Parser, (<?>), (<|>))
 
+import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Rumor.Parser.Surround as Surround
@@ -447,6 +447,9 @@ number = do
   >>> parseTest stringExpression "\"I have { 5 } mangoes!\""
   Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
 
+  >>> parseTest stringExpression "\"Hello\\nworld!\""
+  Concat (String "Hello") (Concat (String "\n") (String "world!"))
+
   Whitespace handling:
   >>> parseTest stringExpression "\"Hello\nworld!\"" -- Newlines are not okay
   1:7:
@@ -456,7 +459,7 @@ number = do
   unexpected newline
   expecting '\', close double quotes, interpolation, or literal char
 
-  Incomplete examples:
+  Error examples:
   >>> parseTest stringExpression "\""
   1:2:
     |
@@ -480,25 +483,24 @@ number = do
     | ^
   unexpected 'H'
   expecting open double quotes
+
+  >>> parseTest stringExpression "\"}\"" -- You must escape the close bracket
+  1:2:
+    |
+  1 | "}"
+    |  ^
+  unexpected '}'
+  expecting '\', close double quotes, interpolation, or literal char
 -}
 stringExpression :: Parser (Rumor.Expression Text)
 stringExpression = do
-  let escapedChar = do
-        _ <- Char.char '\\'
-        ch <- "\n" <$ Char.char 'n'
-          <|> "\r" <$ Char.char 'r'
-          <|> "\\" <$ Char.char '\\'
-          <|> "{" <$ Char.char '{'
-          <|> "}" <$ Char.char '}'
-          <|> "\"" <$ Char.char '"'
-        pure (Rumor.String ch)
-
-      literalString = do
-        string <-
-          Mega.takeWhile1P
-            (Just "literal char")
-            (`notElem` ['\n', '\r', '\\', '{', '}', '"'])
-        pure (Rumor.String string)
+  let
+    literalString = do
+      string <-
+        Mega.takeWhile1P
+          (Just "literal char")
+          (`notElem` (fst <$> characterEscapes))
+      pure (Rumor.String string)
 
   Surround.doubleQuotes do
     texts <- Mega.many
@@ -507,6 +509,56 @@ stringExpression = do
         <|> Mega.try interpolation
       )
     pure (mconcat texts)
+
+{-| The characters that can be escaped, and their corresponding escape code.
+-}
+characterEscapes :: [(Char, Text)]
+characterEscapes =
+  [ ('\n', "n")
+  , ('\r', "r")
+  , ('\\', "\\")
+  , ('{', "{")
+  , ('}', "}")
+  , ('"', "\"")
+  ]
+
+{-| Parses a character escape sequence.
+
+  >>> parseTest escapedChar "\\n"
+  String "\n"
+
+  >>> parseTest escapedChar "\\r"
+  String "\r"
+
+  >>> parseTest escapedChar "\\\\"
+  String "\\"
+
+  >>> parseTest escapedChar "\\{"
+  String "{"
+
+  >>> parseTest escapedChar "\\}"
+  String "}"
+
+  >>> parseTest escapedChar "\\\""
+  String "\""
+
+  >>> parseTest escapedChar "\\"
+  1:2:
+    |
+  1 | \
+    |  ^
+  unexpected end of input
+  expecting '"', '\', 'n', 'r', '{', or '}'
+-}
+escapedChar :: Parser (Rumor.Expression Text)
+escapedChar = do
+  let
+    escape (ch, escapeCode) = do
+      _ <- Char.string escapeCode
+      pure (Rumor.String (T.singleton ch))
+
+  _ <- Char.char '\\'
+  Mega.choice (escape <$> characterEscapes)
 
 {-| Parses a string interpolation, which is a boolean, number, or string
   expression surrounded by braces.
@@ -528,7 +580,7 @@ stringExpression = do
   >>> parseTest interpolation "{\ntrue\n}" -- Newlines are okay
   BooleanToString (Boolean True)
 
-  Incomplete examples:
+  Error examples:
   >>> parseTest interpolation "{}"
   1:2:
     |
