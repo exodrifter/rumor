@@ -3,7 +3,7 @@ module Rumor.Parser.Control
 ) where
 
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, (<|>))
 import Data.List.NonEmpty (NonEmpty(..))
 
 import qualified Text.Megaparsec as Mega
@@ -13,6 +13,7 @@ import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Rumor.Parser.Surround as Surround
 import qualified Rumor.Parser.Expression as Expression
+import qualified Rumor.Parser.Indented as Indented
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
@@ -143,7 +144,7 @@ controlIf name ref inner = do
       )
   _ <- Char.char '\n'
 
-  successBlock <- indentedNodes ref inner
+  successBlock <- Indented.someIndentedMoreThan ref inner
   failureBlock <-
     Mega.optional
       (     Mega.try ((:| []) <$> controlIf "elif" ref inner)
@@ -201,36 +202,4 @@ controlElse ref inner = do
   _ <- Lexeme.hlexeme (Char.string "else")
   _ <- Char.char '\n'
 
-  indentedNodes ref inner
-
-{-| Parse a block of nodes that have a greater indentation level than the
-  reference position.
-
-  Examples:
-  >>> let parse pos = parseTest (indentedNodes (Mega.mkPos pos) "foo")
-  >>> parse 1 "  foo"
-  "foo" :| []
-
-  >>> parse 1 "  foo\n  foo\n  foo"
-  "foo" :| ["foo","foo"]
-
-  >>> parse 3 "  foo\n  foo\n  foo"
-  1:3:
-    |
-  1 |   foo
-    |   ^
-  incorrect indentation (got 3, should be greater than 3)
--}
-indentedNodes :: Mega.Pos -> Parser a -> Parser (NonEmpty a)
-indentedNodes originalRef inner = do
-  let
-    indentedNode ref = do
-      _ <- Lexer.indentGuard Lexeme.space EQ ref
-      inner
-
-
-  ref <- Lexer.indentGuard Lexeme.space GT originalRef
-  first <- inner <?> "indented node"
-
-  rest <- Mega.many (indentedNode ref) <?> "indented nodes"
-  pure (first :| rest)
+  Indented.someIndentedMoreThan ref inner

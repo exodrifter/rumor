@@ -6,6 +6,7 @@ module Rumor.Parser.Node
 import Rumor.Parser.Common (Parser)
 
 import Rumor.Parser.Action as Action
+import Rumor.Parser.Choice as Choice
 import Rumor.Parser.Control as Control
 import Rumor.Parser.Dialog as Dialog
 import Rumor.Parser.Lexeme as Lexeme
@@ -23,4 +24,5 @@ node =
       Mega.try Dialog.say
   <|> Mega.try Dialog.add
   <|> Mega.try Action.action
+  <|> Choice.choice node
   <|> Control.control node

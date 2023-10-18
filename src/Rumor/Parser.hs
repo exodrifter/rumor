@@ -3,6 +3,7 @@ module Rumor.Parser
 ) where
 
 import Rumor.Parser.Action as X
+import Rumor.Parser.Choice as X
 import Rumor.Parser.Common as X
 import Rumor.Parser.Control as X
 import Rumor.Parser.Dialog as X

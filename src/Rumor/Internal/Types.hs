@@ -34,6 +34,7 @@ data Node =
   | Action2 NonEmptyText (Expression Text) (Expression Text)
   | Action3 NonEmptyText (Expression Text) (Expression Text) (Expression Text)
   | Action4 NonEmptyText (Expression Text) (Expression Text) (Expression Text) (Expression Text)
+  | Choice NonEmptyText (Expression Text) (Maybe (NonEmpty Node))
   deriving (Eq, Show)
 
 -- | Represents expressions in a Rumor dialog.

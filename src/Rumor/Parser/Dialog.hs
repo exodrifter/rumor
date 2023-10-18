@@ -4,14 +4,13 @@ module Rumor.Parser.Dialog
 ) where
 
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, (<|>))
+import Rumor.Parser.Common (Parser)
 
 import qualified Data.List as List
-import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
-import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Lexeme as Lexeme
+import qualified Rumor.Parser.Unquoted as Unquoted
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
@@ -163,12 +162,12 @@ dialog sep cons =
     dialogIndent = do
       speaker <- Lexeme.hlexeme (Mega.optional Identifier.identifier)
       _ <- Lexeme.hlexeme (Char.char sep)
-      firstText <- unquotedLine
+      firstText <- Unquoted.unquotedLine
       pure
         ( Lexer.IndentMany
             Nothing
             (\texts -> pure (mkDialog speaker (firstText:texts)))
-            unquotedLine
+            Unquoted.unquotedLine
         )
 
   in do
@@ -176,55 +175,3 @@ dialog sep cons =
     _ <- Lexer.indentGuard Lexeme.space EQ =<< Lexer.indentLevel
 
     Lexer.indentBlock Lexeme.space dialogIndent
-
-{-| Parses an unquoted line, which is an unquoted string literal. An unquoted
-  line will have all trailing horizontal whitespace removed.
-
-  >>> parseTest unquotedLine "Hello world!"
-  String "Hello world!"
-
-  >>> parseTest unquotedLine "I have { 5 } mangoes!"
-  Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
-
-  >>> parseTest unquotedLine "Hello\\nworld!"
-  Concat (String "Hello") (Concat (String "\n") (String "world!"))
-
-  Whitespace handling:
-  >>> parseTest unquotedLine "Hello world!   " -- Trailing whitespace is removed
-  String "Hello world!"
-
-  >>> parseTest unquotedLine "Hello\nworld!" -- Newlines are not okay
-  1:6:
-    |
-  1 | Hello
-    |      ^
-  unexpected newline
-  expecting '\', interpolation, or literal char
--}
-unquotedLine :: Parser (Rumor.Expression Text)
-unquotedLine = do
-  let
-    eol =
-          (do _ <- Char.char '\n'; pure (Right ()))
-      <|> (do _ <- Char.char '\r'; pure (Right ()))
-      <|> (do Mega.eof; pure (Right ()))
-      <|> pure (Left ())
-
-    literalString = do
-      literal <-
-        Mega.takeWhile1P
-          (Just "literal char")
-          (`notElem` (fst <$> Expression.characterEscapes))
-
-      -- Strip the end of the text if this is at the end of the line
-      next <- Mega.lookAhead eol
-      if next == Right ()
-      then pure (Rumor.String (T.stripEnd literal))
-      else pure (Rumor.String literal)
-
-  text <- Mega.many
-    (     literalString
-      <|> Expression.escapedChar
-      <|> Expression.interpolation
-    )
-  pure (mconcat text)

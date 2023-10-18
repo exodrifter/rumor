@@ -27,14 +27,17 @@ library
     Rumor.Internal.Types
     Rumor.Parser
     Rumor.Parser.Action
+    Rumor.Parser.Choice
     Rumor.Parser.Common
     Rumor.Parser.Control
     Rumor.Parser.Dialog
     Rumor.Parser.Expression
     Rumor.Parser.Identifier
+    Rumor.Parser.Indented
     Rumor.Parser.Lexeme
     Rumor.Parser.Node
     Rumor.Parser.Surround
+    Rumor.Parser.Unquoted
 
   default-language:
     Haskell2010
