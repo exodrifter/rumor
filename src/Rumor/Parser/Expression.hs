@@ -28,6 +28,14 @@ import qualified Text.Parser.Combinators as Combinators
 {-| Parses a boolean expression. Any amount of space, including newlines, is
   allowed between the terms of the boolean expression.
 
+  This parser doesn't consume trailing whitespace.
+  >>> parseTest booleanExpression "true  \n  "
+  1:5:
+    |
+  1 | true
+    |     ^
+  unexpected space
+
   In order from highest to lowest precedence:
   >>> parseTest booleanExpression "not true"
   LogicalNot (Boolean True)
@@ -140,49 +148,56 @@ booleanExpression =
     -- Parse a boolean expression with the left associative operators from
     -- highest to lowest precedence.
     expression = term
-      `Combinators.chainl1` equalsOperator
-      `Combinators.chainl1` notEqualsOperator
-      `Combinators.chainl1` xorOperator
-      `Combinators.chainl1` andOperator
-      `Combinators.chainl1` orOperator
+      `Combinators.chainl1` discardWhitespace equalsOperator
+      `Combinators.chainl1` discardWhitespace notEqualsOperator
+      `Combinators.chainl1` discardWhitespace xorOperator
+      `Combinators.chainl1` discardWhitespace andOperator
+      `Combinators.chainl1` discardWhitespace orOperator
 
-    term = Lexeme.lexeme
-      (     Surround.parentheses expression
-        <|> valueEquality
-              stringExpression
-              Rumor.EqualString
-              Rumor.NotEqualString
-        <|> valueEquality
-              (Mega.try numberExpression <|> number)
-              Rumor.EqualNumber
-              Rumor.NotEqualNumber
-        <|> notOperator boolean
-        <|> boolean
-      )
+    term =
+          Surround.parentheses expression
+      <|> valueEquality
+            stringExpression
+            Rumor.EqualString
+            Rumor.NotEqualString
+      <|> valueEquality
+            (Mega.try numberExpression <|> number)
+            Rumor.EqualNumber
+            Rumor.NotEqualNumber
+      <|> notOperator boolean
+      <|> boolean
 
     notOperator inner = do
-      _ <- Lexeme.lexeme ("!" <|> do _ <- "not"; " ")
+      _ <- discardWhitespace ("!" <|> do _ <- "not"; " ")
       Rumor.LogicalNot <$> inner
     equalsOperator = do
-      _ <- Lexeme.lexeme "=="
+      _ <-"=="
       pure Rumor.EqualBoolean
     notEqualsOperator = do
-      _ <- Lexeme.lexeme ("/=" <|> "!=")
+      _ <- "/=" <|> "!="
       pure Rumor.NotEqualBoolean
     xorOperator = do
-      _ <- Lexeme.lexeme ("^" <|> "xor")
+      _ <- "^" <|> "xor"
       pure Rumor.LogicalXor
     andOperator = do
-      _ <- Lexeme.lexeme ("&&" <|> "and")
+      _ <- "&&" <|> "and"
       pure Rumor.LogicalAnd
     orOperator = do
-      _ <- Lexeme.lexeme ("||" <|> "or")
+      _ <- "||" <|> "or"
       pure Rumor.LogicalOr
 
   in
     expression
 
 {-| Parses a value equality comparison.
+
+  This parser doesn't consume trailing whitespace.
+  >>> parseTest booleanExpression "true == false  \n  "
+  1:14:
+    |
+  1 | true == false
+    |              ^
+  unexpected space
 
   >>> import Rumor.Internal.Types (Expression(..))
   >>> let booleanEquality = valueEquality boolean EqualBoolean NotEqualBoolean
@@ -294,6 +309,15 @@ boolean =
 {-| Parses a mathematical expression. Any amount of space, including newlines,
   is allowed between the terms of the mathematical expression.
 
+  This parser doesn't consume trailing whitespace.
+  >>> parseTest numberExpression "1 * 2  \n  "
+  1:6:
+    |
+  1 | 1 * 2
+    |      ^
+  unexpected space
+  expecting '.', 'E', 'e', or digit
+
   In order from highest to lowest precedence:
   >>> parseTest numberExpression "1 * 2"
   Multiplication (Number 1.0) (Number 2.0)
@@ -356,29 +380,32 @@ numberExpression :: Parser (Rumor.Expression Scientific)
 numberExpression =
   let
     expr = term
-      `Combinators.chainl1` multiplicationOperator
+      `Combinators.chainl1` discardWhitespace multiplicationOperator
       `Combinators.chainl1` divisionOperator
-      `Combinators.chainl1` additionOperator
-      `Combinators.chainl1` subtractionOperator
-    term = Lexeme.lexeme
-      (     Surround.parentheses expr
-        <|> number
-      )
+      `Combinators.chainl1` discardWhitespace additionOperator
+      `Combinators.chainl1` discardWhitespace subtractionOperator
+    term =
+          Surround.parentheses expr
+      <|> number
 
     multiplicationOperator = do
-      _ <- Lexeme.lexeme (Char.char '*')
+      _ <- Char.char '*'
       pure Rumor.Multiplication
     divisionOperator = do
-      Lexeme.lexeme do
+      Mega.try do
+        Lexeme.space
         _ <- Char.char '/'
-        -- Ensure this isn't a `/=` operator
-        Mega.notFollowedBy (Char.char '=')
+        pure ()
+
+      -- Ensure this isn't a `/=` operator
+      Mega.notFollowedBy (Char.char '=')
+      Lexeme.space
       pure Rumor.Division
     additionOperator = do
-      _ <- Lexeme.lexeme (Char.char '+')
+      _ <- Char.char '+'
       pure Rumor.Addition
     subtractionOperator = do
-      _ <- Lexeme.lexeme (Char.char '-')
+      _ <- Char.char '-'
       pure Rumor.Subtraction
 
   in
@@ -386,6 +413,9 @@ numberExpression =
 
 {-| Parses a number literal, which can be any signed decimal number. It can be
   written using scientific notation.
+
+  >>> parseTest number "1"
+  Number 1.0
 
   >>> parseTest number "1.0"
   Number 1.0
@@ -439,6 +469,14 @@ number = do
 
 {-| Parses a string expression, which is any quoted string with interpolated
   values and no newlines.
+
+  This parser doesn't consume trailing whitespace.
+  >>> parseTest stringExpression "\"Hello world!\"   "
+  1:15:
+    |
+  1 | "Hello world!"
+    |               ^
+  unexpected space
 
   Examples:
   >>> parseTest stringExpression "\"Hello world!\""
@@ -567,8 +605,14 @@ escapedChar = do
   >>> parseTest interpolation "{ true }"
   BooleanToString (Boolean True)
 
+  >>> parseTest interpolation "{ true || false }"
+  BooleanToString (LogicalOr (Boolean True) (Boolean False))
+
   >>> parseTest interpolation "{ 123 }"
   NumberToString (Number 123.0)
+
+  >>> parseTest interpolation "{ 123 + 456 }"
+  NumberToString (Addition (Number 123.0) (Number 456.0))
 
   >>> parseTest interpolation "{ \"foobar\" }"
   String "foobar"
@@ -608,7 +652,15 @@ escapedChar = do
 interpolation :: Parser (Rumor.Expression Text)
 interpolation =
   Surround.braces
-    (     Mega.try (Rumor.BooleanToString <$> booleanExpression)
-      <|> Mega.try (Rumor.NumberToString <$> numberExpression)
-      <|> stringExpression
+    (     Mega.try (Rumor.BooleanToString <$> Lexeme.lexeme booleanExpression)
+      <|> Mega.try (Rumor.NumberToString <$> Lexeme.lexeme numberExpression)
+      <|> Lexeme.lexeme stringExpression
     ) <?> "interpolation"
+
+
+-- Discards whitespace surrounding an operator on both sides
+discardWhitespace :: Parser a -> Parser a
+discardWhitespace operator = do
+  Mega.try do
+    Lexeme.space
+    Lexeme.lexeme operator

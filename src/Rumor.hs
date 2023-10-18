@@ -1,25 +1,19 @@
 module Rumor where
 
-import Data.List.NonEmpty (NonEmpty(..))
 import Data.NonEmptyText (NonEmptyText)
 import Text.Megaparsec ((<?>), (<|>))
 import Rumor.Parser
   ( Parser
-  , braces
   , hlexeme
   , identifier
   , lexeme
-  , space
   , stringExpression
-  , booleanExpression
-  , node
   , nodes
   )
 
 import qualified Data.Text as T
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
-import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Megaparsec.Error as Error
 import qualified Rumor.Internal.Types as Rumor
 
@@ -28,29 +22,6 @@ parse fileName fileContents =
   case Mega.runParser nodes fileName fileContents of
     Right result -> Right result
     Left err -> Left (Error.errorBundlePretty err)
-
-control :: Parser Rumor.Node
-control = do
-  currentIndentation <- Lexer.indentGuard space EQ =<< Lexer.indentLevel
-
-  _ <- hlexeme (Char.string "if")
-  condition <- braces booleanExpression <|> booleanExpression
-
-  let
-    indentedNodes = do
-      Lexer.indentBlock space do
-        ref <- Lexer.indentGuard space GT currentIndentation
-        firstNode <- node
-        pure (Lexer.IndentMany (Just ref) (pure . (firstNode :|)) node)
-  successBlock <- indentedNodes <?> "indented nodes"
-
-  let elseBlock = do
-        _ <- Lexer.indentGuard space EQ currentIndentation
-        _ <- hlexeme (Char.string "else")
-        indentedNodes <?> "indented nodes"
-  failureBlock <- Mega.optional elseBlock
-
-  pure (Rumor.Control condition successBlock failureBlock)
 
 action :: Parser Rumor.Node
 action = do
