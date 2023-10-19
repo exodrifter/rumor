@@ -100,7 +100,7 @@ control inner = do
     |
   3 |  else
     |  ^
-  unexpected 'e'
+  incorrect indentation (got 2, should be equal to 1)
 
   >>> parse 3 "  if true\n    : foo\nelse\n  : bar"
   3:1:
@@ -124,7 +124,7 @@ control inner = do
     |
   3 |  elif false
     |  ^
-  unexpected 'e'
+  incorrect indentation (got 2, should be equal to 1)
 
   >>> parse 3 "  if true\n    : foo\nelif false\n  : bar"
   3:1:

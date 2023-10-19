@@ -37,18 +37,12 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   >>> parseTest add "alice+\n  Hello world!" -- Start in an indented block
   Add (Just (Speaker "alice")) (String "Hello world!")
 
-  >>> parseTest add "alice+" -- No dialog
-  Add (Just (Speaker "alice")) (String "")
-
   Whitespace handling+
   >>> parseTest add "alice    +    Hello world!" -- Whitespace is okay
   Add (Just (Speaker "alice")) (String "Hello world!")
 
-  >>> parseTest add "alice+ Hello world!  \n" -- Trailing whitespace is ignored
+  >>> parseTest add "alice+ Hello world!  \n" -- Trailing newline is consumed
   Add (Just (Speaker "alice")) (String "Hello world!")
-
-  >>> parseTest add "alice+   \n" -- Trailing whitespace is ignored
-  Add (Just (Speaker "alice")) (String "")
 
   Indentation handling:
   >>> parseTest add "alice+\n Hello\n world!\n" -- Same indentation level
@@ -69,6 +63,14 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   incorrect indentation (got 3, should be equal to 1)
 
   Error examples:
+  >>> parseTest add "alice+" -- No dialog is not okay
+  1:7:
+    |
+  1 | alice+
+    |       ^
+  unexpected end of input
+  expecting '\', carriage return, interpolation, literal char, or newline
+
   >>> parseTest add "alice Hello world!  \n"
   1:7:
     |
@@ -99,9 +101,6 @@ add = dialog '+' Rumor.Add
   >>> parseTest say "alice:\n  Hello world!" -- Start in an indented block
   Say (Just (Speaker "alice")) (String "Hello world!")
 
-  >>> parseTest say "alice:" -- No dialog
-  Say (Just (Speaker "alice")) (String "")
-
   Whitespace handling:
   >>> parseTest say "alice    :    Hello world!" -- Whitespace is okay
   Say (Just (Speaker "alice")) (String "Hello world!")
@@ -109,8 +108,8 @@ add = dialog '+' Rumor.Add
   >>> parseTest say "alice: Hello world!  \n" -- Trailing whitespace is ignored
   Say (Just (Speaker "alice")) (String "Hello world!")
 
-  >>> parseTest say "alice:   \n" -- Trailing whitespace is ignored
-  Say (Just (Speaker "alice")) (String "")
+  >>> parseTest say "alice: Hello world!  \n" -- Trailing newline is consumed
+  Say (Just (Speaker "alice")) (String "Hello world!")
 
   Indentation handling:
   >>> parseTest say "alice:\n Hello\n world!\n" -- Same indentation level
@@ -131,6 +130,14 @@ add = dialog '+' Rumor.Add
   incorrect indentation (got 3, should be equal to 1)
 
   Error examples:
+  >>> parseTest say "alice:" -- No dialog is not okay
+  1:7:
+    |
+  1 | alice:
+    |       ^
+  unexpected end of input
+  expecting '\', carriage return, interpolation, literal char, or newline
+
   >>> parseTest say "alice Hello world!  \n"
   1:7:
     |
@@ -147,13 +154,12 @@ dialog ::
   (Maybe Rumor.Speaker -> Rumor.Expression Text -> Rumor.Node) ->
   Parser Rumor.Node
 dialog sep constructor = do
-  let
-    dialogFront = do
-      speaker <- Lexeme.hlexeme
-        (Mega.optional (Rumor.Speaker <$> Identifier.identifier))
-      _ <- Char.char sep
-      pure speaker
-
   -- Make sure we aren't indented
-  _ <- Lexer.indentGuard Lexeme.space EQ =<< Lexer.indentLevel
-  Unquoted.unquotedBlock dialogFront constructor
+  ref <- Lexer.indentGuard Lexeme.space EQ =<< Lexer.indentLevel
+
+  speaker <- Lexeme.hlexeme
+    (Mega.optional (Rumor.Speaker <$> Identifier.identifier))
+  _ <- Char.char sep
+  text <- Unquoted.unquotedBlock ref
+
+  pure (constructor speaker text)

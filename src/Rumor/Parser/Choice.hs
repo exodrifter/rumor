@@ -42,12 +42,11 @@ import qualified Rumor.Parser.Unquoted as Unquoted
   Error examples:
   >>> import Rumor.Parser.Dialog (say)
   >>> parseTest (choice say) "choice [label]\n  >\n  Choice A"
-  3:10:
+  3:3:
     |
   3 |   Choice A
-    |          ^
-  unexpected 'A'
-  expecting ':'
+    |   ^
+  incorrect indentation (got 3, should be greater than 3)
 -}
 choice :: Parser Rumor.Node -> Parser Rumor.Node
 choice inner = do
@@ -59,7 +58,8 @@ choice inner = do
   _ <- Char.char '\n'
 
   indentedRef <- Lexer.indentGuard Lexeme.space GT originalRef
-  choiceText <- Unquoted.unquotedBlock (Char.char '>') (const id)
+  _ <- Char.char '>'
+  choiceText <- Unquoted.unquotedBlock indentedRef
 
   indentedNodes <- Mega.optional (Indented.someIndentedAt indentedRef inner)
 

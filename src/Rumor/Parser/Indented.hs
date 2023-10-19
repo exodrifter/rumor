@@ -59,5 +59,5 @@ someIndentedAt ref inner = do
       _ <- Lexer.indentGuard Lexeme.space EQ ref
       inner
   first <- indentedNode
-  rest <- Mega.many indentedNode
+  rest <- Mega.many (Mega.try indentedNode)
   pure (first :| rest)

@@ -22,36 +22,48 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 {-| Parses an unquoted block, which contains an identifying starting parser
   followed by multiple indented unquoted string literals on the same or
-  following lines. An unquoted line will have all trailing horizontal whitespace
-  on each line removed.
+  following lines ending with an optional label. An unquoted line will have
+  all trailing horizontal whitespace on each line removed.
 
-  >>> let block = unquotedBlock ">" (const id)
-  >>> parseTest block "> Hello world!"
+  >>> let block pos = unquotedBlock (Mega.mkPos pos)
+  >>> parseTest (block 1) "Hello world!"
   String "Hello world!"
 
-  >>> parseTest block "> I have { 5 } mangoes!"
+  >>> parseTest (block 1) "I have { 5 } mangoes!"
   Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
 
-  >>> parseTest block "> Hello\\nworld!"
+  >>> parseTest (block 1) "Hello\\nworld!"
   Concat (String "Hello") (Concat (String "\n") (String "world!"))
 
-  >>> parseTest block "> Hello\n world!" -- Indented blocks
+  >>> parseTest (block 1) "Hello\n world!" -- Indented block
   Concat (String "Hello") (Concat (String " ") (String "world!"))
+
+  >>> parseTest (block 1) "foo\n  bar\n  baz" -- Indented block
+  Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))
 
   Whitespace handling:
-  >>> parseTest block "> Hello world!   " -- Trailing whitespace is removed
+  >>> parseTest (block 1) "Hello world!   " -- Trailing whitespace is removed
   String "Hello world!"
 
-  >>> parseTest block "> Hello  \n world!  " -- Trailing whitespace is removed
+  >>> parseTest (block 1) "Hello  \n world!  " -- Trailing whitespace is removed
   Concat (String "Hello") (Concat (String " ") (String "world!"))
+
+  >>> parseTest (block 1) "Hello  \n world!  \n" -- The trailing newlines is consumed
+  Concat (String "Hello") (Concat (String " ") (String "world!"))
+
+  Error examples:
+  >>> parseTest (block 1) "foo\n  bar\n    baz" -- Indentation must match
+  3:5:
+    |
+  3 |     baz
+    |     ^
+  incorrect indentation (got 5, should be equal to 3)
 -}
-unquotedBlock ::
-  Parser a ->
-  (a -> Rumor.Expression Text -> b) ->
-  Parser b
-unquotedBlock front constructor = do
-  -- Make sure we aren't indented
-  _ <- Lexer.indentGuard Lexeme.space EQ =<< Lexer.indentLevel
+unquotedBlock :: Mega.Pos -> Parser (Rumor.Expression Text)
+unquotedBlock ref = do
+  -- Check if there is content on this line
+  Lexeme.hspace
+  firstLine <- Mega.try (Just <$> unquotedLine) <|> (do eol; pure Nothing)
 
   let
     combine texts =
@@ -60,36 +72,57 @@ unquotedBlock front constructor = do
             (Rumor.String " ")
             (List.filter (/= mempty) texts)
         )
+    unindented = do
+      _ <- Mega.try (Lexer.indentGuard Lexeme.space LT ref)
+        <|> Lexer.indentGuard Lexeme.space EQ ref
+      pure ()
+    indentedUnquotedLine r = do
+      _ <- Lexer.indentGuard Lexeme.space EQ r
+      fst <$> unquotedLine
 
-    indent = do
-      result <- Lexeme.hlexeme front
-      (firstText, _) <- unquotedLine -- TODO
-      pure
-        ( Lexer.IndentMany
-            Nothing
-            (\texts -> pure (constructor result (combine (firstText:texts))))
-            (fst <$> unquotedLine)
-        )
-  Lexer.indentBlock Lexeme.space indent
+  case firstLine of
+
+    -- In this case, there must be at least one indented line.
+    Nothing -> do
+      newIndentedRef <- Lexer.indentGuard Lexeme.space GT ref
+      rest <-
+        Mega.someTill
+          (indentedUnquotedLine newIndentedRef)
+          (Mega.try unindented <|> eol)
+      pure (combine rest)
+
+    -- In this case, the indented lines are optional.
+    Just (first, _) -> do
+      newIndentedRef <-
+        Mega.lookAhead (do Lexeme.space; Lexer.indentLevel)
+
+      -- Check for more lines.
+      rest <- do
+        if newIndentedRef > ref
+        then
+          Mega.manyTill
+            (indentedUnquotedLine newIndentedRef)
+            (Mega.try unindented <|> eol)
+        else
+          pure []
+
+      pure (combine (first : rest))
 
 {-| Parses an unquoted line, which is an unquoted string literal which may end
   with a label. An unquoted line will have all trailing horizontal whitespace
   removed.
 
+  >>> parseTest unquotedLine "I have { 5 } mangoes!"
+  (Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!")),Nothing)
+
   >>> parseTest unquotedLine "Hello world!"
   (String "Hello world!",Nothing)
-
-  >>> parseTest unquotedLine "[label]" -- Just a label is okay too
-  (String "",Just (Label "label"))
 
   >>> parseTest unquotedLine "Hello world! [label]"
   (String "Hello world!",Just (Label "label"))
 
   >>> parseTest unquotedLine "Hello world! \\[label\\]" -- You can escape brackets
   (Concat (String "Hello world! ") (Concat (String "[") (Concat (String "label") (String "]"))),Nothing)
-
-  >>> parseTest unquotedLine "I have { 5 } mangoes!"
-  (Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!")),Nothing)
 
   >>> parseTest unquotedLine "Hello\\nworld!"
   (Concat (String "Hello") (Concat (String "\n") (String "world!")),Nothing)
@@ -101,15 +134,36 @@ unquotedBlock front constructor = do
   >>> parseTest unquotedLine "Hello world!   [label]   " -- Trailing whitespace is removed
   (String "Hello world!",Just (Label "label"))
 
+  >>> parseTest unquotedLine "Hello world!\n" -- The trailing newline is consumed
+  (String "Hello world!",Nothing)
+
+  >>> parseTest unquotedLine "Hello world!   [label]   \n" -- The trailing newline is consumed
+  (String "Hello world!",Just (Label "label"))
+
   >>> parseTest unquotedLine "Hello\nworld!" -- Newlines are not okay
-  1:6:
+  2:1:
     |
-  1 | Hello
-    |      ^
-  unexpected newline
-  expecting '\', interpolation, label, or literal char
+  2 | world!
+    | ^
+  unexpected 'w'
 
   Error example:
+  >>> parseTest unquotedLine "" -- No dialog is not okay
+  1:1:
+    |
+  1 | <empty line>
+    | ^
+  unexpected end of input
+  expecting '\', interpolation, or literal char
+
+  >>> parseTest unquotedLine "[label]" -- Just a label is not okay
+  1:1:
+    |
+  1 | [label]
+    | ^
+  unexpected '['
+  expecting '\', interpolation, or literal char
+
   >>> parseTest unquotedLine "Hello world! ["
   1:15:
     |
@@ -121,12 +175,7 @@ unquotedBlock front constructor = do
 unquotedLine :: Parser (Rumor.Expression Text, Maybe Rumor.Label)
 unquotedLine = do
   let
-    eol =
-          (do _ <- Char.char '\n'; pure (Right ()))
-      <|> (do _ <- Char.char '\r'; pure (Right ()))
-      <|> (do _ <- Char.char '['; pure (Right ()))
-      <|> (do Mega.eof; pure (Right ()))
-      <|> pure (Left ())
+    end = (do _ <- Char.char '['; pure ()) <|> eol
 
     literalString = do
       literal <-
@@ -135,18 +184,20 @@ unquotedLine = do
           (`notElem` (fst <$> unquotedEscapes))
 
       -- Strip the end of the text if this is at the end of the line
-      next <- Mega.lookAhead eol
-      if next == Right ()
-      then pure (Rumor.String (T.stripEnd literal))
+      next <- Mega.lookAhead ((do end; pure True) <|> pure False)
+      if next
+      then do
+        pure (Rumor.String (T.stripEnd literal))
       else pure (Rumor.String literal)
 
-  text <- Mega.many
+  text <- Mega.some
     (     literalString
       <|> Expression.escape unquotedEscapes
       <|> Expression.interpolation
     )
 
   label <- Mega.optional (Lexeme.hlexeme Identifier.label)
+  _ <- Mega.try eol
   pure (mconcat text, label)
 
 unquotedEscapes :: [(Char, Text)]
@@ -154,3 +205,11 @@ unquotedEscapes =
   [ ('[', "[")
   , (']', "]")
   ] <> Expression.stringEscapes
+
+{-| Parses a newline or the end of the file.
+-}
+eol :: Parser ()
+eol =
+      (do _ <- Char.char '\n'; pure ())
+  <|> (do _ <- Char.char '\r'; pure ())
+  <|> Mega.eof
