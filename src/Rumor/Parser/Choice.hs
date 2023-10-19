@@ -2,14 +2,13 @@ module Rumor.Parser.Choice
 ( choice
 ) where
 
-import Rumor.Parser.Common (Parser)
+import Rumor.Parser.Common (Parser, hlexeme, space)
 
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
-import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Rumor.Parser.Indented as Indented
 import qualified Rumor.Parser.Unquoted as Unquoted
 
@@ -51,13 +50,13 @@ import qualified Rumor.Parser.Unquoted as Unquoted
 choice :: Parser Rumor.Node -> Parser Rumor.Node
 choice inner = do
   originalRef <- Lexer.indentLevel
-  _ <- Lexer.indentGuard Lexeme.space EQ originalRef
+  _ <- Lexer.indentGuard space EQ originalRef
 
-  _ <- Lexeme.hlexeme "choice"
-  label <- Lexeme.hlexeme Identifier.label
+  _ <- hlexeme "choice"
+  label <- hlexeme Identifier.label
   _ <- Char.char '\n'
 
-  indentedRef <- Lexer.indentGuard Lexeme.space GT originalRef
+  indentedRef <- Lexer.indentGuard space GT originalRef
   _ <- Char.char '>'
   choiceText <- Unquoted.unquotedBlock indentedRef
 

@@ -5,9 +5,8 @@ module Rumor.Parser.Surround
 , surround
 ) where
 
-import Rumor.Parser.Common (Parser, (<?>))
+import Rumor.Parser.Common (Parser, lexeme, (<?>))
 
-import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Text.Megaparsec.Char as Char
 
 -- $setup
@@ -54,9 +53,9 @@ import qualified Text.Megaparsec.Char as Char
 parentheses :: Parser a -> Parser a
 parentheses inner =
   surround
-    (Lexeme.lexeme (Char.char '(' <?> "open parenthesis"))
+    (lexeme (Char.char '(' <?> "open parenthesis"))
     (Char.char ')' <?> "close parenthesis")
-    (Lexeme.lexeme inner)
+    (lexeme inner)
 
 {-| Parses braces surrounding an inner parser. Any amount of space,
   including newlines, is allowed between the braces and the inner parser.
@@ -98,9 +97,9 @@ parentheses inner =
 braces :: Parser a -> Parser a
 braces inner =
   surround
-    (Lexeme.lexeme (Char.char '{') <?> "open brace")
+    (lexeme (Char.char '{') <?> "open brace")
     (Char.char '}' <?> "close brace")
-    (Lexeme.lexeme inner)
+    (lexeme inner)
 
 {-| Parses double quotes surrounding an inner parser. No space is allowed
   between the double quotes and the inner parser.

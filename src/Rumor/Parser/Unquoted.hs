@@ -4,14 +4,13 @@ module Rumor.Parser.Unquoted
 ) where
 
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, (<|>))
+import Rumor.Parser.Common (Parser, hlexeme, hspace, space, (<|>))
 
 import qualified Data.List as List
 import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Identifier as Identifier
-import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
@@ -62,7 +61,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 unquotedBlock :: Mega.Pos -> Parser (Rumor.Expression Text)
 unquotedBlock ref = do
   -- Check if there is content on this line
-  Lexeme.hspace
+  hspace
   firstLine <- Mega.try (Just <$> unquotedLine) <|> (do eol; pure Nothing)
 
   let
@@ -73,18 +72,18 @@ unquotedBlock ref = do
             (List.filter (/= mempty) texts)
         )
     unindented = do
-      _ <- Mega.try (Lexer.indentGuard Lexeme.space LT ref)
-        <|> Lexer.indentGuard Lexeme.space EQ ref
+      _ <- Mega.try (Lexer.indentGuard space LT ref)
+        <|> Lexer.indentGuard space EQ ref
       pure ()
     indentedUnquotedLine r = do
-      _ <- Lexer.indentGuard Lexeme.space EQ r
+      _ <- Lexer.indentGuard space EQ r
       fst <$> unquotedLine
 
   case firstLine of
 
     -- In this case, there must be at least one indented line.
     Nothing -> do
-      newIndentedRef <- Lexer.indentGuard Lexeme.space GT ref
+      newIndentedRef <- Lexer.indentGuard space GT ref
       rest <-
         Mega.someTill
           (indentedUnquotedLine newIndentedRef)
@@ -94,7 +93,7 @@ unquotedBlock ref = do
     -- In this case, the indented lines are optional.
     Just (first, _) -> do
       newIndentedRef <-
-        Mega.lookAhead (do Lexeme.space; Lexer.indentLevel)
+        Mega.lookAhead (do space; Lexer.indentLevel)
 
       -- Check for more lines.
       rest <- do
@@ -196,7 +195,7 @@ unquotedLine = do
       <|> Expression.interpolation
     )
 
-  label <- Mega.optional (Lexeme.hlexeme Identifier.label)
+  label <- Mega.optional (hlexeme Identifier.label)
   _ <- Mega.try eol
   pure (mconcat text, label)
 

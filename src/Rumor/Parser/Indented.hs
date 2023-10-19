@@ -3,12 +3,11 @@ module Rumor.Parser.Indented
 , someIndentedAt
 ) where
 
-import Rumor.Parser.Common (Parser)
+import Rumor.Parser.Common (Parser, space)
 import Data.List.NonEmpty (NonEmpty(..))
 
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
-import qualified Rumor.Parser.Lexeme as Lexeme
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
@@ -34,7 +33,7 @@ import qualified Rumor.Parser.Lexeme as Lexeme
 -}
 someIndentedMoreThan :: Mega.Pos -> Parser a -> Parser (NonEmpty a)
 someIndentedMoreThan originalRef inner = do
-  ref <- Lexer.indentGuard Lexeme.space GT originalRef
+  ref <- Lexer.indentGuard space GT originalRef
   someIndentedAt ref inner
 
 {-| Parse a non-empty block that has the same indentation level as the reference
@@ -56,7 +55,7 @@ someIndentedAt :: Mega.Pos -> Parser a -> Parser (NonEmpty a)
 someIndentedAt ref inner = do
   let
     indentedNode = do
-      _ <- Lexer.indentGuard Lexeme.space EQ ref
+      _ <- Lexer.indentGuard space EQ ref
       inner
   first <- indentedNode
   rest <- Mega.many (Mega.try indentedNode)

@@ -3,14 +3,13 @@ module Rumor.Parser.Control
 ) where
 
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, (<|>))
+import Rumor.Parser.Common (Parser, hlexeme, space, (<|>))
 import Data.List.NonEmpty (NonEmpty(..))
 
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Rumor.Internal.Types as Rumor
-import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Rumor.Parser.Surround as Surround
 import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Indented as Indented
@@ -37,7 +36,7 @@ control :: Parser Rumor.Node -> Parser Rumor.Node
 control inner = do
   -- All of the control statements must have the same indentation
   ref <- Lexer.indentLevel
-  _ <- Lexer.indentGuard Lexeme.space EQ ref
+  _ <- Lexer.indentGuard space EQ ref
 
   controlIf "if" ref inner
 
@@ -135,10 +134,10 @@ control inner = do
 -}
 controlIf :: Text -> Mega.Pos -> Parser Rumor.Node -> Parser Rumor.Node
 controlIf name ref inner = do
-  _ <- Lexer.indentGuard Lexeme.space EQ ref
-  _ <- Lexeme.hlexeme (Char.string name)
+  _ <- Lexer.indentGuard space EQ ref
+  _ <- hlexeme (Char.string name)
   condition <-
-    Lexeme.hlexeme
+    hlexeme
       (     Surround.braces Expression.booleanExpression
         <|> Expression.booleanExpression
       )
@@ -198,8 +197,8 @@ controlIf name ref inner = do
 -}
 controlElse :: Mega.Pos -> Parser a -> Parser (NonEmpty a)
 controlElse ref inner = do
-  _ <- Lexer.indentGuard Lexeme.space EQ ref
-  _ <- Lexeme.hlexeme (Char.string "else")
+  _ <- Lexer.indentGuard space EQ ref
+  _ <- hlexeme (Char.string "else")
   _ <- Char.char '\n'
 
   Indented.someIndentedMoreThan ref inner

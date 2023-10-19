@@ -3,21 +3,20 @@ module Rumor.Parser.Node
 , node
 ) where
 
-import Rumor.Parser.Common (Parser)
+import Rumor.Parser.Common (Parser, hlexeme, space, (<|>))
 
-import Rumor.Parser.Action as Action
-import Rumor.Parser.Choice as Choice
-import Rumor.Parser.Control as Control
-import Rumor.Parser.Dialog as Dialog
-import Rumor.Parser.Lexeme as Lexeme
-import Rumor.Internal.Types as Rumor
-import Text.Megaparsec as Mega
-import Text.Megaparsec.Char.Lexer as Lexer
+import qualified Rumor.Parser.Action as Action
+import qualified Rumor.Parser.Choice as Choice
+import qualified Rumor.Parser.Control as Control
+import qualified Rumor.Parser.Dialog as Dialog
+import qualified Rumor.Internal.Types as Rumor
+import qualified Text.Megaparsec as Mega
+import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 nodes :: Parser [Rumor.Node]
 nodes =
-  Lexer.nonIndented Lexeme.space do
-    Mega.manyTill (Lexeme.hlexeme node) (Mega.hidden Mega.eof)
+  Lexer.nonIndented space do
+    Mega.manyTill (hlexeme node) (Mega.hidden Mega.eof)
 
 node :: Parser Rumor.Node
 node =

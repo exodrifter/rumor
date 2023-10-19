@@ -3,11 +3,10 @@ module Rumor.Parser.Action
 ) where
 
 import Data.NonEmptyText (NonEmptyText)
-import Rumor.Parser.Common (Parser, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, hlexeme, lexeme, (<?>), (<|>))
 
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Expression as Expression
-import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -82,14 +81,14 @@ import qualified Text.Megaparsec.Char as Char
 -}
 action :: Parser Rumor.Node
 action = do
-  actionName <- Lexeme.hlexeme Identifier.identifier
-  _ <- Lexeme.lexeme (Char.char '(')
+  actionName <- hlexeme Identifier.identifier
+  _ <- lexeme (Char.char '(')
 
   result <-
-        Mega.try (Lexeme.lexeme (action4 actionName))
-    <|> Mega.try (Lexeme.lexeme (action3 actionName))
-    <|> Mega.try (Lexeme.lexeme (action2 actionName))
-    <|> Mega.try (Lexeme.lexeme (action1 actionName))
+        Mega.try (lexeme (action4 actionName))
+    <|> Mega.try (lexeme (action3 actionName))
+    <|> Mega.try (lexeme (action2 actionName))
+    <|> Mega.try (lexeme (action1 actionName))
     <|> pure (Rumor.Action0 actionName)
 
   _ <- Char.char ')' <?> "end parentheses"
@@ -102,27 +101,27 @@ action1 actionName = do
 
 action2 :: NonEmptyText -> Parser Rumor.Node
 action2 actionName = do
-  param1 <- Lexeme.lexeme Expression.stringExpression
-  _ <- Lexeme.lexeme (Char.char ',')
+  param1 <- lexeme Expression.stringExpression
+  _ <- lexeme (Char.char ',')
   param2 <- Expression.stringExpression
   pure (Rumor.Action2 actionName param1 param2)
 
 action3 :: NonEmptyText -> Parser Rumor.Node
 action3 actionName = do
-  param1 <- Lexeme.lexeme Expression.stringExpression
-  _ <- Lexeme.lexeme (Char.char ',')
-  param2 <- Lexeme.lexeme Expression.stringExpression
-  _ <- Lexeme.lexeme (Char.char ',')
+  param1 <- lexeme Expression.stringExpression
+  _ <- lexeme (Char.char ',')
+  param2 <- lexeme Expression.stringExpression
+  _ <- lexeme (Char.char ',')
   param3 <- Expression.stringExpression
   pure (Rumor.Action3 actionName param1 param2 param3)
 
 action4 :: NonEmptyText -> Parser Rumor.Node
 action4 actionName = do
-  param1 <- Lexeme.lexeme Expression.stringExpression
-  _ <- Lexeme.lexeme (Char.char ',')
-  param2 <- Lexeme.lexeme Expression.stringExpression
-  _ <- Lexeme.lexeme (Char.char ',')
-  param3 <- Lexeme.lexeme Expression.stringExpression
-  _ <- Lexeme.lexeme (Char.char ',')
+  param1 <- lexeme Expression.stringExpression
+  _ <- lexeme (Char.char ',')
+  param2 <- lexeme Expression.stringExpression
+  _ <- lexeme (Char.char ',')
+  param3 <- lexeme Expression.stringExpression
+  _ <- lexeme (Char.char ',')
   param4 <- Expression.stringExpression
   pure (Rumor.Action4 actionName param1 param2 param3 param4)

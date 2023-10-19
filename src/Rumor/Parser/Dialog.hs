@@ -4,11 +4,10 @@ module Rumor.Parser.Dialog
 ) where
 
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser)
+import Rumor.Parser.Common (Parser, hlexeme, space)
 
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
-import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Rumor.Parser.Unquoted as Unquoted
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -155,9 +154,9 @@ dialog ::
   Parser Rumor.Node
 dialog sep constructor = do
   -- Make sure we aren't indented
-  ref <- Lexer.indentGuard Lexeme.space EQ =<< Lexer.indentLevel
+  ref <- Lexer.indentGuard space EQ =<< Lexer.indentLevel
 
-  speaker <- Lexeme.hlexeme
+  speaker <- hlexeme
     (Mega.optional (Rumor.Speaker <$> Identifier.identifier))
   _ <- Char.char sep
   text <- Unquoted.unquotedBlock ref

@@ -34,7 +34,6 @@ library
     Rumor.Parser.Expression
     Rumor.Parser.Identifier
     Rumor.Parser.Indented
-    Rumor.Parser.Lexeme
     Rumor.Parser.Node
     Rumor.Parser.Surround
     Rumor.Parser.Unquoted

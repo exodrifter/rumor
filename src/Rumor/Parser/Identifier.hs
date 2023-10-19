@@ -5,11 +5,10 @@ module Rumor.Parser.Identifier
 
 import Data.Char (isLetter, isMark, isDigit)
 import Data.NonEmptyText (NonEmptyText)
-import Rumor.Parser.Common (Parser, (<?>))
+import Rumor.Parser.Common (Parser, hlexeme, (<?>))
 
 import qualified Data.NonEmptyText as NET
 import qualified Rumor.Internal.Types as Rumor
-import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Rumor.Parser.Surround as Surround
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -91,8 +90,8 @@ label =
   let
     parser =
       Surround.surround
-        (Lexeme.hlexeme (Char.char '[') <?> "open bracket")
-        (Lexeme.hlexeme (Char.char ']') <?> "close bracket")
+        (hlexeme (Char.char '[') <?> "open bracket")
+        (hlexeme (Char.char ']') <?> "close bracket")
         identifier
   in
     Rumor.Label <$> parser <?> "label"
@@ -166,4 +165,4 @@ identifier =
       pure (NET.new first rest)
 
   in
-    Lexeme.hlexeme parser <?> "identifier"
+    hlexeme parser <?> "identifier"

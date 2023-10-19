@@ -6,11 +6,10 @@ module Rumor.Parser.Expression
 
 import Data.Scientific (Scientific)
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, hspace, lexeme, space, (<?>), (<|>))
 
 import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
-import qualified Rumor.Parser.Lexeme as Lexeme
 import qualified Rumor.Parser.Surround as Surround
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -247,14 +246,14 @@ valueEquality :: Show a
               -> (a -> a -> Rumor.Expression Bool)
               -> Parser (Rumor.Expression Bool)
 valueEquality arg eqConstructor neqConstructor = do
-  l <- Lexeme.lexeme arg
+  l <- lexeme arg
 
   let
     equalsOperator = do
-      _ <- Lexeme.lexeme "=="
+      _ <- lexeme "=="
       pure eqConstructor
     notEqualsOperator = do
-      _ <-Lexeme.lexeme ("/=" <|> "!=")
+      _ <-lexeme ("/=" <|> "!=")
       pure neqConstructor
   constructor <- equalsOperator <|> notEqualsOperator
 
@@ -393,13 +392,13 @@ numberExpression =
       pure Rumor.Multiplication
     divisionOperator = do
       Mega.try do
-        Lexeme.space
+        space
         _ <- Char.char '/'
         pure ()
 
       -- Ensure this isn't a `/=` operator
       Mega.notFollowedBy (Char.char '=')
-      Lexeme.space
+      space
       pure Rumor.Division
     additionOperator = do
       _ <- Char.char '+'
@@ -460,7 +459,7 @@ numberExpression =
 -}
 number :: Parser (Rumor.Expression Scientific)
 number = do
-  n <- Lexer.signed Lexeme.hspace Lexer.scientific <?> "signed number"
+  n <- Lexer.signed hspace Lexer.scientific <?> "signed number"
   pure (Rumor.Number n)
 
 --------------------------------------------------------------------------------
@@ -652,9 +651,9 @@ escape escapes = do
 interpolation :: Parser (Rumor.Expression Text)
 interpolation =
   Surround.braces
-    (     Mega.try (Rumor.BooleanToString <$> Lexeme.lexeme booleanExpression)
-      <|> Mega.try (Rumor.NumberToString <$> Lexeme.lexeme numberExpression)
-      <|> Lexeme.lexeme stringExpression
+    (     Mega.try (Rumor.BooleanToString <$> lexeme booleanExpression)
+      <|> Mega.try (Rumor.NumberToString <$> lexeme numberExpression)
+      <|> lexeme stringExpression
     ) <?> "interpolation"
 
 
@@ -662,5 +661,5 @@ interpolation =
 discardWhitespace :: Parser a -> Parser a
 discardWhitespace operator = do
   Mega.try do
-    Lexeme.space
-    Lexeme.lexeme operator
+    space
+    lexeme operator
