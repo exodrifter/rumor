@@ -72,6 +72,14 @@ deriving instance Eq (Expression a)
 deriving instance Show (Expression a)
 
 instance Semigroup (Expression Text) where
+  String l <> String r =
+    String (l <> r)
+  String l <> (Concat (String r1) r2) =
+    Concat (String (l <> r1)) r2
+  (Concat l1 (String l2)) <> String r =
+    Concat l1 (String (l2 <> r))
+  (Concat l1 (String l2)) <> (Concat (String r1) r2) =
+    Concat l1 (Concat (String (l2 <> r1)) r2)
   l <> r = Concat l r
 
 instance Monoid (Expression Text) where
@@ -80,7 +88,7 @@ instance Monoid (Expression Text) where
     case arr of
       [] -> mempty
       [x] -> x
-      x:rest -> Concat x (mconcat rest)
+      x:rest -> x <> mconcat rest
 
 simplify :: Expression typ -> Expression typ
 simplify expression =

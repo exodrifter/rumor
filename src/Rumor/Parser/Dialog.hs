@@ -154,11 +154,11 @@ dialog ::
   Parser Rumor.Node
 dialog sep constructor = do
   -- Make sure we aren't indented
-  ref <- Lexer.indentGuard space EQ =<< Lexer.indentLevel
+  _ref <- Lexer.indentGuard space EQ =<< Lexer.indentLevel
 
   speaker <- hlexeme
     (Mega.optional (Rumor.Speaker <$> Identifier.identifier))
   _ <- Char.char sep
-  text <- Unquoted.unquotedBlock ref
+  text <- Unquoted.unquotedBlock
 
   pure (constructor speaker text)

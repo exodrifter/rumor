@@ -58,7 +58,7 @@ choice inner = do
 
   indentedRef <- Lexer.indentGuard space GT originalRef
   _ <- Char.char '>'
-  choiceText <- Unquoted.unquotedBlock indentedRef
+  choiceText <- Unquoted.unquotedBlock
 
   indentedNodes <- Mega.optional (Indented.someIndentedAt indentedRef inner)
 

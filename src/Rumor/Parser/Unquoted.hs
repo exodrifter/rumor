@@ -1,10 +1,11 @@
 module Rumor.Parser.Unquoted
-( unquotedBlock
-, unquotedLine
+( unquoted
+, unquotedBlock
 ) where
 
+import Data.Char (isSpace)
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, hlexeme, hspace, space, (<|>))
+import Rumor.Parser.Common (Parser, space, (<?>), (<|>))
 
 import qualified Data.List as List
 import qualified Data.Text as T
@@ -17,198 +18,389 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
+-- >>> import Rumor.Parser.Common (hspace)
+-- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
 
-{-| Parses an unquoted block, which contains an identifying starting parser
-  followed by multiple indented unquoted string literals on the same or
-  following lines ending with an optional label. An unquoted line will have
-  all trailing horizontal whitespace on each line removed.
+{-| Parses an unquoted string followed by an indented multi-line one and an
+  optional label.
 
-  >>> let block pos = unquotedBlock (Mega.mkPos pos)
-  >>> parseTest (block 1) "Hello world!"
-  String "Hello world!"
+  An unquoted string can be a single line.
 
-  >>> parseTest (block 1) "I have { 5 } mangoes!"
-  Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
-
-  >>> parseTest (block 1) "Hello\\nworld!"
-  Concat (String "Hello") (Concat (String "\n") (String "world!"))
-
-  >>> parseTest (block 1) "Hello\n world!" -- Indented block
-  Concat (String "Hello") (Concat (String " ") (String "world!"))
-
-  >>> parseTest (block 1) "foo\n  bar\n  baz" -- Indented block
-  Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))
-
-  Whitespace handling:
-  >>> parseTest (block 1) "Hello world!   " -- Trailing whitespace is removed
-  String "Hello world!"
-
-  >>> parseTest (block 1) "Hello  \n world!  " -- Trailing whitespace is removed
-  Concat (String "Hello") (Concat (String " ") (String "world!"))
-
-  >>> parseTest (block 1) "Hello  \n world!  \n" -- The trailing newlines is consumed
-  Concat (String "Hello") (Concat (String " ") (String "world!"))
-
-  Error examples:
-  >>> parseTest (block 1) "foo\n  bar\n    baz" -- Indentation must match
-  3:5:
-    |
-  3 |     baz
-    |     ^
-  incorrect indentation (got 5, should be equal to 3)
--}
-unquotedBlock :: Mega.Pos -> Parser (Rumor.Expression Text)
-unquotedBlock ref = do
-  -- Check if there is content on this line
-  hspace
-  firstLine <- Mega.try (Just <$> unquotedLine) <|> (do eol; pure Nothing)
-
-  let
-    combine texts =
-      mconcat
-        ( List.intersperse
-            (Rumor.String " ")
-            (List.filter (/= mempty) texts)
-        )
-    unindented = do
-      _ <- Mega.try (Lexer.indentGuard space LT ref)
-        <|> Lexer.indentGuard space EQ ref
-      pure ()
-    indentedUnquotedLine r = do
-      _ <- Lexer.indentGuard space EQ r
-      fst <$> unquotedLine
-
-  case firstLine of
-
-    -- In this case, there must be at least one indented line.
-    Nothing -> do
-      newIndentedRef <- Lexer.indentGuard space GT ref
-      rest <-
-        Mega.someTill
-          (indentedUnquotedLine newIndentedRef)
-          (Mega.try unindented <|> eol)
-      pure (combine rest)
-
-    -- In this case, the indented lines are optional.
-    Just (first, _) -> do
-      newIndentedRef <-
-        Mega.lookAhead (do space; Lexer.indentLevel)
-
-      -- Check for more lines.
-      rest <- do
-        if newIndentedRef > ref
-        then
-          Mega.manyTill
-            (indentedUnquotedLine newIndentedRef)
-            (Mega.try unindented <|> eol)
-        else
-          pure []
-
-      pure (combine (first : rest))
-
-{-| Parses an unquoted line, which is an unquoted string literal which may end
-  with a label. An unquoted line will have all trailing horizontal whitespace
-  removed.
-
-  >>> parseTest unquotedLine "I have { 5 } mangoes!"
-  (Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!")),Nothing)
-
-  >>> parseTest unquotedLine "Hello world!"
+  >>> parseTest (unquoted (Mega.mkPos 1)) "Hello world!"
   (String "Hello world!",Nothing)
 
-  >>> parseTest unquotedLine "Hello world! [label]"
+  >>> parseTest (unquoted (Mega.mkPos 1)) "Hello world! [label]"
   (String "Hello world!",Just (Label "label"))
 
-  >>> parseTest unquotedLine "Hello world! \\[label\\]" -- You can escape brackets
-  (Concat (String "Hello world! ") (Concat (String "[") (Concat (String "label") (String "]"))),Nothing)
+  An unquoted string over multiple lines must indent all lines the same, except
+  for the first line.
 
-  >>> parseTest unquotedLine "Hello\\nworld!"
-  (Concat (String "Hello") (Concat (String "\n") (String "world!")),Nothing)
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz"
+  (String "foo bar baz",Nothing)
 
-  Whitespace handling:
-  >>> parseTest unquotedLine "Hello world!   " -- Trailing whitespace is removed
-  (String "Hello world!",Nothing)
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz [label]"
+  (String "foo bar baz",Just (Label "label"))
 
-  >>> parseTest unquotedLine "Hello world!   [label]   " -- Trailing whitespace is removed
-  (String "Hello world!",Just (Label "label"))
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz\n  [label]"
+  (String "foo bar baz",Just (Label "label"))
 
-  >>> parseTest unquotedLine "Hello world!\n" -- The trailing newline is consumed
-  (String "Hello world!",Nothing)
+  An unquoted string can start indented on the next line.
 
-  >>> parseTest unquotedLine "Hello world!   [label]   \n" -- The trailing newline is consumed
-  (String "Hello world!",Just (Label "label"))
+  >>> parseTest (unquoted (Mega.mkPos 1)) "\n  bar\n  baz"
+  (String "bar baz",Nothing)
 
-  >>> parseTest unquotedLine "Hello\nworld!" -- Newlines are not okay
+  >>> parseTest (unquoted (Mega.mkPos 1)) "\n  bar\n  baz\n  [label]"
+  (String "bar baz",Just (Label "label"))
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) "\nbar\nbaz"
   2:1:
     |
-  2 | world!
+  2 | bar
     | ^
-  unexpected 'w'
+  incorrect indentation (got 1, should be greater than 1)
 
-  Error example:
-  >>> parseTest unquotedLine "" -- No dialog is not okay
+  An unquoted string cannot be empty.
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) ""
   1:1:
     |
   1 | <empty line>
     | ^
   unexpected end of input
-  expecting '\', interpolation, or literal char
+  expecting carriage return, crlf newline, newline, or unquoted line
 
-  >>> parseTest unquotedLine "[label]" -- Just a label is not okay
+  >>> parseTest (do hspace; unquoted (Mega.mkPos 1)) "  "
+  1:3:
+    |
+  1 |
+    |   ^
+  unexpected end of input
+  expecting carriage return, crlf newline, newline, or unquoted line
+
+  >>> parseTest (do hspace; unquoted (Mega.mkPos 1)) "  \n"
+  2:1:
+    |
+  2 | <empty line>
+    | ^
+  unexpected end of input
+  expecting unquoted line
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) "\n  "
+  2:3:
+    |
+  2 |
+    |   ^
+  unexpected end of input
+  expecting unquoted line
+
+  Trailing vertical and horizontal space is consumed.
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n"
+  (String "foo",Nothing)
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n"
+  (String "foo",Nothing)
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz\n"
+  (String "foo bar baz",Nothing)
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  "
+  (String "foo bar baz",Nothing)
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n"
+  (String "foo bar baz",Nothing)
+
+  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n  "
+  (String "foo bar baz",Nothing)
+-}
+unquoted :: Mega.Pos -> Parser (Rumor.Expression Text, Maybe Rumor.Label)
+unquoted ref = do
+  emptyLine <- Mega.try (do eolf; pure True) <|> pure False
+
+  literal <-
+    if emptyLine
+    then do
+      -- If the first line is empty, then an indented block is required
+      space
+      endOfFile <- Mega.try (do Mega.eof; pure True) <|> pure False
+
+      if endOfFile
+      then unquotedLine <?> "unquoted line" -- Used only for the error message
+      else do
+        _ <- Lexer.indentGuard space GT ref
+        Mega.try unquotedBlock
+
+    else do
+      first <- unquotedLine <?> "unquoted line"
+
+      -- If the first line exists, then a block is optional
+      space
+      actual <- Lexer.indentLevel
+      block <-
+        if actual > ref
+        then Mega.optional unquotedBlock
+        else pure Nothing
+
+      case block of
+        Just rest -> pure (first <> Rumor.String " " <> rest)
+        Nothing -> pure first
+
+  space
+  actual <- Lexer.indentLevel
+  label <-
+    if actual > ref
+    then Mega.optional Identifier.label
+    else pure Nothing
+  space
+  pure (literal, label)
+
+{-| Parses an interpolated, non-empty, multi-line string literal.
+
+  Blocks can contain a single string literal.
+
+  >>> parseTest unquotedBlock "Hello world!"
+  String "Hello world!"
+
+  >>> parseTest unquotedBlock "I have { 5 } mangoes!"
+  Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
+
+  >>> parseTest unquotedBlock "Hello\\nworld!"
+  String "Hello\nworld!"
+
+  Blocks can have multiple indented lines, as long as each line has the same
+  amount of indentation. Each line will be joined with a single space.
+
+  >>> parseTest unquotedBlock "Hello\nworld!"
+  String "Hello world!"
+
+  >>> parseTest (do hspace; unquotedBlock) "  foo\n  bar\n  baz"
+  String "foo bar baz"
+
+  >>> parseTest (do hspace; unquotedBlock) "  foo\r\n  bar\r\n  baz"
+  String "foo bar baz"
+
+  >>> parseTest (do hspace; unquotedBlock) "  foo\n  bar\n baz"
+  2:6:
+    |
+  2 |   bar
+    |      ^
+  unexpected newline
+  expecting '\', end of input, interpolation, literal char, or non-space literal char
+
+  Blocks can also end when a label is encountered
+
+  >>> parseTest unquotedBlock "Hello world! [label]"
+  1:14:
+    |
+  1 | Hello world! [label]
+    |              ^
+  unexpected '['
+  expecting '\', end of input, interpolation, or literal char
+
+  >>> parseTest unquotedBlock "foo\nbar\nbaz [label]"
+  3:5:
+    |
+  3 | baz [label]
+    |     ^
+  unexpected '['
+  expecting '\', end of input, interpolation, or literal char
+
+  >>> parseTest (do hspace; unquotedBlock) "  foo\n  bar\n    baz"
+  3:5:
+    |
+  3 |     baz
+    |     ^
+  incorrect indentation (got 5, should be equal to 3)
+
+  Trailing horizontal space is consumed on each line, but not the vertical space
+  on the last line.
+
+  >>> parseTest unquotedBlock "foo  \nbar\t\nbaz  "
+  String "foo bar baz"
+
+  >>> parseTest unquotedBlock "foo  \nbar  \nbaz  \n"
+  3:6:
+    |
+  3 | baz  
+    |      ^
+  unexpected newline
+  expecting '\', end of input, interpolation, or literal char
+-}
+unquotedBlock :: Parser (Rumor.Expression Text)
+unquotedBlock = do
+  ref <- Lexer.indentLevel
+
+  let
+    indentedUnquotedLine = do
+      _ <- Lexer.indentGuard space EQ ref
+      unquotedLine <?> "unquoted string"
+    unindentedOrEmpty =
+      Mega.lookAhead do
+        space
+        actual <- Lexer.indentLevel
+        if actual < ref
+        then pure ()
+        else
+          if actual == ref
+          then eolf
+          else
+            Lexer.incorrectIndent LT ref actual
+        pure ()
+    startBracket =
+      Mega.lookAhead do
+        space
+        _ <- Char.char '['
+        pure ()
+
+  texts <-
+    Mega.someTill
+      indentedUnquotedLine
+      (     Mega.try startBracket
+        <|> Mega.try unindentedOrEmpty
+        <|> Mega.eof
+      )
+
+  pure
+    ( mconcat
+        ( List.intersperse
+            (Rumor.String " ")
+            (List.filter (/= mempty) texts)
+        )
+    )
+
+{-| Parses an unquoted line, which is an interpolated, non-empty string literal.
+
+  >>> parseTest unquotedLine "Hello world!"
+  String "Hello world!"
+
+  >>> parseTest unquotedLine "I have { 5 } mangoes!"
+  Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
+
+  Unquoted lines end whenever vertical space or a label is enountered, without
+  consuming the vertical space or label.
+
+  >>> parseTest unquotedLine "Hello\nworld!"
+  1:6:
+    |
+  1 | Hello
+    |      ^
+  unexpected newline
+  expecting '\', end of input, interpolation, literal char, or non-space literal char
+
+  >>> parseTest unquotedLine "Hello world! [label]"
+  1:14:
+    |
+  1 | Hello world! [label]
+    |              ^
+  unexpected '['
+  expecting '\', end of input, interpolation, or literal char
+
+  You can escape characters like you can in a string expression.
+
+  >>> parseTest unquotedLine "Hello! \\[not a label\\]"
+  String "Hello! [not a label]"
+
+  >>> parseTest unquotedLine "Hello\\nworld!"
+  String "Hello\nworld!"
+
+  Horizontal space between words is maintained.
+
+  >>> parseTest unquotedLine "Hello   world!"
+  String "Hello   world!"
+
+  Trailing horizontal space is consumed, but not vertical space.
+
+  >>> parseTest unquotedLine "Hello world!  "
+  String "Hello world!"
+
+  >>> parseTest unquotedLine "Hello world!\t"
+  String "Hello world!"
+
+  >>> parseTest unquotedLine "Hello world!\n"
+  1:13:
+    |
+  1 | Hello world!
+    |             ^
+  unexpected newline
+  expecting '\', end of input, interpolation, or literal char
+
+  Unquoted lines cannot be empty.
+
+  >>> parseTest unquotedLine ""
   1:1:
     |
-  1 | [label]
+  1 | <empty line>
     | ^
-  unexpected '['
-  expecting '\', interpolation, or literal char
-
-  >>> parseTest unquotedLine "Hello world! ["
-  1:15:
-    |
-  1 | Hello world! [
-    |               ^
   unexpected end of input
-  expecting identifier
+  expecting '\', interpolation, or non-space literal char
+
+  >>> parseTest unquotedLine "  "
+  1:1:
+    |
+  1 |
+    | ^
+  unexpected space
+  expecting '\', interpolation, or non-space literal char
 -}
-unquotedLine :: Parser (Rumor.Expression Text, Maybe Rumor.Label)
+unquotedLine :: Parser (Rumor.Expression Text)
 unquotedLine = do
   let
-    end = (do _ <- Char.char '['; pure ()) <|> eol
+    end = (do _ <- Char.char '['; pure ()) <|> eolf
+    stripEnd literal = do
+      -- Strip the end of the text if this is at the end of the line
+      next <- Mega.lookAhead ((do end; pure True) <|> pure False)
+      if next
+      then pure (Rumor.String (T.stripEnd literal))
+      else pure (Rumor.String literal)
 
+    nonSpaceLiteralString = do
+      literal <-
+        Mega.takeWhile1P
+          (Just "non-space literal char")
+          (\ch -> ch `notElem` (fst <$> unquotedEscapes) && not (isSpace ch))
+      stripEnd literal
     literalString = do
       literal <-
         Mega.takeWhile1P
           (Just "literal char")
           (`notElem` (fst <$> unquotedEscapes))
+      stripEnd literal
 
-      -- Strip the end of the text if this is at the end of the line
-      next <- Mega.lookAhead ((do end; pure True) <|> pure False)
-      if next
-      then do
-        pure (Rumor.String (T.stripEnd literal))
-      else pure (Rumor.String literal)
+  first <- nonSpaceLiteralString
+      <|> Expression.escape unquotedEscapes
+      <|> Expression.interpolation
 
-  text <- Mega.some
+  rest <- Mega.many
     (     literalString
       <|> Expression.escape unquotedEscapes
       <|> Expression.interpolation
     )
 
-  label <- Mega.optional (hlexeme Identifier.label)
-  _ <- Mega.try eol
-  pure (mconcat text, label)
+  pure (mconcat (first:rest))
+
+{-| Parses a newline or the end of the file.
+
+  >>> parseTest eolf ""
+  ()
+
+  >>> parseTest eolf "\r\n"
+  ()
+
+  >>> parseTest eolf "\n"
+  ()
+
+  >>> parseTest eolf "\r"
+  ()
+-}
+eolf :: Parser ()
+eolf =
+      (do _ <- "\r\n"; pure ())
+  <|> (do _ <- Char.char '\n'; pure ())
+  <|> (do _ <- Char.char '\r'; pure ())
+  <|> Mega.eof
 
 unquotedEscapes :: [(Char, Text)]
 unquotedEscapes =
   [ ('[', "[")
   , (']', "]")
   ] <> Expression.stringEscapes
-
-{-| Parses a newline or the end of the file.
--}
-eol :: Parser ()
-eol =
-      (do _ <- Char.char '\n'; pure ())
-  <|> (do _ <- Char.char '\r'; pure ())
-  <|> Mega.eof
