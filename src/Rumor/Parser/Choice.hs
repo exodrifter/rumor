@@ -2,50 +2,89 @@ module Rumor.Parser.Choice
 ( choice
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, space)
+import Rumor.Parser.Common (Parser, eolf, hlexeme, space)
 
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Rumor.Internal.Types as Rumor
-import qualified Rumor.Parser.Identifier as Identifier
 import qualified Rumor.Parser.Indented as Indented
 import qualified Rumor.Parser.Unquoted as Unquoted
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
+-- >>> import Rumor.Parser.Dialog (say)
+-- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
 
-{-| Parses a choice, which has a label on the same line and an unquoted line
-  afterwards. It can contain an indented block of nodes.
+{-| Parses a choice which has an unquoted string used as the display text for
+  the choice. It can optionally contain an indented block of nodes.
 
-  With choice text on the same line:
-  >>> import Rumor.Parser.Dialog (say)
-  >>> parseTest (choice say) "choice [label]\n  > Choice A"
-  Choice (Label "label") (String "Choice A") Nothing
+  The choice text can be provided on one or multiple lines, like unquoted
+  strings for dialog nodes.
 
-  With choice text on multiple lines:
-  >>> import Rumor.Parser.Dialog (say)
-  >>> parseTest (choice say) "choice [label]\n  > Choice\n    A"
-  Choice (Label "label") (Concat (String "Choice") (Concat (String " ") (String "A"))) Nothing
+  >>> parseTest (choice say) "choice\n  > foo bar baz"
+  Choice (String "foo bar baz") Nothing Nothing
 
-  With choice text on the next line:
-  >>> import Rumor.Parser.Dialog (say)
-  >>> parseTest (choice say) "choice [label]\n  >\n   Choice A"
-  Choice (Label "label") (String "Choice A") Nothing
+  >>> parseTest (choice say) "choice\n  > foo\n    bar\n    baz"
+  Choice (String "foo bar baz") Nothing Nothing
 
-  With indented nodes:
-  >>> parseTest (choice say) "choice [label]\n  > Choice A\n  : Hello"
-  Choice (Label "label") (String "Choice A") (Just (Say Nothing (String "Hello") :| []))
+  The choice text can be provided on the following line, but it must have
+  indentation greater than the choice marker '>'.
 
-  Error examples:
-  >>> import Rumor.Parser.Dialog (say)
-  >>> parseTest (choice say) "choice [label]\n  >\n  Choice A"
-  3:3:
+  >>> parseTest (choice say) "choice\n  >\n    foo\n    bar\n    baz"
+  Choice (String "foo bar baz") Nothing Nothing
+
+  >>> parseTest (choice say) "choice\n  >\nfoo"
+  3:1:
     |
-  3 |   Choice A
-    |   ^
-  incorrect indentation (got 3, should be greater than 3)
+  3 | foo
+    | ^
+  incorrect indentation (got 1, should be greater than 3)
+
+  The choice text can be given a label.
+
+  >>> parseTest (choice say) "choice\n  > foo bar baz [label]"
+  Choice (String "foo bar baz") (Just (Label "label")) Nothing
+
+  >>> parseTest (choice say) "choice\n  > foo\n    bar\n    baz [label]"
+  Choice (String "foo bar baz") (Just (Label "label")) Nothing
+
+  >>> parseTest (choice say) "choice\n  >\n    foo\n    bar\n    baz [label]"
+  Choice (String "foo bar baz") (Just (Label "label")) Nothing
+
+  >>> parseTest (choice say) "choice\n  >\n    foo\n    bar\n    baz\n    [label]"
+  Choice (String "foo bar baz") (Just (Label "label")) Nothing
+
+  Multi-line choice text must have the same level of indentation.
+
+  >>> parseTest (choice say) "choice\n  > foo\n    bar\n      baz"
+  4:7:
+    |
+  4 |       baz
+    |       ^
+  incorrect indentation (got 7, should be equal to 5)
+
+  >>> parseTest (choice say) "choice\n  > foo\n    bar\n baz"
+  4:2:
+    |
+  4 |  baz
+    |  ^
+  unexpected 'b'
+  expecting end of input
+
+  The choice can be given a list of indented nodes, but those nodes have to have
+  the same amount of indentation as the choice text.
+
+  >>> parseTest (choice say) "choice\n  > Choice A\n  : Hello"
+  Choice (String "Choice A") Nothing (Just (Say Nothing (String "Hello") :| []))
+
+  >>> parseTest (choice say) "choice\n  > Choice A\n: Hello"
+  3:1:
+    |
+  3 | : Hello
+    | ^
+  unexpected ':'
+  expecting end of input
 -}
 choice :: Parser Rumor.Node -> Parser Rumor.Node
 choice inner = do
@@ -53,13 +92,12 @@ choice inner = do
   _ <- Lexer.indentGuard space EQ originalRef
 
   _ <- hlexeme "choice"
-  label <- hlexeme Identifier.label
-  _ <- Char.char '\n'
+  eolf
 
   indentedRef <- Lexer.indentGuard space GT originalRef
-  _ <- Char.char '>'
-  choiceText <- Unquoted.unquotedBlock
+  _ <- hlexeme (Char.char '>')
+  (choiceText, label) <- Unquoted.unquoted indentedRef
 
   indentedNodes <- Mega.optional (Indented.someIndentedAt indentedRef inner)
 
-  pure (Rumor.Choice label choiceText indentedNodes)
+  pure (Rumor.Choice choiceText label indentedNodes)

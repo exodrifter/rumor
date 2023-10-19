@@ -1,11 +1,10 @@
 module Rumor.Parser.Unquoted
 ( unquoted
-, unquotedBlock
 ) where
 
 import Data.Char (isSpace)
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, space, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, eolf, space, (<?>), (<|>))
 
 import qualified Data.List as List
 import qualified Data.Text as T
@@ -377,27 +376,6 @@ unquotedLine = do
     )
 
   pure (mconcat (first:rest))
-
-{-| Parses a newline or the end of the file.
-
-  >>> parseTest eolf ""
-  ()
-
-  >>> parseTest eolf "\r\n"
-  ()
-
-  >>> parseTest eolf "\n"
-  ()
-
-  >>> parseTest eolf "\r"
-  ()
--}
-eolf :: Parser ()
-eolf =
-      (do _ <- "\r\n"; pure ())
-  <|> (do _ <- Char.char '\n'; pure ())
-  <|> (do _ <- Char.char '\r'; pure ())
-  <|> Mega.eof
 
 unquotedEscapes :: [(Char, Text)]
 unquotedEscapes =

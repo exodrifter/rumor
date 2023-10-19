@@ -39,7 +39,7 @@ data Node =
   | Action2 NonEmptyText (Expression Text) (Expression Text)
   | Action3 NonEmptyText (Expression Text) (Expression Text) (Expression Text)
   | Action4 NonEmptyText (Expression Text) (Expression Text) (Expression Text) (Expression Text)
-  | Choice Label (Expression Text) (Maybe (NonEmpty Node))
+  | Choice (Expression Text) (Maybe Label) (Maybe (NonEmpty Node))
   deriving (Eq, Show)
 
 -- | Represents expressions in a Rumor dialog.

@@ -485,7 +485,7 @@ number = do
   Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
 
   >>> parseTest stringExpression "\"Hello\\nworld!\""
-  Concat (String "Hello") (Concat (String "\n") (String "world!"))
+  String "Hello\nworld!"
 
   Whitespace handling:
   >>> parseTest stringExpression "\"Hello\nworld!\"" -- Newlines are not okay

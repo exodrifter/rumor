@@ -2,6 +2,7 @@ module Rumor.Parser.Common
 ( Parser
 , lexeme, hlexeme
 , space, hspace
+, eolf
 
 -- Re-exports
 , (<?>)
@@ -15,6 +16,10 @@ import Text.Megaparsec ((<?>), (<|>))
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
+
+-- $setup
+-- >>> import qualified Text.Megaparsec as Mega
+-- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
 
 type Parser a = Mega.Parsec Void Text a
 
@@ -35,3 +40,24 @@ lineComment = Lexer.skipLineComment "//"
 
 blockComment :: Parser ()
 blockComment = Lexer.skipBlockComment "/*" "*/"
+
+{-| Parses a newline or the end of the file.
+
+  >>> parseTest eolf ""
+  ()
+
+  >>> parseTest eolf "\r\n"
+  ()
+
+  >>> parseTest eolf "\n"
+  ()
+
+  >>> parseTest eolf "\r"
+  ()
+-}
+eolf :: Parser ()
+eolf =
+      (do _ <- "\r\n"; pure ())
+  <|> (do _ <- Char.char '\n'; pure ())
+  <|> (do _ <- Char.char '\r'; pure ())
+  <|> Mega.eof
