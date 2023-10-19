@@ -1,8 +1,8 @@
 module Rumor.Parser.Surround
 ( parentheses
 , braces
-, brackets
 , doubleQuotes
+, surround
 ) where
 
 import Rumor.Parser.Common (Parser, (<?>))
@@ -101,55 +101,6 @@ braces inner =
     (Lexeme.lexeme (Char.char '{') <?> "open brace")
     (Char.char '}' <?> "close brace")
     (Lexeme.lexeme inner)
-
-{-| Parses brackets surrounding an inner parser. Any amount of horizontal
-  whitespace is allowed between the brackets and the inner parser.
-
-  Examples:
-  >>> parseTest (brackets "foobar") "[foobar]"
-  "foobar"
-
-  >>> parseTest (brackets "foobar") "[  foobar  ]"
-  "foobar"
-
-  >>> parseTest (brackets "foobar") "[\nfoobar\n]"
-  1:2:
-    |
-  1 | [
-    |  ^
-  unexpected "<newline>fooba"
-  expecting "foobar"
-
-  >>> parseTest (brackets "foobar") "[foobar"
-  1:8:
-    |
-  1 | [foobar
-    |        ^
-  unexpected end of input
-  expecting close bracket
-
-  >>> parseTest (brackets "foobar") "foobar]"
-  1:1:
-    |
-  1 | foobar]
-    | ^
-  unexpected 'f'
-  expecting open bracket
-
-  >>> parseTest (brackets "foobar") "[]"
-  1:2:
-    |
-  1 | []
-    |  ^
-  unexpected ']'
-  expecting "foobar"
--}
-brackets :: Parser a -> Parser a
-brackets inner =
-  surround
-    (Lexeme.hlexeme (Char.char '[') <?> "open bracket")
-    (Char.char ']' <?> "close bracket")
-    (Lexeme.hlexeme inner)
 
 {-| Parses double quotes surrounding an inner parser. No space is allowed
   between the double quotes and the inner parser.
