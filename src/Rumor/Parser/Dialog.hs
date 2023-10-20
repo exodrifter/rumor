@@ -14,8 +14,8 @@ import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
+-- >>> import Rumor.Parser.Common
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 {-| Parses an add node, which is defined as an optional identifier for the
   speaker followed by a plus sign and an indented unquoted string containing
@@ -23,42 +23,42 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
   Add nodes can have one line.
 
-  >>> parseTest add "alice+ Hello world!    \n"
+  >>> parse add "alice+ Hello world!    \n"
   Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
-  >>> parseTest add "+ Hello world!"
+  >>> parse add "+ Hello world!"
   Add Nothing (String "Hello world!") Nothing
 
-  >>> parseTest add "alice+ Hello world!" -- With a speaker
+  >>> parse add "alice+ Hello world!" -- With a speaker
   Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
   Add nodes can be spread over multiple lines, or start indented on the next
   line.
 
-  >>> parseTest add "alice+ foo\n  bar\n  baz"
+  >>> parse add "alice+ foo\n  bar\n  baz"
   Add (Just (Speaker (Unicode "alice"))) (String "foo bar baz") Nothing
 
-  >>> parseTest add "alice+\n  foo\n  bar\n  baz"
+  >>> parse add "alice+\n  foo\n  bar\n  baz"
   Add (Just (Speaker (Unicode "alice"))) (String "foo bar baz") Nothing
 
   Extra whitespace is okay and trailing whitespace is consumed.
 
-  >>> parseTest add "alice    +    Hello world!"
+  >>> parse add "alice    +    Hello world!"
   Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
-  >>> parseTest add "alice+ Hello world!    "
+  >>> parse add "alice+ Hello world!    "
   Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
 
-  >>> parseTest add "alice+ Hello world!    \n    "
+  >>> parse add "alice+ Hello world!    \n    "
   Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
-  >>> parseTest add "alice+\n  Hello world!\n  "
+  >>> parse add "alice+\n  Hello world!\n  "
   Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
   Add nodes end when the following line is unindented.
 
-  >>> parseTest add "alice+ Hello\nworld!\n"
+  >>> parse add "alice+ Hello\nworld!\n"
   2:1:
     |
   2 | world!
@@ -68,7 +68,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
   Add nodes cannot be empty.
 
-  >>> parseTest add "+"
+  >>> parse add "+"
   1:2:
     |
   1 | +
@@ -76,7 +76,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   unexpected end of input
   expecting carriage return, crlf newline, newline, or unquoted line
 
-  >>> parseTest add "+\n  "
+  >>> parse add "+\n  "
   2:3:
     |
   2 |   
@@ -86,7 +86,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
   Add nodes must have a separator.
 
-  >>> parseTest add "alice Hello world!  \n"
+  >>> parse add "alice Hello world!  \n"
   1:7:
     |
   1 | alice Hello world!  
@@ -103,42 +103,42 @@ add = dialog '+' Rumor.Add
 
   Say nodes can have one line.
 
-  >>> parseTest say "alice: Hello world!    \n"
+  >>> parse say "alice: Hello world!    \n"
   Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
-  >>> parseTest say ": Hello world!"
+  >>> parse say ": Hello world!"
   Say Nothing (String "Hello world!") Nothing
 
-  >>> parseTest say "alice: Hello world!" -- With a speaker
+  >>> parse say "alice: Hello world!" -- With a speaker
   Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
   Say nodes can be spread over multiple lines, or start indented on the next
   line.
 
-  >>> parseTest say "alice: foo\n  bar\n  baz"
+  >>> parse say "alice: foo\n  bar\n  baz"
   Say (Just (Speaker (Unicode "alice"))) (String "foo bar baz") Nothing
 
-  >>> parseTest say "alice:\n  foo\n  bar\n  baz"
+  >>> parse say "alice:\n  foo\n  bar\n  baz"
   Say (Just (Speaker (Unicode "alice"))) (String "foo bar baz") Nothing
 
   Extra whitespace is okay and trailing whitespace is consumed.
 
-  >>> parseTest say "alice    :    Hello world!"
+  >>> parse say "alice    :    Hello world!"
   Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
-  >>> parseTest say "alice: Hello world!    "
+  >>> parse say "alice: Hello world!    "
   Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
 
-  >>> parseTest say "alice: Hello world!    \n    "
+  >>> parse say "alice: Hello world!    \n    "
   Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
-  >>> parseTest say "alice:\n  Hello world!\n  "
+  >>> parse say "alice:\n  Hello world!\n  "
   Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
 
   Say nodes end when the following line is unindented.
 
-  >>> parseTest say "alice: Hello\nworld!\n"
+  >>> parse say "alice: Hello\nworld!\n"
   2:1:
     |
   2 | world!
@@ -148,7 +148,7 @@ add = dialog '+' Rumor.Add
 
   Say nodes cannot be empty.
 
-  >>> parseTest say ":"
+  >>> parse say ":"
   1:2:
     |
   1 | :
@@ -156,7 +156,7 @@ add = dialog '+' Rumor.Add
   unexpected end of input
   expecting carriage return, crlf newline, newline, or unquoted line
 
-  >>> parseTest say ":\n  "
+  >>> parse say ":\n  "
   2:3:
     |
   2 |   
@@ -166,7 +166,7 @@ add = dialog '+' Rumor.Add
 
   Say nodes must have a separator.
 
-  >>> parseTest say "alice Hello world!  \n"
+  >>> parse say "alice Hello world!  \n"
   1:7:
     |
   1 | alice Hello world!  

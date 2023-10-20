@@ -15,25 +15,24 @@ import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Indented as Indented
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
--- >>> import Rumor.Parser.Common (hspace)
+-- >>> import Rumor.Parser.Common
 -- >>> import Rumor.Parser.Dialog (say)
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 {-| Parses a conditional control statement at the current indentation level.
 
   You can have if statements that have an indented block of nodes.
 
-  >>> parseTest (control say) "if true\n  : foo"
+  >>> parse (control say) "if true\n  : foo"
   Control (Boolean True) (Say Nothing (String "foo") Nothing :| []) Nothing
 
-  >>> parseTest (control say) "if true or false\n  : foo\n  : foo\n  : foo"
+  >>> parse (control say) "if true or false\n  : foo\n  : foo\n  : foo"
   Control (LogicalOr (Boolean True) (Boolean False)) (Say Nothing (String "foo") Nothing :| [Say Nothing (String "foo") Nothing,Say Nothing (String "foo") Nothing]) Nothing
 
-  >>> parseTest (control say) "if true\n\n\n  : foo"
+  >>> parse (control say) "if true\n\n\n  : foo"
   Control (Boolean True) (Say Nothing (String "foo") Nothing :| []) Nothing
 
-  >>> parseTest (control say) "if true\n: foo"
+  >>> parse (control say) "if true\n: foo"
   2:1:
     |
   2 | : foo
@@ -42,13 +41,13 @@ import qualified Rumor.Parser.Indented as Indented
 
   The condition in the if statement can be optionally surrounded by braces.
 
-  >>> parseTest (control say) "if { true }\n  : foo"
+  >>> parse (control say) "if { true }\n  : foo"
   Control (Boolean True) (Say Nothing (String "foo") Nothing :| []) Nothing
 
-  >>> parseTest (control say) "if {true or false}\n  : foo"
+  >>> parse (control say) "if {true or false}\n  : foo"
   Control (LogicalOr (Boolean True) (Boolean False)) (Say Nothing (String "foo") Nothing :| []) Nothing
 
-  >>> parseTest (control say) "if {true or false\n  : foo"
+  >>> parse (control say) "if {true or false\n  : foo"
   2:3:
     |
   2 |   : foo
@@ -56,7 +55,7 @@ import qualified Rumor.Parser.Indented as Indented
   unexpected ':'
   expecting close brace
 
-  >>> parseTest (control say) "if true or false}\n  : foo"
+  >>> parse (control say) "if true or false}\n  : foo"
   1:17:
     |
   1 | if true or false}
@@ -66,7 +65,7 @@ import qualified Rumor.Parser.Indented as Indented
 
   You cannot have an empty block of nodes.
 
-  >>> parseTest (control say) "if true"
+  >>> parse (control say) "if true"
   1:8:
     |
   1 | if true
@@ -74,14 +73,14 @@ import qualified Rumor.Parser.Indented as Indented
   unexpected end of input
   expecting "!=", "&&", "/=", "==", "and", "is", "or", "xor", "||", ':', '^', carriage return, crlf newline, identifier, or newline
 
-  >>> parseTest (control say) "if true\n"
+  >>> parse (control say) "if true\n"
   2:1:
     |
   2 | <empty line>
     | ^
   incorrect indentation (got 1, should be greater than 1)
 
-  >>> parseTest (control say) "if true\n  "
+  >>> parse (control say) "if true\n  "
   2:3:
     |
   2 |   
@@ -91,74 +90,77 @@ import qualified Rumor.Parser.Indented as Indented
 
   You can chain if statements into elif statements, else statements, or both.
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar"
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar"
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Control (Boolean True) (Say Nothing (String "bar") Nothing :| []) Nothing :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelse\n  :bar"
+  >>> parse (control say) "if false\n  : foo\nelse\n  :bar"
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Say Nothing (String "bar") Nothing :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar\nelse\n  : baz"
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar\nelse\n  : baz"
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Control (Boolean True) (Say Nothing (String "bar") Nothing :| []) (Just (Say Nothing (String "baz") Nothing :| [])) :| []))
 
   All of the control statements must have the same indentation level.
 
-  >>> parseTest (control say) "if false\n  : foo\n  elif true\n  : bar"
+  >>> parse (control say) "if false\n  : foo\n  elif true\n  : bar"
   3:3:
     |
   3 |   elif true
     |   ^
   unexpected 'e'
+  expecting end of input
 
-  >>> parseTest (control say) "if false\n  : foo\n  else\n  :bar"
+  >>> parse (control say) "if false\n  : foo\n  else\n  :bar"
   3:3:
     |
   3 |   else
     |   ^
   unexpected 'e'
+  expecting end of input
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar\n  else\n  : baz"
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar\n  else\n  : baz"
   5:3:
     |
   5 |   else
     |   ^
   unexpected 'e'
+  expecting end of input
 
   This parser consumes all trailing whitespace.
 
-  >>> parseTest (control say) "if true\n  : foo  "
+  >>> parse (control say) "if true\n  : foo  "
   Control (Boolean True) (Say Nothing (String "foo") Nothing :| []) Nothing
 
-  >>> parseTest (control say) "if true\n  : foo  \n"
+  >>> parse (control say) "if true\n  : foo  \n"
   Control (Boolean True) (Say Nothing (String "foo") Nothing :| []) Nothing
 
-  >>> parseTest (control say) "if true\n  : foo  \n  "
+  >>> parse (control say) "if true\n  : foo  \n  "
   Control (Boolean True) (Say Nothing (String "foo") Nothing :| []) Nothing
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar  "
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar  "
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Control (Boolean True) (Say Nothing (String "bar") Nothing :| []) Nothing :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar  \n"
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar  \n"
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Control (Boolean True) (Say Nothing (String "bar") Nothing :| []) Nothing :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar  \n  "
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar  \n  "
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Control (Boolean True) (Say Nothing (String "bar") Nothing :| []) Nothing :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelse\n  :bar  "
+  >>> parse (control say) "if false\n  : foo\nelse\n  :bar  "
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Say Nothing (String "bar") Nothing :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelse\n  :bar  \n"
+  >>> parse (control say) "if false\n  : foo\nelse\n  :bar  \n"
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Say Nothing (String "bar") Nothing :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelse\n  :bar  \n  "
+  >>> parse (control say) "if false\n  : foo\nelse\n  :bar  \n  "
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Say Nothing (String "bar") Nothing :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar\nelse\n  : baz  "
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar\nelse\n  : baz  "
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Control (Boolean True) (Say Nothing (String "bar") Nothing :| []) (Just (Say Nothing (String "baz") Nothing :| [])) :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar\nelse\n  : baz  \n"
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar\nelse\n  : baz  \n"
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Control (Boolean True) (Say Nothing (String "bar") Nothing :| []) (Just (Say Nothing (String "baz") Nothing :| [])) :| []))
 
-  >>> parseTest (control say) "if false\n  : foo\nelif true\n  : bar\nelse\n  : baz  \n  "
+  >>> parse (control say) "if false\n  : foo\nelif true\n  : bar\nelse\n  : baz  \n  "
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) (Just (Control (Boolean True) (Say Nothing (String "bar") Nothing :| []) (Just (Say Nothing (String "baz") Nothing :| [])) :| []))
 -}
 control :: Parser Rumor.Node -> Parser Rumor.Node
@@ -170,17 +172,17 @@ control inner = do
 {-| Parses a conditional control statement, which must be at the given
   indentation level.
 
-  >>> parseTest (controlIf "if" (Mega.mkPos 1) say) "if false\n  : foo"
+  >>> parse (controlIf "if" (Mega.mkPos 1) say) "if false\n  : foo"
   Control (Boolean False) (Say Nothing (String "foo") Nothing :| []) Nothing
 
-  >>> parseTest (controlIf "if" (Mega.mkPos 3) say) "if false\n  : foo"
+  >>> parse (controlIf "if" (Mega.mkPos 3) say) "if false\n  : foo"
   1:1:
     |
   1 | if false
     | ^
   incorrect indentation (got 1, should be equal to 3)
 
-  >>> parseTest (do hspace; controlIf "if" (Mega.mkPos 1) say) "  if false\n  : foo"
+  >>> parse (do hspace; controlIf "if" (Mega.mkPos 1) say) "  if false\n  : foo"
   1:3:
     |
   1 |   if false
@@ -209,25 +211,25 @@ controlIf name ref inner = do
 {-| Parses an else statement, which must be at the given indentation level, and
   a non-empty list of inner elements.
 
-  >>> parseTest (controlElse (Mega.mkPos 1) "foo") "else\n  foo"
+  >>> parse (controlElse (Mega.mkPos 1) "foo") "else\n  foo"
   "foo" :| []
 
-  >>> parseTest (controlElse (Mega.mkPos 1) "foo") "else\n  foo\n  foo\n  foo"
+  >>> parse (controlElse (Mega.mkPos 1) "foo") "else\n  foo\n  foo\n  foo"
   "foo" :| ["foo","foo"]
 
-  >>> parseTest (controlElse (Mega.mkPos 1) "foo") "else\n\n\n  foo"
+  >>> parse (controlElse (Mega.mkPos 1) "foo") "else\n\n\n  foo"
   "foo" :| []
 
   The else statement must match the specified indentation level
 
-  >>> parseTest (controlElse (Mega.mkPos 3) "foo") "else\nfoo"
+  >>> parse (controlElse (Mega.mkPos 3) "foo") "else\nfoo"
   1:1:
     |
   1 | else
     | ^
   incorrect indentation (got 1, should be equal to 3)
 
-  >>> parseTest (do hspace; controlElse (Mega.mkPos 1) "foo") "  else\nfoo"
+  >>> parse (do hspace; controlElse (Mega.mkPos 1) "foo") "  else\nfoo"
   1:3:
     |
   1 |   else
@@ -237,24 +239,24 @@ controlIf name ref inner = do
   The inner elements have to be on an indented line following the else
   statement.
 
-  >>> parseTest (controlElse (Mega.mkPos 1) "foo") "else\n\n\n  foo"
+  >>> parse (controlElse (Mega.mkPos 1) "foo") "else\n\n\n  foo"
   "foo" :| []
 
-  >>> parseTest (controlElse (Mega.mkPos 1) "foo") "else\nfoo"
+  >>> parse (controlElse (Mega.mkPos 1) "foo") "else\nfoo"
   2:1:
     |
   2 | foo
     | ^
   incorrect indentation (got 1, should be greater than 1)
 
-  >>> parseTest (controlElse (Mega.mkPos 3) "foo") "  else\nfoo"
+  >>> parse (controlElse (Mega.mkPos 3) "foo") "  else\nfoo"
   2:1:
     |
   2 | foo
     | ^
   incorrect indentation (got 1, should be greater than 3)
 
-  >>> parseTest (controlElse (Mega.mkPos 1) "foo") "else      foo"
+  >>> parse (controlElse (Mega.mkPos 1) "foo") "else      foo"
   1:11:
     |
   1 | else      foo

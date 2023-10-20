@@ -9,6 +9,7 @@ module Rumor.Internal.Types
   , Expression(..)
   , simplify
 
+  , Type(..)
   , Label(..)
   , Speaker(..)
   , VariableName(..)
@@ -28,6 +29,8 @@ import qualified Data.Text.ICU.Normalize2 as Normalize
 
 -- $setup
 -- >>> import qualified Data.NonEmptyText as NET
+
+data Type = StringType | NumberType | BoolType
 
 -- | The identifier for a node.
 newtype Label = Label Unicode

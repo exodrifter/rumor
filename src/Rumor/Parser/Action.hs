@@ -11,8 +11,8 @@ import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
+-- >>> import Rumor.Parser.Common
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 {-| Parses an action with one to four string arguments.
 
@@ -21,71 +21,71 @@ import qualified Text.Megaparsec.Char as Char
   An action is an identifier followed by a set of parenthesis containing zero to
   four comma-separated arguments.
 
-  >>> parseTest action "foobar()"
+  >>> parse action "foobar()"
   Action0 (Unicode "foobar")
 
-  >>> parseTest action "123()"
+  >>> parse action "123()"
   Action0 (Unicode "123")
 
-  >>> parseTest action "foobar(\"1\")"
+  >>> parse action "foobar(\"1\")"
   Action1 (Unicode "foobar") (String "1")
 
-  >>> parseTest action "foobar(\"1\", \"2\")"
+  >>> parse action "foobar(\"1\", \"2\")"
   Action2 (Unicode "foobar") (String "1") (String "2")
 
-  >>> parseTest action "foobar(\"1\", \"2\", \"3\")"
+  >>> parse action "foobar(\"1\", \"2\", \"3\")"
   Action3 (Unicode "foobar") (String "1") (String "2") (String "3")
 
-  >>> parseTest action "foobar(\"1\", \"2\", \"3\", \"4\")"
+  >>> parse action "foobar(\"1\", \"2\", \"3\", \"4\")"
   Action4 (Unicode "foobar") (String "1") (String "2") (String "3") (String "4")
 
   No spaces are okay.
 
-  >>> parseTest action "foobar(\"1\",\"2\")"
+  >>> parse action "foobar(\"1\",\"2\")"
   Action2 (Unicode "foobar") (String "1") (String "2")
 
-  >>> parseTest action "foobar(\"1\",\"2\",\"3\")"
+  >>> parse action "foobar(\"1\",\"2\",\"3\")"
   Action3 (Unicode "foobar") (String "1") (String "2") (String "3")
 
-  >>> parseTest action "foobar(\"1\",\"2\",\"3\",\"4\")"
+  >>> parse action "foobar(\"1\",\"2\",\"3\",\"4\")"
   Action4 (Unicode "foobar") (String "1") (String "2") (String "3") (String "4")
 
   Extra spaces are okay.
 
-  >>> parseTest action "foobar  (  )"
+  >>> parse action "foobar  (  )"
   Action0 (Unicode "foobar")
 
-  >>> parseTest action "foobar  (  \"1\"  )"
+  >>> parse action "foobar  (  \"1\"  )"
   Action1 (Unicode "foobar") (String "1")
 
-  >>> parseTest action "foobar  (  \"1\"  ,  \"2\"  )"
+  >>> parse action "foobar  (  \"1\"  ,  \"2\"  )"
   Action2 (Unicode "foobar") (String "1") (String "2")
 
-  >>> parseTest action "foobar  (  \"1\"  ,  \"2\"  ,  \"3\"  )"
+  >>> parse action "foobar  (  \"1\"  ,  \"2\"  ,  \"3\"  )"
   Action3 (Unicode "foobar") (String "1") (String "2") (String "3")
 
-  >>> parseTest action "foobar  (  \"1\"  ,  \"2\"  ,  \"3\"  ,  \"4\"  )"
+  >>> parse action "foobar  (  \"1\"  ,  \"2\"  ,  \"3\"  ,  \"4\"  )"
   Action4 (Unicode "foobar") (String "1") (String "2") (String "3") (String "4")
 
   Extra newlines are okay.
 
-  >>> parseTest action "foobar  (\n)"
+  >>> parse action "foobar  (\n)"
   Action0 (Unicode "foobar")
 
-  >>> parseTest action "foobar  (\n\"1\"\n)"
+  >>> parse action "foobar  (\n\"1\"\n)"
   Action1 (Unicode "foobar") (String "1")
 
-  >>> parseTest action "foobar  (\n\"1\"\n,\n\"2\"\n)"
+  >>> parse action "foobar  (\n\"1\"\n,\n\"2\"\n)"
   Action2 (Unicode "foobar") (String "1") (String "2")
 
-  >>> parseTest action "foobar  (\n\"1\"\n,\n\"2\"\n,\n\"3\"\n)"
+  >>> parse action "foobar  (\n\"1\"\n,\n\"2\"\n,\n\"3\"\n)"
   Action3 (Unicode "foobar") (String "1") (String "2") (String "3")
 
-  >>> parseTest action "foobar  (\n\"1\"\n,\n\"2\"\n,\n\"3\"\n,\n\"4\"\n)"
+  >>> parse action "foobar  (\n\"1\"\n,\n\"2\"\n,\n\"3\"\n,\n\"4\"\n)"
   Action4 (Unicode "foobar") (String "1") (String "2") (String "3") (String "4")
 
   Both parenthesis must be provided.
-  >>> parseTest action "foobar("
+  >>> parse action "foobar("
   1:8:
     |
   1 | foobar(
@@ -93,7 +93,7 @@ import qualified Text.Megaparsec.Char as Char
   unexpected end of input
   expecting close parenthesis, open double quotes, or variable
 
-  >>> parseTest action "foobar)"
+  >>> parse action "foobar)"
   1:7:
     |
   1 | foobar)
@@ -103,13 +103,13 @@ import qualified Text.Megaparsec.Char as Char
 
   Trailing whitespace is consumed.
 
-  >>> parseTest action "foobar()  "
+  >>> parse action "foobar()  "
   Action0 (Unicode "foobar")
 
-  >>> parseTest action "foobar()  \n"
+  >>> parse action "foobar()  \n"
   Action0 (Unicode "foobar")
 
-  >>> parseTest action "foobar()  \n  "
+  >>> parse action "foobar()  \n  "
   Action0 (Unicode "foobar")
 -}
 action :: Parser Rumor.Node

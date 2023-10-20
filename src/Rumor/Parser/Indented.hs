@@ -10,21 +10,20 @@ import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
+-- >>> import Rumor.Parser.Common
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 {-| Parse a non-empty block that has a greater indentation level than the
   reference position.
 
   Examples:
-  >>> let parse pos = parseTest (someIndentedMoreThan (Mega.mkPos pos) "foo")
-  >>> parse 1 "  foo"
+  >>> parse (someIndentedMoreThan (Mega.mkPos 1) "foo") "  foo"
   "foo" :| []
 
-  >>> parse 1 "  foo\n  foo\n  foo"
+  >>> parse (someIndentedMoreThan (Mega.mkPos 1) "foo") "  foo\n  foo\n  foo"
   "foo" :| ["foo","foo"]
 
-  >>> parse 3 "  foo\n  foo\n  foo"
+  >>> parse (someIndentedMoreThan (Mega.mkPos 3) "foo") "  foo\n  foo\n  foo"
   1:3:
     |
   1 |   foo
@@ -40,11 +39,10 @@ someIndentedMoreThan originalRef inner = do
   position.
 
   Examples:
-  >>> let parse pos = parseTest (someIndentedAt (Mega.mkPos pos) "foo")
-  >>> parse 1 "foo"
+  >>> parse (someIndentedAt (Mega.mkPos 1) "foo") "foo"
   "foo" :| []
 
-  >>> parse 1 "  foo\n  foo\n  foo"
+  >>> parse (someIndentedAt (Mega.mkPos 1) "foo") "  foo\n  foo\n  foo"
   1:3:
     |
   1 |   foo

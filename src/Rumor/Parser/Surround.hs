@@ -10,23 +10,23 @@ import Rumor.Parser.Common (Parser, lexeme, (<?>))
 import qualified Text.Megaparsec.Char as Char
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
+-- >>> import Rumor.Parser.Common
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 {-| Parses parentheses surrounding an inner parser. Any amount of space,
   including newlines, is allowed between the parentheses and the inner parser.
 
   Examples:
-  >>> parseTest (parentheses "foobar") "(foobar)"
+  >>> parse (parentheses "foobar") "(foobar)"
   "foobar"
 
-  >>> parseTest (parentheses "foobar") "(  foobar  )"
+  >>> parse (parentheses "foobar") "(  foobar  )"
   "foobar"
 
-  >>> parseTest (parentheses "foobar") "(\nfoobar\n)"
+  >>> parse (parentheses "foobar") "(\nfoobar\n)"
   "foobar"
 
-  >>> parseTest (parentheses "foobar") "(foobar"
+  >>> parse (parentheses "foobar") "(foobar"
   1:8:
     |
   1 | (foobar
@@ -34,7 +34,7 @@ import qualified Text.Megaparsec.Char as Char
   unexpected end of input
   expecting close parenthesis
 
-  >>> parseTest (parentheses "foobar") "foobar)"
+  >>> parse (parentheses "foobar") "foobar)"
   1:1:
     |
   1 | foobar)
@@ -42,7 +42,7 @@ import qualified Text.Megaparsec.Char as Char
   unexpected 'f'
   expecting open parenthesis
 
-  >>> parseTest (parentheses "foobar") "()"
+  >>> parse (parentheses "foobar") "()"
   1:2:
     |
   1 | ()
@@ -61,16 +61,16 @@ parentheses inner =
   including newlines, is allowed between the braces and the inner parser.
 
   Examples:
-  >>> parseTest (braces "foobar") "{foobar}"
+  >>> parse (braces "foobar") "{foobar}"
   "foobar"
 
-  >>> parseTest (braces "foobar") "{  foobar  }"
+  >>> parse (braces "foobar") "{  foobar  }"
   "foobar"
 
-  >>> parseTest (braces "foobar") "{\nfoobar\n}"
+  >>> parse (braces "foobar") "{\nfoobar\n}"
   "foobar"
 
-  >>> parseTest (braces "foobar") "{foobar"
+  >>> parse (braces "foobar") "{foobar"
   1:8:
     |
   1 | {foobar
@@ -78,7 +78,7 @@ parentheses inner =
   unexpected end of input
   expecting close brace
 
-  >>> parseTest (braces "foobar") "foobar}"
+  >>> parse (braces "foobar") "foobar}"
   1:1:
     |
   1 | foobar}
@@ -86,7 +86,7 @@ parentheses inner =
   unexpected 'f'
   expecting open brace
 
-  >>> parseTest (braces "foobar") "{}"
+  >>> parse (braces "foobar") "{}"
   1:2:
     |
   1 | {}
@@ -105,10 +105,10 @@ braces inner =
   between the double quotes and the inner parser.
 
   Examples:
-  >>> parseTest (doubleQuotes "foobar") "\"foobar\""
+  >>> parse (doubleQuotes "foobar") "\"foobar\""
   "foobar"
 
-  >>> parseTest (doubleQuotes "foobar") "\"  foobar  \""
+  >>> parse (doubleQuotes "foobar") "\"  foobar  \""
   1:2:
     |
   1 | "  foobar  "
@@ -116,7 +116,7 @@ braces inner =
   unexpected "  foob"
   expecting "foobar"
 
-  >>> parseTest (doubleQuotes "foobar") "\"\nfoobar\n\""
+  >>> parse (doubleQuotes "foobar") "\"\nfoobar\n\""
   1:2:
     |
   1 | "
@@ -124,7 +124,7 @@ braces inner =
   unexpected "<newline>fooba"
   expecting "foobar"
 
-  >>> parseTest (doubleQuotes "foobar") "\"foobar"
+  >>> parse (doubleQuotes "foobar") "\"foobar"
   1:8:
     |
   1 | "foobar
@@ -132,7 +132,7 @@ braces inner =
   unexpected end of input
   expecting close double quotes
 
-  >>> parseTest (doubleQuotes "foobar") "foobar\""
+  >>> parse (doubleQuotes "foobar") "foobar\""
   1:1:
     |
   1 | foobar"
@@ -140,7 +140,7 @@ braces inner =
   unexpected 'f'
   expecting open double quotes
 
-  >>> parseTest (doubleQuotes "foobar") "\"\""
+  >>> parse (doubleQuotes "foobar") "\"\""
   1:2:
     |
   1 | ""

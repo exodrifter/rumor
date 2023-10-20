@@ -14,7 +14,7 @@ tests =
       HUnit.TestCase do
         contents <- TIO.readFile fileName
 
-        let result = Rumor.parse fileName contents
+        let result = Rumor.parse Rumor.newContext fileName contents
         case result of
           Right _ ->
             pure ()

@@ -1,10 +1,11 @@
 module Rumor.Parser.Common
-( Parser
+( Parser, runParser, parseTest
+, Context, newContext
 , rumorError
 
 , lexeme, hlexeme
 , space, hspace
-, eolf
+, Mega.eof, eolf
 
 -- Re-exports
 , (<?>)
@@ -14,17 +15,50 @@ module Rumor.Parser.Common
 import Data.Text (Text)
 import Text.Megaparsec ((<?>), (<|>))
 
+import qualified Control.Monad.Reader as Reader
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Megaparsec.Error as Error
+import qualified Rumor.Internal.Types as Rumor
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
+-- >>> let parse inner = parseTest newContext (inner <* Mega.eof)
 
-type Parser a = Mega.Parsec RumorError Text a
+type Parser a =
+  Mega.ParsecT RumorError Text (Reader.Reader Context) a
+
+runParser :: Context -> Parser a -> FilePath -> Text -> Either String a
+runParser context parser fileName fileContents =
+  let
+    result =
+      Reader.runReader
+        (Mega.runParserT parser fileName fileContents)
+        context
+  in
+    case result of
+      Right a -> Right a
+      Left err -> Left (Error.errorBundlePretty err)
+
+parseTest :: Show a => Context -> Parser a -> Text -> IO ()
+parseTest context parser text =
+  case runParser context parser "" text of
+    Left e -> putStr e
+    Right x -> print x
+
+newtype Context =
+  Context
+    { variableTypes :: Map.Map Rumor.Unicode Rumor.Type
+    }
+
+newContext :: Context
+newContext =
+  Context
+    { variableTypes = Map.empty
+    }
 
 data RumorError = RumorError { rumorErrorToText :: Text, rumorErrorLength :: Int }
   deriving (Eq, Ord)
@@ -56,16 +90,16 @@ blockComment = Lexer.skipBlockComment "/*" "*/"
 
 {-| Parses a newline or the end of the file.
 
-  >>> parseTest eolf ""
+  >>> parse eolf ""
   ()
 
-  >>> parseTest eolf "\r\n"
+  >>> parse eolf "\r\n"
   ()
 
-  >>> parseTest eolf "\n"
+  >>> parse eolf "\n"
   ()
 
-  >>> parseTest eolf "\r"
+  >>> parse eolf "\r"
   ()
 -}
 eolf :: Parser ()

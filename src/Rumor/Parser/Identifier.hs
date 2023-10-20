@@ -13,39 +13,39 @@ import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
+-- >>> import Rumor.Parser.Common
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 {-| Parses a label, which is defined as any non-empty consecutive sequence of
   letters, digits, marks, underscores, and dashes surrounded by square brackets.
 
-  >>> parseTest label "[alice]"
+  >>> parse label "[alice]"
   Label (Unicode "alice")
 
-  >>> parseTest label "[alícia]"
+  >>> parse label "[alícia]"
   Label (Unicode "al\237cia")
 
-  >>> parseTest label "[アリス]"
+  >>> parse label "[アリス]"
   Label (Unicode "\12450\12522\12473")
 
-  >>> parseTest label "[123]"
+  >>> parse label "[123]"
   Label (Unicode "123")
 
-  >>> parseTest label "[alice-alícia-アリス]"
+  >>> parse label "[alice-alícia-アリス]"
   Label (Unicode "alice-al\237cia-\12450\12522\12473")
 
-  >>> parseTest label "[alice_alícia_アリス]"
+  >>> parse label "[alice_alícia_アリス]"
   Label (Unicode "alice_al\237cia_\12450\12522\12473")
 
   You can have extra spaces between the brackets, but newlines are not okay.
 
-  >>> parseTest label "[  alice  ]"
+  >>> parse label "[  alice  ]"
   Label (Unicode "alice")
 
-  >>> parseTest label "[\talice\t]"
+  >>> parse label "[\talice\t]"
   Label (Unicode "alice")
 
-  >>> parseTest label "[\nalice\n]"
+  >>> parse label "[\nalice\n]"
   1:2:
     |
   1 | [
@@ -55,7 +55,7 @@ import qualified Text.Megaparsec.Char as Char
 
   Labels cannot be empty or contain spaces.
 
-  >>> parseTest label "[]"
+  >>> parse label "[]"
   1:2:
     |
   1 | []
@@ -63,7 +63,7 @@ import qualified Text.Megaparsec.Char as Char
   unexpected ']'
   expecting identifier
 
-  >>> parseTest label "[alice alícia アリス]"
+  >>> parse label "[alice alícia アリス]"
   1:8:
     |
   1 | [alice alícia アリス]
@@ -73,10 +73,10 @@ import qualified Text.Megaparsec.Char as Char
 
   Trailing horizontal space is consumed, but not vertical space.
 
-  >>> parseTest label "[alice]    "
+  >>> parse label "[alice]    "
   Label (Unicode "alice")
 
-  >>> parseTest label "[alice]\n"
+  >>> parse label "[alice]\n"
   1:8:
     |
   1 | [alice]
@@ -98,27 +98,27 @@ label =
 {-| Parses an identifier, which is defined as any non-empty consecutive sequence
   of letters, digits, marks, underscores, and dashes.
 
-  >>> parseTest identifier "alice"
+  >>> parse identifier "alice"
   Unicode "alice"
 
-  >>> parseTest identifier "alícia"
+  >>> parse identifier "alícia"
   Unicode "al\237cia"
 
-  >>> parseTest identifier "アリス"
+  >>> parse identifier "アリス"
   Unicode "\12450\12522\12473"
 
-  >>> parseTest identifier "123"
+  >>> parse identifier "123"
   Unicode "123"
 
-  >>> parseTest identifier "alice-alícia-アリス"
+  >>> parse identifier "alice-alícia-アリス"
   Unicode "alice-al\237cia-\12450\12522\12473"
 
-  >>> parseTest identifier "alice_alícia_アリス"
+  >>> parse identifier "alice_alícia_アリス"
   Unicode "alice_al\237cia_\12450\12522\12473"
 
   Identifiers cannot be empty or contain spaces.
 
-  >>> parseTest identifier ""
+  >>> parse identifier ""
   1:1:
     |
   1 | <empty line>
@@ -126,7 +126,7 @@ label =
   unexpected end of input
   expecting identifier
 
-  >>> parseTest identifier "alice alícia アリス"
+  >>> parse identifier "alice alícia アリス"
   1:7:
     |
   1 | alice alícia アリス
@@ -136,10 +136,10 @@ label =
 
   Trailing horizontal space is consumed, but not vertical space.
 
-  >>> parseTest identifier "alice    "
+  >>> parse identifier "alice    "
   Unicode "alice"
 
-  >>> parseTest identifier "alice\n"
+  >>> parse identifier "alice\n"
   1:6:
     |
   1 | alice
@@ -149,7 +149,7 @@ label =
 
   Identifiers cannot start with mark characters.
 
-  >>> parseTest identifier "◌̈mark"
+  >>> parse identifier "◌̈mark"
   1:1:
     |
   1 | ◌̈mark

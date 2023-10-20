@@ -19,9 +19,9 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Parser.Combinators as Combinators
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
+-- >>> import Rumor.Parser.Common
 -- >>> import Rumor.Internal.Types (Expression(..))
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 --------------------------------------------------------------------------------
 -- Boolean
@@ -30,141 +30,141 @@ import qualified Text.Parser.Combinators as Combinators
 {-| Parses a boolean expression. Any amount of space, including newlines, is
   allowed between the terms of the boolean expression.
 
-  >>> parseTest booleanExpression "true"
+  >>> parse booleanExpression "true"
   Boolean True
 
-  >>> parseTest booleanExpression "false"
+  >>> parse booleanExpression "false"
   Boolean False
 
   In order from highest to lowest precedence:
 
-  >>> parseTest booleanExpression "not true"
+  >>> parse booleanExpression "not true"
   LogicalNot (Boolean True)
 
-  >>> parseTest booleanExpression "true == false"
+  >>> parse booleanExpression "true == false"
   EqualBoolean (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true is false"
+  >>> parse booleanExpression "true is false"
   EqualBoolean (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true /= false"
+  >>> parse booleanExpression "true /= false"
   NotEqualBoolean (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true xor false"
+  >>> parse booleanExpression "true xor false"
   LogicalXor (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true ^ false"
+  >>> parse booleanExpression "true ^ false"
   LogicalXor (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true and false"
+  >>> parse booleanExpression "true and false"
   LogicalAnd (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true && false"
+  >>> parse booleanExpression "true && false"
   LogicalAnd (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true or false"
+  >>> parse booleanExpression "true or false"
   LogicalOr (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true || false"
+  >>> parse booleanExpression "true || false"
   LogicalOr (Boolean True) (Boolean False)
 
   You can use parenthesis to change the precedence of the operations.
 
-  >>> parseTest booleanExpression "true and true or false xor true"
+  >>> parse booleanExpression "true and true or false xor true"
   LogicalOr (LogicalAnd (Boolean True) (Boolean True)) (LogicalXor (Boolean False) (Boolean True))
 
-  >>> parseTest booleanExpression "true and (true or false) xor true"
+  >>> parse booleanExpression "true and (true or false) xor true"
   LogicalAnd (Boolean True) (LogicalXor (LogicalOr (Boolean True) (Boolean False)) (Boolean True))
 
   You can also do value comparisons.
 
-  >>> parseTest booleanExpression "\"apples\" == \"oranges\""
+  >>> parse booleanExpression "\"apples\" == \"oranges\""
   EqualString (String "apples") (String "oranges")
 
-  >>> parseTest booleanExpression "1.0 /= 2.0"
+  >>> parse booleanExpression "1.0 /= 2.0"
   NotEqualNumber (Number 1.0) (Number 2.0)
 
   You can also use variables.
 
-  >>> parseTest booleanExpression "foobar"
+  >>> parse booleanExpression "foobar"
   BooleanVariable (VariableName (Unicode "foobar"))
 
-  >>> parseTest booleanExpression "foobar || true"
+  >>> parse booleanExpression "foobar || true"
   LogicalOr (BooleanVariable (VariableName (Unicode "foobar"))) (Boolean True)
 
   TODO: I'm not sure how to handle this case yet, I don't think it's a good idea
   to treat all variables as booleans when an equality is involved.
-  >>> parseTest booleanExpression "foo == bar"
+  >>> parse booleanExpression "foo == bar"
   EqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
   You can use newlines.
 
-  >>> parseTest booleanExpression "true\n||\nfalse"
+  >>> parse booleanExpression "true\n||\nfalse"
   LogicalOr (Boolean True) (Boolean False)
 
   You don't need to use whitespace if you are using the non-word forms of the
   operators.
 
-  >>> parseTest booleanExpression "true||false"
+  >>> parse booleanExpression "true||false"
   LogicalOr (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "trueorfalse"
+  >>> parse booleanExpression "trueorfalse"
   BooleanVariable (VariableName (Unicode "trueorfalse"))
 
-  >>> parseTest booleanExpression "true&&false"
+  >>> parse booleanExpression "true&&false"
   LogicalAnd (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "trueandfalse"
+  >>> parse booleanExpression "trueandfalse"
   BooleanVariable (VariableName (Unicode "trueandfalse"))
 
-  >>> parseTest booleanExpression "true^false"
+  >>> parse booleanExpression "true^false"
   LogicalXor (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "truexorfalse"
+  >>> parse booleanExpression "truexorfalse"
   BooleanVariable (VariableName (Unicode "truexorfalse"))
 
-  >>> parseTest booleanExpression "!false"
+  >>> parse booleanExpression "!false"
   LogicalNot (Boolean False)
 
-  >>> parseTest booleanExpression "nottrue"
+  >>> parse booleanExpression "nottrue"
   BooleanVariable (VariableName (Unicode "nottrue"))
 
-  >>> parseTest booleanExpression "trueistrue"
+  >>> parse booleanExpression "trueistrue"
   BooleanVariable (VariableName (Unicode "trueistrue"))
 
   The same applies for variables, though with variables you will just end up
   with a different variable name.
 
-  >>> parseTest booleanExpression "foo||bar"
+  >>> parse booleanExpression "foo||bar"
   LogicalOr (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
-  >>> parseTest booleanExpression "fooorbar"
+  >>> parse booleanExpression "fooorbar"
   BooleanVariable (VariableName (Unicode "fooorbar"))
 
-  >>> parseTest booleanExpression "foo&&bar"
+  >>> parse booleanExpression "foo&&bar"
   LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
-  >>> parseTest booleanExpression "fooandbar"
+  >>> parse booleanExpression "fooandbar"
   BooleanVariable (VariableName (Unicode "fooandbar"))
 
-  >>> parseTest booleanExpression "foo^bar"
+  >>> parse booleanExpression "foo^bar"
   LogicalXor (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
-  >>> parseTest booleanExpression "fooxorbar"
+  >>> parse booleanExpression "fooxorbar"
   BooleanVariable (VariableName (Unicode "fooxorbar"))
 
-  >>> parseTest booleanExpression "!bar"
+  >>> parse booleanExpression "!bar"
   LogicalNot (BooleanVariable (VariableName (Unicode "bar")))
 
-  >>> parseTest booleanExpression "notfoo"
+  >>> parse booleanExpression "notfoo"
   BooleanVariable (VariableName (Unicode "notfoo"))
 
-  >>> parseTest booleanExpression "fooistrue"
+  >>> parse booleanExpression "fooistrue"
   BooleanVariable (VariableName (Unicode "fooistrue"))
 
   You cannot write incomplete boolean expressions.
 
-  >>> parseTest booleanExpression "/="
+  >>> parse booleanExpression "/="
   1:1:
     |
   1 | /=
@@ -172,7 +172,7 @@ import qualified Text.Parser.Combinators as Combinators
   unexpected "/="
   expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
 
-  >>> parseTest booleanExpression "/= true"
+  >>> parse booleanExpression "/= true"
   1:1:
     |
   1 | /= true
@@ -180,7 +180,7 @@ import qualified Text.Parser.Combinators as Combinators
   unexpected "/= tr"
   expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
 
-  >>> parseTest booleanExpression "true /="
+  >>> parse booleanExpression "true /="
   1:8:
     |
   1 | true /=
@@ -190,13 +190,13 @@ import qualified Text.Parser.Combinators as Combinators
 
   This parser doesn't consume trailing whitespace.
 
-  >>> parseTest booleanExpression "true  \n  "
+  >>> parse booleanExpression "true  \n  "
   1:5:
     |
   1 | true
     |     ^
   unexpected space
-
+  expecting end of input
 -}
 booleanExpression :: Parser (Rumor.Expression Bool)
 booleanExpression =
@@ -250,29 +250,29 @@ booleanExpression =
 {-| Parses a value equality comparison.
 
   >>> let booleanEquality = valueEquality boolean EqualBoolean NotEqualBoolean
-  >>> parseTest booleanEquality "true == false"
+  >>> parse booleanEquality "true == false"
   EqualBoolean (Boolean True) (Boolean False)
 
-  >>> parseTest booleanEquality "true /= false"
+  >>> parse booleanEquality "true /= false"
   NotEqualBoolean (Boolean True) (Boolean False)
 
-  >>> parseTest booleanEquality "true != false"
+  >>> parse booleanEquality "true != false"
   NotEqualBoolean (Boolean True) (Boolean False)
 
   You can use newlines.
 
-  >>> parseTest booleanEquality "true\n\n==\n\nfalse" -- Newlines are fine
+  >>> parse booleanEquality "true\n\n==\n\nfalse" -- Newlines are fine
   EqualBoolean (Boolean True) (Boolean False)
 
   You don't need to use whitespace if you are using the non-word forms of the
   operators.
 
-  >>> parseTest booleanEquality "true==false"
+  >>> parse booleanEquality "true==false"
   EqualBoolean (Boolean True) (Boolean False)
 
   You cannot write incomplete equality expressions.
 
-  >>> parseTest booleanEquality "=="
+  >>> parse booleanEquality "=="
   1:1:
     |
   1 | ==
@@ -280,7 +280,7 @@ booleanExpression =
   unexpected "=="
   expecting "false" or "true"
 
-  >>> parseTest booleanEquality "true =="
+  >>> parse booleanEquality "true =="
   1:8:
     |
   1 | true ==
@@ -288,7 +288,7 @@ booleanExpression =
   unexpected end of input
   expecting "false" or "true"
 
-  >>> parseTest booleanEquality "== true"
+  >>> parse booleanEquality "== true"
   1:1:
     |
   1 | == true
@@ -298,12 +298,13 @@ booleanExpression =
 
   This parser doesn't consume trailing whitespace.
 
-  >>> parseTest booleanExpression "true == false  \n  "
+  >>> parse booleanExpression "true == false  \n  "
   1:14:
     |
   1 | true == false
     |              ^
   unexpected space
+  expecting end of input
 -}
 valueEquality :: Show a
               => Parser a
@@ -327,13 +328,13 @@ valueEquality arg eqConstructor neqConstructor = do
 
 {-| Parses a boolean literal, which can either be true or false.
 
-  >>> parseTest boolean "true"
+  >>> parse boolean "true"
   Boolean True
 
-  >>> parseTest boolean "false"
+  >>> parse boolean "false"
   Boolean False
 
-  >>> parseTest boolean "True"
+  >>> parse boolean "True"
   1:1:
     |
   1 | True
@@ -374,58 +375,58 @@ boolean =
 {-| Parses a mathematical expression. Any amount of space, including newlines,
   is allowed between the terms of the mathematical expression.
 
-  >>> parseTest numberExpression "1"
+  >>> parse numberExpression "1"
   Number 1.0
 
-  >>> parseTest numberExpression "-1"
+  >>> parse numberExpression "-1"
   Number (-1.0)
 
   In order from highest to lowest precedence:
 
-  >>> parseTest numberExpression "1 * 2"
+  >>> parse numberExpression "1 * 2"
   Multiplication (Number 1.0) (Number 2.0)
 
-  >>> parseTest numberExpression "1 / 2"
+  >>> parse numberExpression "1 / 2"
   Division (Number 1.0) (Number 2.0)
 
-  >>> parseTest numberExpression "1 + 2"
+  >>> parse numberExpression "1 + 2"
   Addition (Number 1.0) (Number 2.0)
 
-  >>> parseTest numberExpression "1 - 2"
+  >>> parse numberExpression "1 - 2"
   Subtraction (Number 1.0) (Number 2.0)
 
   You can use parenthesis to change the precedence of the operations.
 
-  >>> parseTest numberExpression "1 * 2 + 3 / -4"
+  >>> parse numberExpression "1 * 2 + 3 / -4"
   Addition (Multiplication (Number 1.0) (Number 2.0)) (Division (Number 3.0) (Number (-4.0)))
 
-  >>> parseTest numberExpression "1 * (2 + 3) / -4"
+  >>> parse numberExpression "1 * (2 + 3) / -4"
   Division (Multiplication (Number 1.0) (Addition (Number 2.0) (Number 3.0))) (Number (-4.0))
 
   You can use negative signs in an expression.
 
-  >>> parseTest numberExpression "-1 - -2"
+  >>> parse numberExpression "-1 - -2"
   Subtraction (Number (-1.0)) (Number (-2.0))
 
   You can also use variables.
 
-  >>> parseTest numberExpression "foobar"
+  >>> parse numberExpression "foobar"
   NumberVariable (VariableName (Unicode "foobar"))
 
-  >>> parseTest numberExpression "foobar + 1.0"
+  >>> parse numberExpression "foobar + 1.0"
   Addition (NumberVariable (VariableName (Unicode "foobar"))) (Number 1.0)
 
   You can use no whitespace or additional newlines:
 
-  >>> parseTest numberExpression "1*3--4/2" -- No whitespace is okay
+  >>> parse numberExpression "1*3--4/2" -- No whitespace is okay
   Subtraction (Multiplication (Number 1.0) (Number 3.0)) (Division (Number (-4.0)) (Number 2.0))
 
-  >>> parseTest numberExpression "1\n*\n3\n-\n-4\n/\n2" -- Newlines are okay
+  >>> parse numberExpression "1\n*\n3\n-\n-4\n/\n2" -- Newlines are okay
   Subtraction (Multiplication (Number 1.0) (Number 3.0)) (Division (Number (-4.0)) (Number 2.0))
 
   You cannot write incomplete number expressions.
 
-  >>> parseTest numberExpression "*"
+  >>> parse numberExpression "*"
   1:1:
     |
   1 | *
@@ -433,7 +434,7 @@ boolean =
   unexpected '*'
   expecting open parenthesis, signed number, or variable
 
-  >>> parseTest numberExpression "1 * 2 + 3 /"
+  >>> parse numberExpression "1 * 2 + 3 /"
   1:12:
     |
   1 | 1 * 2 + 3 /
@@ -443,7 +444,7 @@ boolean =
 
   You cannot use the `/=` operator.
 
-  >>> parseTest numberExpression "1 * 2 + 3 /= 4"
+  >>> parse numberExpression "1 * 2 + 3 /= 4"
   1:12:
     |
   1 | 1 * 2 + 3 /= 4
@@ -451,13 +452,13 @@ boolean =
   unexpected '='
 
   This parser doesn't consume trailing whitespace.
-  >>> parseTest numberExpression "1 * 2  \n  "
+  >>> parse numberExpression "1 * 2  \n  "
   1:6:
     |
   1 | 1 * 2
     |      ^
   unexpected space
-  expecting '.', 'E', 'e', or digit
+  expecting '.', 'E', 'e', digit, or end of input
 
 -}
 numberExpression :: Parser (Rumor.Expression Scientific)
@@ -499,43 +500,43 @@ numberExpression =
 {-| Parses a number literal, which can be any signed decimal number. It can be
   written using scientific notation.
 
-  >>> parseTest number "1"
+  >>> parse number "1"
   Number 1.0
 
-  >>> parseTest number "1.0"
+  >>> parse number "1.0"
   Number 1.0
 
-  >>> parseTest number "+1.0"
+  >>> parse number "+1.0"
   Number 1.0
 
-  >>> parseTest number "-1.0"
+  >>> parse number "-1.0"
   Number (-1.0)
 
-  >>> parseTest number "+1"
+  >>> parse number "+1"
   Number 1.0
 
-  >>> parseTest number "-1"
+  >>> parse number "-1"
   Number (-1.0)
 
-  >>> parseTest number "1e10"
+  >>> parse number "1e10"
   Number 1.0e10
 
-  >>> parseTest number "+1e10"
+  >>> parse number "+1e10"
   Number 1.0e10
 
-  >>> parseTest number "-1e10"
+  >>> parse number "-1e10"
   Number (-1.0e10)
 
   Error examples:
-  >>> parseTest number "1."
+  >>> parse number "1."
   1:2:
     |
   1 | 1.
     |  ^
   unexpected '.'
-  expecting 'E', 'e', or digit
+  expecting 'E', 'e', digit, or end of input
 
-  >>> parseTest number ".1"
+  >>> parse number ".1"
   1:1:
     |
   1 | .1
@@ -560,18 +561,18 @@ stringExpression =
 {-| Parses a string, which is any quoted string with interpolated values and no
   newlines.
 
-  >>> parseTest stringExpression "\"Hello world!\""
+  >>> parse stringExpression "\"Hello world!\""
   String "Hello world!"
 
-  >>> parseTest stringExpression "\"I have { 5 } mangoes!\""
+  >>> parse stringExpression "\"I have { 5 } mangoes!\""
   Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
 
-  >>> parseTest stringExpression "\"Hello\\nworld!\""
+  >>> parse stringExpression "\"Hello\\nworld!\""
   String "Hello\nworld!"
 
   You cannot use newlines in a string.
 
-  >>> parseTest stringExpression "\"Hello\nworld!\"" -- Newlines are not okay
+  >>> parse stringExpression "\"Hello\nworld!\"" -- Newlines are not okay
   1:7:
     |
   1 | "Hello
@@ -581,7 +582,7 @@ stringExpression =
 
   You must provide both the open and close double quotes.
 
-  >>> parseTest stringExpression "\""
+  >>> parse stringExpression "\""
   1:2:
     |
   1 | "
@@ -589,7 +590,7 @@ stringExpression =
   unexpected end of input
   expecting '\', close double quotes, interpolation, or literal char
 
-  >>> parseTest stringExpression "\"Hello world!"
+  >>> parse stringExpression "\"Hello world!"
   1:14:
     |
   1 | "Hello world!
@@ -597,15 +598,16 @@ stringExpression =
   unexpected end of input
   expecting '\', close double quotes, interpolation, or literal char
 
-  >>> parseTest stringExpression "Hello world!\""
+  >>> parse stringExpression "Hello world!\""
   1:6:
     |
   1 | Hello world!"
     |      ^
   unexpected space
+  expecting end of input
 
   You must provide both the open and close brace for interpolated values
-  >>> parseTest stringExpression "\"{\""
+  >>> parse stringExpression "\"{\""
   1:4:
     |
   1 | "{"
@@ -613,7 +615,7 @@ stringExpression =
   unexpected end of input
   expecting '\', close double quotes, interpolation, or literal char
 
-  >>> parseTest stringExpression "\"}\""
+  >>> parse stringExpression "\"}\""
   1:2:
     |
   1 | "}"
@@ -623,12 +625,13 @@ stringExpression =
 
   This parser doesn't consume trailing whitespace.
 
-  >>> parseTest stringExpression "\"Hello world!\"   "
+  >>> parse stringExpression "\"Hello world!\"   "
   1:15:
     |
   1 | "Hello world!"
     |               ^
   unexpected space
+  expecting end of input
 -}
 string :: Parser (Rumor.Expression Text)
 string = do
@@ -662,25 +665,25 @@ stringEscapes =
 
 {-| Parses a character escape sequence.
 
-  >>> parseTest (escape stringEscapes) "\\n"
+  >>> parse (escape stringEscapes) "\\n"
   String "\n"
 
-  >>> parseTest (escape stringEscapes) "\\r"
+  >>> parse (escape stringEscapes) "\\r"
   String "\r"
 
-  >>> parseTest (escape stringEscapes) "\\\\"
+  >>> parse (escape stringEscapes) "\\\\"
   String "\\"
 
-  >>> parseTest (escape stringEscapes) "\\{"
+  >>> parse (escape stringEscapes) "\\{"
   String "{"
 
-  >>> parseTest (escape stringEscapes) "\\}"
+  >>> parse (escape stringEscapes) "\\}"
   String "}"
 
-  >>> parseTest (escape stringEscapes) "\\\""
+  >>> parse (escape stringEscapes) "\\\""
   String "\""
 
-  >>> parseTest (escape stringEscapes) "\\"
+  >>> parse (escape stringEscapes) "\\"
   1:2:
     |
   1 | \
@@ -702,32 +705,32 @@ escape escapes = do
   expression surrounded by braces.
 
   Examples:
-  >>> parseTest interpolation "{ true }"
+  >>> parse interpolation "{ true }"
   BooleanToString (Boolean True)
 
-  >>> parseTest interpolation "{ true || false }"
+  >>> parse interpolation "{ true || false }"
   BooleanToString (LogicalOr (Boolean True) (Boolean False))
 
-  >>> parseTest interpolation "{ 123 }"
+  >>> parse interpolation "{ 123 }"
   NumberToString (Number 123.0)
 
-  >>> parseTest interpolation "{ 123 + 456 }"
+  >>> parse interpolation "{ 123 + 456 }"
   NumberToString (Addition (Number 123.0) (Number 456.0))
 
-  >>> parseTest interpolation "{ \"foobar\" }"
+  >>> parse interpolation "{ \"foobar\" }"
   String "foobar"
 
   You can use whitespace between the braces and the expression.
 
-  >>> parseTest interpolation "{true}" -- No whitespace is okay
+  >>> parse interpolation "{true}" -- No whitespace is okay
   BooleanToString (Boolean True)
 
-  >>> parseTest interpolation "{\ntrue\n}" -- Newlines are okay
+  >>> parse interpolation "{\ntrue\n}" -- Newlines are okay
   BooleanToString (Boolean True)
 
   The interpolation cannot be empty.
 
-  >>> parseTest interpolation "{}"
+  >>> parse interpolation "{}"
   1:2:
     |
   1 | {}
@@ -737,7 +740,7 @@ escape escapes = do
 
   You must provide both braces for an interpolation.
 
-  >>> parseTest interpolation "{true"
+  >>> parse interpolation "{true"
   1:6:
     |
   1 | {true
@@ -745,7 +748,7 @@ escape escapes = do
   unexpected end of input
   expecting "!=", "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', or close brace
 
-  >>> parseTest interpolation "true}"
+  >>> parse interpolation "true}"
   1:1:
     |
   1 | true}
@@ -768,13 +771,13 @@ interpolation =
 {-| Parses the name of a variable. A variable is any identifier that doesn't
   start with a number and isn't a reserved keyword.
 
-  >>> parseTest (variable Rumor.StringVariable) "foobar"
+  >>> parse (variable Rumor.StringVariable) "foobar"
   StringVariable (VariableName (Unicode "foobar"))
 
-  >>> parseTest (variable Rumor.StringVariable) "foo123"
+  >>> parse (variable Rumor.StringVariable) "foo123"
   StringVariable (VariableName (Unicode "foo123"))
 
-  >>> parseTest (variable Rumor.StringVariable) "123foo"
+  >>> parse (variable Rumor.StringVariable) "123foo"
   1:1:
     |
   1 | 123foo
@@ -782,7 +785,7 @@ interpolation =
   unexpected '1'
   expecting variable
 
-  >>> parseTest (variable Rumor.StringVariable) "true"
+  >>> parse (variable Rumor.StringVariable) "true"
   1:1:
     |
   1 | true

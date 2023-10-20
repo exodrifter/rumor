@@ -16,42 +16,41 @@ import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
--- >>> import Rumor.Parser.Common (hspace)
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
+-- >>> import Rumor.Parser.Common
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 {-| Parses an unquoted string followed by an indented multi-line one and an
   optional label.
 
   An unquoted string can be a single line.
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "Hello world!"
+  >>> parse (unquoted (Mega.mkPos 1)) "Hello world!"
   (String "Hello world!",Nothing)
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "Hello world! [label]"
+  >>> parse (unquoted (Mega.mkPos 1)) "Hello world! [label]"
   (String "Hello world!",Just (Label (Unicode "label")))
 
   An unquoted string over multiple lines must indent all lines the same, except
   for the first line.
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz"
+  >>> parse (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz"
   (String "foo bar baz",Nothing)
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz [label]"
+  >>> parse (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz [label]"
   (String "foo bar baz",Just (Label (Unicode "label")))
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz\n  [label]"
+  >>> parse (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz\n  [label]"
   (String "foo bar baz",Just (Label (Unicode "label")))
 
   An unquoted string can start indented on the next line.
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "\n  bar\n  baz"
+  >>> parse (unquoted (Mega.mkPos 1)) "\n  bar\n  baz"
   (String "bar baz",Nothing)
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "\n  bar\n  baz\n  [label]"
+  >>> parse (unquoted (Mega.mkPos 1)) "\n  bar\n  baz\n  [label]"
   (String "bar baz",Just (Label (Unicode "label")))
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "\nbar\nbaz"
+  >>> parse (unquoted (Mega.mkPos 1)) "\nbar\nbaz"
   2:1:
     |
   2 | bar
@@ -60,7 +59,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
   An unquoted string cannot be empty.
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) ""
+  >>> parse (unquoted (Mega.mkPos 1)) ""
   1:1:
     |
   1 | <empty line>
@@ -68,7 +67,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   unexpected end of input
   expecting carriage return, crlf newline, newline, or unquoted line
 
-  >>> parseTest (do hspace; unquoted (Mega.mkPos 1)) "  "
+  >>> parse (do hspace; unquoted (Mega.mkPos 1)) "  "
   1:3:
     |
   1 |
@@ -76,7 +75,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   unexpected end of input
   expecting carriage return, crlf newline, newline, or unquoted line
 
-  >>> parseTest (do hspace; unquoted (Mega.mkPos 1)) "  \n"
+  >>> parse (do hspace; unquoted (Mega.mkPos 1)) "  \n"
   2:1:
     |
   2 | <empty line>
@@ -84,7 +83,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   unexpected end of input
   expecting unquoted line
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "\n  "
+  >>> parse (unquoted (Mega.mkPos 1)) "\n  "
   2:3:
     |
   2 |
@@ -94,22 +93,22 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
   Trailing vertical and horizontal space is consumed.
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n"
+  >>> parse (unquoted (Mega.mkPos 1)) "foo\n"
   (String "foo",Nothing)
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n"
+  >>> parse (unquoted (Mega.mkPos 1)) "foo  \n"
   (String "foo",Nothing)
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz\n"
+  >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz\n"
   (String "foo bar baz",Nothing)
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  "
+  >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  "
   (String "foo bar baz",Nothing)
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n"
+  >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n"
   (String "foo bar baz",Nothing)
 
-  >>> parseTest (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n  "
+  >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n  "
   (String "foo bar baz",Nothing)
 -}
 unquoted :: Mega.Pos -> Parser (Rumor.Expression Text, Maybe Rumor.Label)
@@ -157,28 +156,28 @@ unquoted ref = do
 
   Blocks can contain a single string literal.
 
-  >>> parseTest unquotedBlock "Hello world!"
+  >>> parse unquotedBlock "Hello world!"
   String "Hello world!"
 
-  >>> parseTest unquotedBlock "I have { 5 } mangoes!"
+  >>> parse unquotedBlock "I have { 5 } mangoes!"
   Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
 
-  >>> parseTest unquotedBlock "Hello\\nworld!"
+  >>> parse unquotedBlock "Hello\\nworld!"
   String "Hello\nworld!"
 
   Blocks can have multiple indented lines, as long as each line has the same
   amount of indentation. Each line will be joined with a single space.
 
-  >>> parseTest unquotedBlock "Hello\nworld!"
+  >>> parse unquotedBlock "Hello\nworld!"
   String "Hello world!"
 
-  >>> parseTest (do hspace; unquotedBlock) "  foo\n  bar\n  baz"
+  >>> parse (do hspace; unquotedBlock) "  foo\n  bar\n  baz"
   String "foo bar baz"
 
-  >>> parseTest (do hspace; unquotedBlock) "  foo\r\n  bar\r\n  baz"
+  >>> parse (do hspace; unquotedBlock) "  foo\r\n  bar\r\n  baz"
   String "foo bar baz"
 
-  >>> parseTest (do hspace; unquotedBlock) "  foo\n  bar\n baz"
+  >>> parse (do hspace; unquotedBlock) "  foo\n  bar\n baz"
   2:6:
     |
   2 |   bar
@@ -188,7 +187,7 @@ unquoted ref = do
 
   Blocks can also end when a label is encountered
 
-  >>> parseTest unquotedBlock "Hello world! [label]"
+  >>> parse unquotedBlock "Hello world! [label]"
   1:14:
     |
   1 | Hello world! [label]
@@ -196,7 +195,7 @@ unquoted ref = do
   unexpected '['
   expecting '\', end of input, interpolation, or literal char
 
-  >>> parseTest unquotedBlock "foo\nbar\nbaz [label]"
+  >>> parse unquotedBlock "foo\nbar\nbaz [label]"
   3:5:
     |
   3 | baz [label]
@@ -204,7 +203,7 @@ unquoted ref = do
   unexpected '['
   expecting '\', end of input, interpolation, or literal char
 
-  >>> parseTest (do hspace; unquotedBlock) "  foo\n  bar\n    baz"
+  >>> parse (do hspace; unquotedBlock) "  foo\n  bar\n    baz"
   3:5:
     |
   3 |     baz
@@ -214,10 +213,10 @@ unquoted ref = do
   Trailing horizontal space is consumed on each line, but not the vertical space
   on the last line.
 
-  >>> parseTest unquotedBlock "foo  \nbar\t\nbaz  "
+  >>> parse unquotedBlock "foo  \nbar\t\nbaz  "
   String "foo bar baz"
 
-  >>> parseTest unquotedBlock "foo  \nbar  \nbaz  \n"
+  >>> parse unquotedBlock "foo  \nbar  \nbaz  \n"
   3:6:
     |
   3 | baz  
@@ -269,16 +268,16 @@ unquotedBlock = do
 
 {-| Parses an unquoted line, which is an interpolated, non-empty string literal.
 
-  >>> parseTest unquotedLine "Hello world!"
+  >>> parse unquotedLine "Hello world!"
   String "Hello world!"
 
-  >>> parseTest unquotedLine "I have { 5 } mangoes!"
+  >>> parse unquotedLine "I have { 5 } mangoes!"
   Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
 
   Unquoted lines end whenever vertical space or a label is enountered, without
   consuming the vertical space or label.
 
-  >>> parseTest unquotedLine "Hello\nworld!"
+  >>> parse unquotedLine "Hello\nworld!"
   1:6:
     |
   1 | Hello
@@ -286,7 +285,7 @@ unquotedBlock = do
   unexpected newline
   expecting '\', end of input, interpolation, literal char, or non-space literal char
 
-  >>> parseTest unquotedLine "Hello world! [label]"
+  >>> parse unquotedLine "Hello world! [label]"
   1:14:
     |
   1 | Hello world! [label]
@@ -296,26 +295,26 @@ unquotedBlock = do
 
   You can escape characters like you can in a string expression.
 
-  >>> parseTest unquotedLine "Hello! \\[not a label\\]"
+  >>> parse unquotedLine "Hello! \\[not a label\\]"
   String "Hello! [not a label]"
 
-  >>> parseTest unquotedLine "Hello\\nworld!"
+  >>> parse unquotedLine "Hello\\nworld!"
   String "Hello\nworld!"
 
   Horizontal space between words is maintained.
 
-  >>> parseTest unquotedLine "Hello   world!"
+  >>> parse unquotedLine "Hello   world!"
   String "Hello   world!"
 
   Trailing horizontal space is consumed, but not vertical space.
 
-  >>> parseTest unquotedLine "Hello world!  "
+  >>> parse unquotedLine "Hello world!  "
   String "Hello world!"
 
-  >>> parseTest unquotedLine "Hello world!\t"
+  >>> parse unquotedLine "Hello world!\t"
   String "Hello world!"
 
-  >>> parseTest unquotedLine "Hello world!\n"
+  >>> parse unquotedLine "Hello world!\n"
   1:13:
     |
   1 | Hello world!
@@ -325,7 +324,7 @@ unquotedBlock = do
 
   Unquoted lines cannot be empty.
 
-  >>> parseTest unquotedLine ""
+  >>> parse unquotedLine ""
   1:1:
     |
   1 | <empty line>
@@ -333,7 +332,7 @@ unquotedBlock = do
   unexpected end of input
   expecting '\', interpolation, or non-space literal char
 
-  >>> parseTest unquotedLine "  "
+  >>> parse unquotedLine "  "
   1:1:
     |
   1 |

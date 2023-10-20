@@ -12,9 +12,9 @@ import qualified Rumor.Parser.Indented as Indented
 import qualified Rumor.Parser.Unquoted as Unquoted
 
 -- $setup
--- >>> import qualified Text.Megaparsec as Mega
+-- >>> import Rumor.Parser.Common
 -- >>> import Rumor.Parser.Dialog (say)
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
+-- >>> let parse inner = parseTest newContext (inner <* eof)
 
 {-| Parses a choice which has an unquoted string used as the display text for
   the choice. It can optionally contain an indented block of nodes.
@@ -22,19 +22,19 @@ import qualified Rumor.Parser.Unquoted as Unquoted
   The choice text can be provided on one or multiple lines, like unquoted
   strings for dialog nodes.
 
-  >>> parseTest (choice say) "choice\n  > foo bar baz"
+  >>> parse (choice say) "choice\n  > foo bar baz"
   Choice (String "foo bar baz") Nothing Nothing
 
-  >>> parseTest (choice say) "choice\n  > foo\n    bar\n    baz"
+  >>> parse (choice say) "choice\n  > foo\n    bar\n    baz"
   Choice (String "foo bar baz") Nothing Nothing
 
   The choice text can be provided on the following line, but it must have
   indentation greater than the choice marker '>'.
 
-  >>> parseTest (choice say) "choice\n  >\n    foo\n    bar\n    baz"
+  >>> parse (choice say) "choice\n  >\n    foo\n    bar\n    baz"
   Choice (String "foo bar baz") Nothing Nothing
 
-  >>> parseTest (choice say) "choice\n  >\nfoo"
+  >>> parse (choice say) "choice\n  >\nfoo"
   3:1:
     |
   3 | foo
@@ -43,28 +43,28 @@ import qualified Rumor.Parser.Unquoted as Unquoted
 
   The choice text can be given a label.
 
-  >>> parseTest (choice say) "choice\n  > foo bar baz [label]"
+  >>> parse (choice say) "choice\n  > foo bar baz [label]"
   Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
 
-  >>> parseTest (choice say) "choice\n  > foo\n    bar\n    baz [label]"
+  >>> parse (choice say) "choice\n  > foo\n    bar\n    baz [label]"
   Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
 
-  >>> parseTest (choice say) "choice\n  >\n    foo\n    bar\n    baz [label]"
+  >>> parse (choice say) "choice\n  >\n    foo\n    bar\n    baz [label]"
   Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
 
-  >>> parseTest (choice say) "choice\n  >\n    foo\n    bar\n    baz\n    [label]"
+  >>> parse (choice say) "choice\n  >\n    foo\n    bar\n    baz\n    [label]"
   Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
 
   Multi-line choice text must have the same level of indentation.
 
-  >>> parseTest (choice say) "choice\n  > foo\n    bar\n      baz"
+  >>> parse (choice say) "choice\n  > foo\n    bar\n      baz"
   4:7:
     |
   4 |       baz
     |       ^
   incorrect indentation (got 7, should be equal to 5)
 
-  >>> parseTest (choice say) "choice\n  > foo\n    bar\n baz"
+  >>> parse (choice say) "choice\n  > foo\n    bar\n baz"
   4:2:
     |
   4 |  baz
@@ -75,13 +75,13 @@ import qualified Rumor.Parser.Unquoted as Unquoted
   The choice can be given a list of indented nodes, but those nodes have to have
   the same amount of indentation as the choice text.
 
-  >>> parseTest (choice say) "choice\n  > Choice A\n  : Hello"
+  >>> parse (choice say) "choice\n  > Choice A\n  : Hello"
   Choice (String "Choice A") Nothing (Just (Say Nothing (String "Hello") Nothing :| []))
 
-  >>> parseTest (choice say) "choice\n  > Choice A\n  : foo\n  : bar\n  :baz"
+  >>> parse (choice say) "choice\n  > Choice A\n  : foo\n  : bar\n  :baz"
   Choice (String "Choice A") Nothing (Just (Say Nothing (String "foo") Nothing :| [Say Nothing (String "bar") Nothing,Say Nothing (String "baz") Nothing]))
 
-  >>> parseTest (choice say) "choice\n  > Choice A\n: Hello"
+  >>> parse (choice say) "choice\n  > Choice A\n: Hello"
   3:1:
     |
   3 | : Hello
