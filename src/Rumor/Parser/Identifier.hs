@@ -3,10 +3,10 @@ module Rumor.Parser.Identifier
 , label
 ) where
 
-import Data.Char (isLetter, isMark, isDigit)
 import Data.NonEmptyText (NonEmptyText)
 import Rumor.Parser.Common (Parser, hlexeme, (<?>))
 
+import qualified Data.Char
 import qualified Data.NonEmptyText as NET
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Surround as Surround
@@ -147,21 +147,34 @@ label =
     |      ^
   unexpected newline
   expecting end of input or identifier character
+
+  Identifiers cannot start with mark characters
+
+  >>> parseTest identifier "◌̈mark"
+  1:1:
+    |
+  1 | ◌̈mark
+    | ^
+  unexpected '◌'
+  expecting identifier
 -}
 identifier :: Parser NonEmptyText
 identifier =
   let
     validCharLabel = "identifier character"
-    validChar ch =
-         isLetter ch
-      || isMark ch
-      || isDigit ch
-      || ch == '-'
-      || ch == '_'
+    validStart ch =
+         Data.Char.isLetter ch
+      || Data.Char.isDigit ch
+      || Data.Char.generalCategory ch == Data.Char.DashPunctuation
+      || Data.Char.generalCategory ch == Data.Char.ConnectorPunctuation
+
+    validEnd ch =
+         validStart ch
+      || Data.Char.isMark ch
 
     parser = do
-      first <- Mega.satisfy validChar <?> validCharLabel
-      rest <- Mega.takeWhileP (Just validCharLabel) validChar
+      first <- Mega.satisfy validStart <?> validCharLabel
+      rest <- Mega.takeWhileP (Just validCharLabel) validEnd
       pure (NET.new first rest)
 
   in
