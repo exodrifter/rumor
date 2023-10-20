@@ -13,16 +13,19 @@ import qualified Text.Megaparsec.Char as Char
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
--- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
+-- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
 
 {-| Parses an action with one to four string arguments.
 
   TODO: Support other argument types
 
+  An action is an identifier followed by a set of parenthesis containing zero to
+  four comma-separated arguments.
+
   >>> parseTest action "foobar()"
   Action0 "foobar"
 
-  >>> parseTest action "123()" -- Starting with numbers is okay
+  >>> parseTest action "123()"
   Action0 "123"
 
   >>> parseTest action "foobar(\"1\")"
@@ -37,7 +40,8 @@ import qualified Text.Megaparsec.Char as Char
   >>> parseTest action "foobar(\"1\", \"2\", \"3\", \"4\")"
   Action4 "foobar" (String "1") (String "2") (String "3") (String "4")
 
-  No spaces are okay:
+  No spaces are okay.
+
   >>> parseTest action "foobar(\"1\",\"2\")"
   Action2 "foobar" (String "1") (String "2")
 
@@ -47,7 +51,8 @@ import qualified Text.Megaparsec.Char as Char
   >>> parseTest action "foobar(\"1\",\"2\",\"3\",\"4\")"
   Action4 "foobar" (String "1") (String "2") (String "3") (String "4")
 
-  Extra spaces are okay:
+  Extra spaces are okay.
+
   >>> parseTest action "foobar  (  )"
   Action0 "foobar"
 
@@ -63,7 +68,8 @@ import qualified Text.Megaparsec.Char as Char
   >>> parseTest action "foobar  (  \"1\"  ,  \"2\"  ,  \"3\"  ,  \"4\"  )"
   Action4 "foobar" (String "1") (String "2") (String "3") (String "4")
 
-  Extra newlines between the arguments are okay:
+  Extra newlines are okay.
+
   >>> parseTest action "foobar  (\n)"
   Action0 "foobar"
 
@@ -78,11 +84,39 @@ import qualified Text.Megaparsec.Char as Char
 
   >>> parseTest action "foobar  (\n\"1\"\n,\n\"2\"\n,\n\"3\"\n,\n\"4\"\n)"
   Action4 "foobar" (String "1") (String "2") (String "3") (String "4")
+
+  Both parenthesis must be provided.
+  >>> parseTest action "foobar("
+  1:8:
+    |
+  1 | foobar(
+    |        ^
+  unexpected end of input
+  expecting close parenthesis or open double quotes
+
+  >>> parseTest action "foobar)"
+  1:7:
+    |
+  1 | foobar)
+    |       ^
+  unexpected ')'
+  expecting open parenthesis or valid identifier character
+
+  Trailing whitespace is consumed.
+
+  >>> parseTest action "foobar()  "
+  Action0 "foobar"
+
+  >>> parseTest action "foobar()  \n"
+  Action0 "foobar"
+
+  >>> parseTest action "foobar()  \n  "
+  Action0 "foobar"
 -}
 action :: Parser Rumor.Node
 action = do
   actionName <- hlexeme Identifier.identifier
-  _ <- lexeme (Char.char '(')
+  _ <- lexeme (Char.char '(') <?> "open parenthesis"
 
   result <-
         Mega.try (lexeme (action4 actionName))
@@ -91,7 +125,7 @@ action = do
     <|> Mega.try (lexeme (action1 actionName))
     <|> pure (Rumor.Action0 actionName)
 
-  _ <- Char.char ')' <?> "end parentheses"
+  _ <- lexeme (Char.char ')') <?> "close parenthesis"
   pure result
 
 action1 :: NonEmptyText -> Parser Rumor.Node
