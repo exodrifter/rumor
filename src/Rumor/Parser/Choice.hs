@@ -76,7 +76,10 @@ import qualified Rumor.Parser.Unquoted as Unquoted
   the same amount of indentation as the choice text.
 
   >>> parseTest (choice say) "choice\n  > Choice A\n  : Hello"
-  Choice (String "Choice A") Nothing (Just (Say Nothing (String "Hello") :| []))
+  Choice (String "Choice A") Nothing (Just (Say Nothing (String "Hello") Nothing :| []))
+
+  >>> parseTest (choice say) "choice\n  > Choice A\n  : foo\n  : bar\n  :baz"
+  Choice (String "Choice A") Nothing (Just (Say Nothing (String "foo") Nothing :| [Say Nothing (String "bar") Nothing,Say Nothing (String "baz") Nothing]))
 
   >>> parseTest (choice say) "choice\n  > Choice A\n: Hello"
   3:1:

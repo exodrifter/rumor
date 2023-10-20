@@ -24,37 +24,37 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   Add nodes can have one line.
 
   >>> parseTest add "alice+ Hello world!    \n"
-  Add (Just (Speaker "alice")) (String "Hello world!")
+  Add (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   >>> parseTest add "+ Hello world!"
-  Add Nothing (String "Hello world!")
+  Add Nothing (String "Hello world!") Nothing
 
   >>> parseTest add "alice+ Hello world!" -- With a speaker
-  Add (Just (Speaker "alice")) (String "Hello world!")
+  Add (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   Add nodes can be spread over multiple lines, or start indented on the next
   line.
 
   >>> parseTest add "alice+ foo\n  bar\n  baz"
-  Add (Just (Speaker "alice")) (String "foo bar baz")
+  Add (Just (Speaker "alice")) (String "foo bar baz") Nothing
 
   >>> parseTest add "alice+\n  foo\n  bar\n  baz"
-  Add (Just (Speaker "alice")) (String "foo bar baz")
+  Add (Just (Speaker "alice")) (String "foo bar baz") Nothing
 
   Extra whitespace is okay and trailing whitespace is consumed.
 
   >>> parseTest add "alice    +    Hello world!"
-  Add (Just (Speaker "alice")) (String "Hello world!")
+  Add (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   >>> parseTest add "alice+ Hello world!    "
-  Add (Just (Speaker "alice")) (String "Hello world!")
+  Add (Just (Speaker "alice")) (String "Hello world!") Nothing
 
 
   >>> parseTest add "alice+ Hello world!    \n    "
-  Add (Just (Speaker "alice")) (String "Hello world!")
+  Add (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   >>> parseTest add "alice+\n  Hello world!\n  "
-  Add (Just (Speaker "alice")) (String "Hello world!")
+  Add (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   Add nodes end when the following line is unindented.
 
@@ -104,37 +104,37 @@ add = dialog '+' Rumor.Add
   Say nodes can have one line.
 
   >>> parseTest say "alice: Hello world!    \n"
-  Say (Just (Speaker "alice")) (String "Hello world!")
+  Say (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   >>> parseTest say ": Hello world!"
-  Say Nothing (String "Hello world!")
+  Say Nothing (String "Hello world!") Nothing
 
   >>> parseTest say "alice: Hello world!" -- With a speaker
-  Say (Just (Speaker "alice")) (String "Hello world!")
+  Say (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   Say nodes can be spread over multiple lines, or start indented on the next
   line.
 
   >>> parseTest say "alice: foo\n  bar\n  baz"
-  Say (Just (Speaker "alice")) (String "foo bar baz")
+  Say (Just (Speaker "alice")) (String "foo bar baz") Nothing
 
   >>> parseTest say "alice:\n  foo\n  bar\n  baz"
-  Say (Just (Speaker "alice")) (String "foo bar baz")
+  Say (Just (Speaker "alice")) (String "foo bar baz") Nothing
 
   Extra whitespace is okay and trailing whitespace is consumed.
 
   >>> parseTest say "alice    :    Hello world!"
-  Say (Just (Speaker "alice")) (String "Hello world!")
+  Say (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   >>> parseTest say "alice: Hello world!    "
-  Say (Just (Speaker "alice")) (String "Hello world!")
+  Say (Just (Speaker "alice")) (String "Hello world!") Nothing
 
 
   >>> parseTest say "alice: Hello world!    \n    "
-  Say (Just (Speaker "alice")) (String "Hello world!")
+  Say (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   >>> parseTest say "alice:\n  Hello world!\n  "
-  Say (Just (Speaker "alice")) (String "Hello world!")
+  Say (Just (Speaker "alice")) (String "Hello world!") Nothing
 
   Say nodes end when the following line is unindented.
 
@@ -179,13 +179,13 @@ say = dialog ':' Rumor.Say
 
 dialog ::
   Char ->
-  (Maybe Rumor.Speaker -> Rumor.Expression Text -> Rumor.Node) ->
+  (Maybe Rumor.Speaker -> Rumor.Expression Text -> Maybe Rumor.Label -> Rumor.Node) ->
   Parser Rumor.Node
 dialog sep constructor = do
   ref <- Lexer.indentLevel
 
   speaker <- Mega.optional (Rumor.Speaker <$> hlexeme Identifier.identifier)
   _ <- hlexeme (Char.char sep)
-  (text, _) <- Unquoted.unquoted ref
+  (text, label) <- Unquoted.unquoted ref
 
-  pure (constructor speaker text)
+  pure (constructor speaker text label)

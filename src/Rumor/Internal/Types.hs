@@ -31,8 +31,8 @@ newtype Speaker = Speaker NonEmptyText
 
 -- | The nodes represent the abstract syntax tree of a Rumor dialog.
 data Node =
-    Say (Maybe Speaker) (Expression Text)
-  | Add (Maybe Speaker) (Expression Text)
+    Say (Maybe Speaker) (Expression Text) (Maybe Label)
+  | Add (Maybe Speaker) (Expression Text) (Maybe Label)
   | Control (Expression Bool) (NonEmpty Node) (Maybe (NonEmpty Node))
   | Action0 NonEmptyText
   | Action1 NonEmptyText (Expression Text)
