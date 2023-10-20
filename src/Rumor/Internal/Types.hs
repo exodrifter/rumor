@@ -8,6 +8,8 @@ module Rumor.Internal.Types
   ( Label(..)
   , Speaker(..)
   , Node(..)
+  
+  , VariableName(..)
   , Expression(..)
   , simplify
   ) where
@@ -29,6 +31,9 @@ newtype Label = Label NonEmptyText
 newtype Speaker = Speaker NonEmptyText
   deriving (Eq, Show)
 
+newtype VariableName = VariableName NonEmptyText
+  deriving (Eq, Show)
+
 -- | The nodes represent the abstract syntax tree of a Rumor dialog.
 data Node =
     Say (Maybe Speaker) (Expression Text) (Maybe Label)
@@ -45,9 +50,11 @@ data Node =
 -- | Represents expressions in a Rumor dialog.
 data Expression typ where
   String :: Text -> Expression Text
+  StringVariable :: VariableName -> Expression Text
   Concat :: Expression Text -> Expression Text -> Expression Text
 
   Number :: Scientific -> Expression Scientific
+  NumberVariable :: VariableName -> Expression Scientific
   Addition :: Expression Scientific -> Expression Scientific -> Expression Scientific
   Subtraction :: Expression Scientific -> Expression Scientific -> Expression Scientific
   Multiplication :: Expression Scientific -> Expression Scientific -> Expression Scientific
@@ -55,6 +62,7 @@ data Expression typ where
   NumberToString :: Expression Scientific -> Expression Text
 
   Boolean :: Bool -> Expression Bool
+  BooleanVariable :: VariableName -> Expression Bool
   LogicalNot :: Expression Bool -> Expression Bool
   LogicalAnd :: Expression Bool -> Expression Bool -> Expression Bool
   LogicalOr :: Expression Bool -> Expression Bool -> Expression Bool
@@ -93,77 +101,63 @@ instance Monoid (Expression Text) where
 simplify :: Expression typ -> Expression typ
 simplify expression =
   case expression of
+    Concat (String l) (String r) -> String (l <> r)
+
+    Addition (Number l) (Number r) -> Number (l + r)
+    Subtraction (Number l) (Number r) -> Number (l - r)
+    Division (Number l) (Number r) -> Number (l * r)
+    Multiplication (Number l) (Number r) -> Number (l * r)
+    NumberToString (Number n) -> String (numberToString n)
+
+    LogicalNot (Boolean b) -> Boolean (not b)
+    LogicalAnd (Boolean l) (Boolean r) -> Boolean (l && r)
+    LogicalOr (Boolean l) (Boolean r) -> Boolean (l || r)
+    LogicalXor (Boolean l) (Boolean r) -> Boolean (l /= r)
+    BooleanToString (Boolean b) -> String (booleanToString b)
+
+    EqualString (String l) (String r) -> Boolean (l == r)
+    NotEqualString (String l) (String r) -> Boolean (l /= r)
+    EqualNumber (Number l) (Number r) -> Boolean (l == r)
+    NotEqualNumber (Number l) (Number r) -> Boolean (l /= r)
+    EqualBoolean (Boolean l) (Boolean r) -> Boolean (l == r)
+    NotEqualBoolean (Boolean l) (Boolean r) -> Boolean (l /= r)
+
     String _ -> expression
-    Concat _ _ -> String (calculateText expression)
+    StringVariable _ -> expression
+    Concat _ _ -> expression
 
     Number _ -> expression
-    Addition _ _ -> Number (calculateNumber expression)
-    Subtraction _ _ -> Number (calculateNumber expression)
-    Multiplication _ _ -> Number (calculateNumber expression)
-    Division _ _ -> Number (calculateNumber expression)
-    NumberToString numberExpression -> String (numberToString numberExpression)
+    NumberVariable _ -> expression
+    Addition _ _ -> expression
+    Subtraction _ _ -> expression
+    Division _ _ -> expression
+    Multiplication _ _ -> expression
+    NumberToString _ -> expression
 
     Boolean _ -> expression
-    LogicalNot _ -> Boolean (calculateBoolean expression)
-    LogicalAnd _ _ -> Boolean (calculateBoolean expression)
-    LogicalOr _ _ -> Boolean (calculateBoolean expression)
-    LogicalXor _ _ -> Boolean (calculateBoolean expression)
-    BooleanToString booleanExpression -> String (booleanToString booleanExpression)
+    BooleanVariable _ -> expression
+    LogicalNot _ -> expression
+    LogicalAnd _ _ -> expression
+    LogicalOr _ _ -> expression
+    LogicalXor _ _ -> expression
+    BooleanToString _ -> expression
 
-    EqualString _ _ -> Boolean (calculateBoolean expression)
-    NotEqualString _ _ -> Boolean (calculateBoolean expression)
-    EqualNumber _ _ -> Boolean (calculateBoolean expression)
-    NotEqualNumber _ _ -> Boolean (calculateBoolean expression)
-    EqualBoolean _ _ -> Boolean (calculateBoolean expression)
-    NotEqualBoolean _ _ -> Boolean (calculateBoolean expression)
+    EqualString _ _ -> expression
+    NotEqualString _ _ -> expression
+    EqualNumber _ _ -> expression
+    NotEqualNumber _ _ -> expression
+    EqualBoolean _ _ -> expression
+    NotEqualBoolean _ _ -> expression
 
-calculateText :: Expression Text -> Text
-calculateText expression =
-  case expression of
-    String string ->
-      string
-    Concat l r ->
-      calculateText l <> calculateText r
-    NumberToString fixed ->
-      numberToString fixed
-    BooleanToString fixed ->
-      booleanToString fixed
-
-calculateNumber :: Expression Scientific -> Scientific
-calculateNumber expression =
-  case expression of
-    Number n -> n
-    Addition l r -> calculateNumber l + calculateNumber r
-    Subtraction l r -> calculateNumber l - calculateNumber r
-    Multiplication l r -> calculateNumber l * calculateNumber r
-    Division l r -> calculateNumber l / calculateNumber r
-
-calculateBoolean :: Expression Bool -> Bool
-calculateBoolean expression =
-  case expression of
-    Boolean n -> n
-    LogicalNot n -> not (calculateBoolean n)
-    LogicalAnd l r -> calculateBoolean l && calculateBoolean r
-    LogicalOr l r -> calculateBoolean l || calculateBoolean r
-    LogicalXor l r -> calculateBoolean l /= calculateBoolean r
-
-    EqualString l r -> l == r
-    NotEqualString l r -> l /= r
-    EqualNumber l r -> calculateNumber l == calculateNumber r
-    NotEqualNumber l r -> calculateNumber l /= calculateNumber r
-    EqualBoolean l r -> calculateBoolean l == calculateBoolean r
-    NotEqualBoolean l r -> calculateBoolean l /= calculateBoolean r
-
-numberToString :: Expression Scientific -> Text
-numberToString expression =
+numberToString :: Scientific -> Text
+numberToString number =
   let
-    number = calculateNumber expression
-    string = T.pack (S.formatScientific S.Fixed Nothing number)
+    text = T.pack (S.formatScientific S.Fixed Nothing number)
   in
-    Maybe.fromMaybe string (T.stripSuffix ".0" string)
+    Maybe.fromMaybe text (T.stripSuffix ".0" text)
 
-booleanToString :: Expression Bool -> Text
-booleanToString expression =
-  if calculateBoolean expression
+booleanToString :: Bool -> Text
+booleanToString bool =
+  if bool
   then "true"
   else "false"

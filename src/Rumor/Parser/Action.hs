@@ -92,7 +92,7 @@ import qualified Text.Megaparsec.Char as Char
   1 | foobar(
     |        ^
   unexpected end of input
-  expecting close parenthesis or open double quotes
+  expecting close parenthesis, open double quotes, or variable
 
   >>> parseTest action "foobar)"
   1:7:
@@ -100,7 +100,7 @@ import qualified Text.Megaparsec.Char as Char
   1 | foobar)
     |       ^
   unexpected ')'
-  expecting open parenthesis or valid identifier character
+  expecting identifier character or open parenthesis
 
   Trailing whitespace is consumed.
 

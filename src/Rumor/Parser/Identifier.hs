@@ -146,12 +146,12 @@ label =
   1 | alice
     |      ^
   unexpected newline
-  expecting end of input or valid identifier character
+  expecting end of input or identifier character
 -}
 identifier :: Parser NonEmptyText
 identifier =
   let
-    validCharLabel = "valid identifier character"
+    validCharLabel = "identifier character"
     validChar ch =
          isLetter ch
       || isMark ch

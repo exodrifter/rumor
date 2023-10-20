@@ -4,10 +4,13 @@ module Rumor.Parser.Expression
 , stringExpression, stringEscapes, escape, interpolation
 ) where
 
+import Data.Char (isLetter, isMark, isDigit)
 import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Rumor.Parser.Common (Parser, hspace, lexeme, space, (<?>), (<|>))
 
+import qualified Data.Foldable as Foldable
+import qualified Data.NonEmptyText as NET
 import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Surround as Surround
@@ -18,6 +21,7 @@ import qualified Text.Parser.Combinators as Combinators
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
+-- >>> import Rumor.Internal.Types (Expression(..))
 -- >>> let parseTest inner = Mega.parseTest (inner <* Mega.hidden Mega.eof)
 
 --------------------------------------------------------------------------------
@@ -27,15 +31,14 @@ import qualified Text.Parser.Combinators as Combinators
 {-| Parses a boolean expression. Any amount of space, including newlines, is
   allowed between the terms of the boolean expression.
 
-  This parser doesn't consume trailing whitespace.
-  >>> parseTest booleanExpression "true  \n  "
-  1:5:
-    |
-  1 | true
-    |     ^
-  unexpected space
+  >>> parseTest booleanExpression "true"
+  Boolean True
+
+  >>> parseTest booleanExpression "false"
+  Boolean False
 
   In order from highest to lowest precedence:
+
   >>> parseTest booleanExpression "not true"
   LogicalNot (Boolean True)
 
@@ -63,28 +66,47 @@ import qualified Text.Parser.Combinators as Combinators
   >>> parseTest booleanExpression "true || false"
   LogicalOr (Boolean True) (Boolean False)
 
-  You can also do value comparisons:
-  >>> parseTest booleanExpression "\"apples\" == \"oranges\""
-  EqualString (String "apples") (String "oranges")
+  You can use parenthesis to change the precedence of the operations.
 
-  >>> parseTest booleanExpression "1.0 /= 2.0"
-  NotEqualNumber (Number 1.0) (Number 2.0)
-
-  Examples:
   >>> parseTest booleanExpression "true and true or false xor true"
   LogicalOr (LogicalAnd (Boolean True) (Boolean True)) (LogicalXor (Boolean False) (Boolean True))
 
   >>> parseTest booleanExpression "true and (true or false) xor true"
   LogicalAnd (Boolean True) (LogicalXor (LogicalOr (Boolean True) (Boolean False)) (Boolean True))
 
-  Whitespace handling:
-  >>> parseTest booleanExpression "true\n||\nfalse" -- newlines are fine
+  You can also do value comparisons.
+
+  >>> parseTest booleanExpression "\"apples\" == \"oranges\""
+  EqualString (String "apples") (String "oranges")
+
+  >>> parseTest booleanExpression "1.0 /= 2.0"
+  NotEqualNumber (Number 1.0) (Number 2.0)
+
+  You can also use variables.
+
+  >>> parseTest booleanExpression "foobar"
+  BooleanVariable (VariableName "foobar")
+
+  >>> parseTest booleanExpression "foobar || true"
+  LogicalOr (BooleanVariable (VariableName "foobar")) (Boolean True)
+
+  TODO: I'm not sure how to handle this case yet, I don't think it's a good idea
+  to treat all variables as booleans when an equality is involved.
+  >>> parseTest booleanExpression "foo == bar"
+  EqualBoolean (BooleanVariable (VariableName "foo")) (BooleanVariable (VariableName "bar"))
+
+  You can use newlines.
+
+  >>> parseTest booleanExpression "true\n||\nfalse"
   LogicalOr (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "true||false" -- no space is fine
+  You don't need to use whitespace if you are using the non-word forms of the
+  operators.
+
+  >>> parseTest booleanExpression "true||false"
   LogicalOr (Boolean True) (Boolean False)
 
-  >>> parseTest booleanExpression "trueorfalse" -- No space is not fine
+  >>> parseTest booleanExpression "trueorfalse"
   1:5:
     |
   1 | trueorfalse
@@ -92,7 +114,10 @@ import qualified Text.Parser.Combinators as Combinators
   unexpected 'o'
   expecting space
 
-  >>> parseTest booleanExpression "trueandfalse" -- No space is not fine
+  >>> parseTest booleanExpression "true&&false"
+  LogicalAnd (Boolean True) (Boolean False)
+
+  >>> parseTest booleanExpression "trueandfalse"
   1:5:
     |
   1 | trueandfalse
@@ -100,7 +125,10 @@ import qualified Text.Parser.Combinators as Combinators
   unexpected 'a'
   expecting space
 
-  >>> parseTest booleanExpression "truexorfalse" -- No space is not fine
+  >>> parseTest booleanExpression "true^false"
+  LogicalXor (Boolean True) (Boolean False)
+
+  >>> parseTest booleanExpression "truexorfalse"
   1:5:
     |
   1 | truexorfalse
@@ -108,7 +136,10 @@ import qualified Text.Parser.Combinators as Combinators
   unexpected 'x'
   expecting space
 
-  >>> parseTest booleanExpression "nottrue" -- No space is not fine
+  >>> parseTest booleanExpression "!false"
+  LogicalNot (Boolean False)
+
+  >>> parseTest booleanExpression "nottrue"
   1:4:
     |
   1 | nottrue
@@ -116,14 +147,15 @@ import qualified Text.Parser.Combinators as Combinators
   unexpected 't'
   expecting space
 
-  Error examples:
+  You cannot write incomplete boolean expressions.
+
   >>> parseTest booleanExpression "/="
   1:1:
     |
   1 | /=
     | ^^
   unexpected "/="
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, or signed number
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
 
   >>> parseTest booleanExpression "/= true"
   1:1:
@@ -131,7 +163,7 @@ import qualified Text.Parser.Combinators as Combinators
   1 | /= true
     | ^^^^^
   unexpected "/= tr"
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, or signed number
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
 
   >>> parseTest booleanExpression "true /="
   1:8:
@@ -139,7 +171,17 @@ import qualified Text.Parser.Combinators as Combinators
   1 | true /=
     |        ^
   unexpected end of input
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, or signed number
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
+
+  This parser doesn't consume trailing whitespace.
+
+  >>> parseTest booleanExpression "true  \n  "
+  1:5:
+    |
+  1 | true
+    |     ^
+  unexpected space
+
 -}
 booleanExpression :: Parser (Rumor.Expression Bool)
 booleanExpression =
@@ -155,6 +197,7 @@ booleanExpression =
 
     term =
           Surround.parentheses expression
+      <|> variable Rumor.BooleanVariable
       <|> valueEquality
             stringExpression
             Rumor.EqualString
@@ -190,31 +233,28 @@ booleanExpression =
 
 {-| Parses a value equality comparison.
 
-  This parser doesn't consume trailing whitespace.
-  >>> parseTest booleanExpression "true == false  \n  "
-  1:14:
-    |
-  1 | true == false
-    |              ^
-  unexpected space
-
-  >>> import Rumor.Internal.Types (Expression(..))
   >>> let booleanEquality = valueEquality boolean EqualBoolean NotEqualBoolean
-
   >>> parseTest booleanEquality "true == false"
   EqualBoolean (Boolean True) (Boolean False)
 
-  >>> parseTest booleanEquality "true/= false"
+  >>> parseTest booleanEquality "true /= false"
   NotEqualBoolean (Boolean True) (Boolean False)
 
   >>> parseTest booleanEquality "true != false"
   NotEqualBoolean (Boolean True) (Boolean False)
 
-  >>> parseTest booleanEquality "true==false" -- No space is fine
-  EqualBoolean (Boolean True) (Boolean False)
+  You can use newlines.
 
   >>> parseTest booleanEquality "true\n\n==\n\nfalse" -- Newlines are fine
   EqualBoolean (Boolean True) (Boolean False)
+
+  You don't need to use whitespace if you are using the non-word forms of the
+  operators.
+
+  >>> parseTest booleanEquality "true==false"
+  EqualBoolean (Boolean True) (Boolean False)
+
+  You cannot write incomplete equality expressions.
 
   >>> parseTest booleanEquality "=="
   1:1:
@@ -239,6 +279,15 @@ booleanExpression =
     | ^^^^^
   unexpected "== tr"
   expecting "false" or "true"
+
+  This parser doesn't consume trailing whitespace.
+
+  >>> parseTest booleanExpression "true == false  \n  "
+  1:14:
+    |
+  1 | true == false
+    |              ^
+  unexpected space
 -}
 valueEquality :: Show a
               => Parser a
@@ -308,16 +357,14 @@ boolean =
 {-| Parses a mathematical expression. Any amount of space, including newlines,
   is allowed between the terms of the mathematical expression.
 
-  This parser doesn't consume trailing whitespace.
-  >>> parseTest numberExpression "1 * 2  \n  "
-  1:6:
-    |
-  1 | 1 * 2
-    |      ^
-  unexpected space
-  expecting '.', 'E', 'e', or digit
+  >>> parseTest numberExpression "1"
+  Number 1.0
+
+  >>> parseTest numberExpression "-1"
+  Number (-1.0)
 
   In order from highest to lowest precedence:
+
   >>> parseTest numberExpression "1 * 2"
   Multiplication (Number 1.0) (Number 2.0)
 
@@ -330,13 +377,7 @@ boolean =
   >>> parseTest numberExpression "1 - 2"
   Subtraction (Number 1.0) (Number 2.0)
 
-  You can use negative numbers too:
-  >>> parseTest numberExpression "-1 - -2"
-  Subtraction (Number (-1.0)) (Number (-2.0))
-
-  Examples:
-  >>> parseTest numberExpression "1"
-  Number 1.0
+  You can use parenthesis to change the precedence of the operations.
 
   >>> parseTest numberExpression "1 * 2 + 3 / -4"
   Addition (Multiplication (Number 1.0) (Number 2.0)) (Division (Number 3.0) (Number (-4.0)))
@@ -344,21 +385,36 @@ boolean =
   >>> parseTest numberExpression "1 * (2 + 3) / -4"
   Division (Multiplication (Number 1.0) (Addition (Number 2.0) (Number 3.0))) (Number (-4.0))
 
-  Whitespace handling:
+  You can use negative signs in an expression.
+
+  >>> parseTest numberExpression "-1 - -2"
+  Subtraction (Number (-1.0)) (Number (-2.0))
+
+  You can also use variables.
+
+  >>> parseTest numberExpression "foobar"
+  NumberVariable (VariableName "foobar")
+
+  >>> parseTest numberExpression "foobar + 1.0"
+  Addition (NumberVariable (VariableName "foobar")) (Number 1.0)
+
+  You can use no whitespace or additional newlines:
+
   >>> parseTest numberExpression "1*3--4/2" -- No whitespace is okay
   Subtraction (Multiplication (Number 1.0) (Number 3.0)) (Division (Number (-4.0)) (Number 2.0))
 
   >>> parseTest numberExpression "1\n*\n3\n-\n-4\n/\n2" -- Newlines are okay
   Subtraction (Multiplication (Number 1.0) (Number 3.0)) (Division (Number (-4.0)) (Number 2.0))
 
-  Error examples:
+  You cannot write incomplete number expressions.
+
   >>> parseTest numberExpression "*"
   1:1:
     |
   1 | *
     | ^
   unexpected '*'
-  expecting open parenthesis or signed number
+  expecting open parenthesis, signed number, or variable
 
   >>> parseTest numberExpression "1 * 2 + 3 /"
   1:12:
@@ -366,7 +422,9 @@ boolean =
   1 | 1 * 2 + 3 /
     |            ^
   unexpected end of input
-  expecting open parenthesis or signed number
+  expecting open parenthesis, signed number, or variable
+
+  You cannot use the `/=` operator.
 
   >>> parseTest numberExpression "1 * 2 + 3 /= 4"
   1:12:
@@ -374,6 +432,16 @@ boolean =
   1 | 1 * 2 + 3 /= 4
     |            ^
   unexpected '='
+
+  This parser doesn't consume trailing whitespace.
+  >>> parseTest numberExpression "1 * 2  \n  "
+  1:6:
+    |
+  1 | 1 * 2
+    |      ^
+  unexpected space
+  expecting '.', 'E', 'e', or digit
+
 -}
 numberExpression :: Parser (Rumor.Expression Scientific)
 numberExpression =
@@ -386,6 +454,7 @@ numberExpression =
     term =
           Surround.parentheses expr
       <|> number
+      <|> variable Rumor.NumberVariable
 
     multiplicationOperator = do
       _ <- Char.char '*'
@@ -466,18 +535,14 @@ number = do
 -- Text
 --------------------------------------------------------------------------------
 
-{-| Parses a string expression, which is any quoted string with interpolated
-  values and no newlines.
+stringExpression :: Parser (Rumor.Expression Text)
+stringExpression =
+      string
+  <|> variable Rumor.StringVariable
 
-  This parser doesn't consume trailing whitespace.
-  >>> parseTest stringExpression "\"Hello world!\"   "
-  1:15:
-    |
-  1 | "Hello world!"
-    |               ^
-  unexpected space
+{-| Parses a string, which is any quoted string with interpolated values and no
+  newlines.
 
-  Examples:
   >>> parseTest stringExpression "\"Hello world!\""
   String "Hello world!"
 
@@ -487,7 +552,8 @@ number = do
   >>> parseTest stringExpression "\"Hello\\nworld!\""
   String "Hello\nworld!"
 
-  Whitespace handling:
+  You cannot use newlines in a string.
+
   >>> parseTest stringExpression "\"Hello\nworld!\"" -- Newlines are not okay
   1:7:
     |
@@ -496,7 +562,8 @@ number = do
   unexpected newline
   expecting '\', close double quotes, interpolation, or literal char
 
-  Error examples:
+  You must provide both the open and close double quotes.
+
   >>> parseTest stringExpression "\""
   1:2:
     |
@@ -514,36 +581,53 @@ number = do
   expecting '\', close double quotes, interpolation, or literal char
 
   >>> parseTest stringExpression "Hello world!\""
-  1:1:
+  1:7:
     |
   1 | Hello world!"
-    | ^
-  unexpected 'H'
-  expecting open double quotes
+    |       ^
+  unexpected 'w'
 
-  >>> parseTest stringExpression "\"}\"" -- You must escape the close bracket
+  You must provide both the open and close brace for interpolated values
+  >>> parseTest stringExpression "\"{\""
+  1:4:
+    |
+  1 | "{"
+    |    ^
+  unexpected end of input
+  expecting '\', close double quotes, interpolation, or literal char
+
+  >>> parseTest stringExpression "\"}\""
   1:2:
     |
   1 | "}"
     |  ^
   unexpected '}'
   expecting '\', close double quotes, interpolation, or literal char
+
+  This parser doesn't consume trailing whitespace.
+
+  >>> parseTest stringExpression "\"Hello world!\"   "
+  1:15:
+    |
+  1 | "Hello world!"
+    |               ^
+  unexpected space
 -}
-stringExpression :: Parser (Rumor.Expression Text)
-stringExpression = do
+string :: Parser (Rumor.Expression Text)
+string = do
   let
     literalString = do
-      string <-
+      text <-
         Mega.takeWhile1P
           (Just "literal char")
           (`notElem` (fst <$> stringEscapes))
-      pure (Rumor.String string)
+      pure (Rumor.String text)
 
   Surround.doubleQuotes do
     texts <- Mega.many
       (     Mega.try literalString
         <|> Mega.try (escape stringEscapes)
-        <|> Mega.try interpolation
+        <|> interpolation
       )
     pure (mconcat texts)
 
@@ -616,21 +700,25 @@ escape escapes = do
   >>> parseTest interpolation "{ \"foobar\" }"
   String "foobar"
 
-  Whitespace handling:
+  You can use whitespace between the braces and the expression.
+
   >>> parseTest interpolation "{true}" -- No whitespace is okay
   BooleanToString (Boolean True)
 
   >>> parseTest interpolation "{\ntrue\n}" -- Newlines are okay
   BooleanToString (Boolean True)
 
-  Error examples:
+  The interpolation cannot be empty.
+
   >>> parseTest interpolation "{}"
   1:2:
     |
   1 | {}
     |  ^
   unexpected '}'
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, or signed number
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
+
+  You must provide both braces for an interpolation.
 
   >>> parseTest interpolation "{true"
   1:6:
@@ -656,6 +744,55 @@ interpolation =
       <|> lexeme stringExpression
     ) <?> "interpolation"
 
+--------------------------------------------------------------------------------
+-- Helpers
+--------------------------------------------------------------------------------
+
+{-| Parses the name of a variable. A variable is any identifier that doesn't
+  start with a number and isn't a reserved keyword.
+
+  >>> parseTest (variable Rumor.StringVariable) "foobar"
+  StringVariable (VariableName "foobar")
+
+  >>> parseTest (variable Rumor.StringVariable) "foo123"
+  StringVariable (VariableName "foo123")
+
+  >>> parseTest (variable Rumor.StringVariable) "123foo"
+  1:1:
+    |
+  1 | 123foo
+    | ^
+  unexpected '1'
+  expecting variable
+
+  >>> parseTest (variable Rumor.StringVariable) "true"
+  1:1:
+    |
+  1 | true
+    | ^
+  unexpected 't'
+-}
+variable :: (Rumor.VariableName -> Rumor.Expression a) -> Parser (Rumor.Expression a)
+variable constructor =
+  let
+    validFirst ch =
+         isLetter ch
+      || isMark ch
+      || ch == '-'
+      || ch == '_'
+    validRest ch =
+         validFirst ch
+      || isDigit ch
+    reservedKeywords = [ "true", "false", "not", "and", "or", "xor" ]
+
+    parser = do
+      first <- Mega.satisfy validFirst <?> "non-digit variable character"
+      rest <- Mega.takeWhileP (Just "variable character") validRest
+      pure (constructor (Rumor.VariableName (NET.new first rest)))
+
+  in do
+    Foldable.traverse_ Mega.notFollowedBy reservedKeywords
+    lexeme parser <?> "variable"
 
 -- Discards whitespace surrounding an operator on both sides
 discardWhitespace :: Parser a -> Parser a
