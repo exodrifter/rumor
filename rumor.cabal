@@ -74,10 +74,9 @@ test-suite smokes
 
   build-depends:
     base ^>=4.17.2.0,
-    heredoc,
     HUnit,
-    non-empty-text,
-    rumor
+    rumor,
+    text
 
 test-suite doctests
   type: exitcode-stdio-1.0

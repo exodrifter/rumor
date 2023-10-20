@@ -1,53 +1,27 @@
-{-# LANGUAGE QuasiQuotes #-}
 module Main where
 
-import Text.Heredoc (str)
-
 import qualified Rumor
-import qualified Rumor.Internal.Types as Rumor
+import qualified Data.Text.IO as TIO
 import qualified Test.HUnit as HUnit
-import qualified Data.NonEmptyText as NET
 
 main :: IO ()
 main = HUnit.runTestTTAndExit tests
 
 tests :: HUnit.Test
 tests =
-  HUnit.TestList
-    [ smokeTest
-    ]
+  let
+    smoke fileName =
+      HUnit.TestCase do
+        contents <- TIO.readFile fileName
 
-smokeTest :: HUnit.Test
-smokeTest =
-  HUnit.TestCase do
-    let mkDialog cons speaker line =
-          cons (Just (Rumor.Speaker speaker)) (Rumor.String line) Nothing
-        yuu = NET.new 'y' "uu"
-        touko = NET.new 't' "ouko"
-
-    HUnit.assertEqual "smoke test 1"
-      ( Right
-          [ mkDialog Rumor.Say yuu
-              "Wah! Nanami-senpai!"
-          , mkDialog Rumor.Say touko
-              "Yuu!"
-          , mkDialog Rumor.Add touko
-              "Oh, thank you for finding those for us!"
-          , mkDialog Rumor.Say yuu
-              "No problem. Umm..."
-          , mkDialog Rumor.Add yuu
-              "Why are you coming in?"
-          , mkDialog Rumor.Say touko
-              "Hmm?"
-          ]
-      )
-      ( Rumor.parse ""
-          [str|// Bloom Into You, Chapter 15: On Your Mark
-              |yuu: Wah! Nanami-senpai!
-              |touko: Yuu!
-              |touko+ Oh, thank you for finding those for us!
-              |yuu: No problem. Umm...
-              |yuu+ Why are you coming in?
-              |touko: Hmm?
-              |]
-      )
+        let result = Rumor.parse fileName contents
+        case result of
+          Right _ ->
+            pure ()
+          Left err ->
+            HUnit.assertString err
+  in
+    HUnit.TestList
+      [ smoke "smokes/examples/bloom-into-you.rumor"
+      , smoke "smokes/examples/gender-dysphoria.rumor"
+      ]
