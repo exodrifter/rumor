@@ -1,5 +1,7 @@
 module Rumor.Parser.Common
 ( Parser
+, rumorError
+
 , lexeme, hlexeme
 , space, hspace
 , eolf
@@ -10,18 +12,29 @@ module Rumor.Parser.Common
 ) where
 
 import Data.Text (Text)
-import Data.Void (Void)
 import Text.Megaparsec ((<?>), (<|>))
 
+import qualified Data.Text as T
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
+import qualified Text.Megaparsec.Error as Error
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
 -- >>> let parseTest inner = Mega.parseTest (inner <* Mega.eof)
 
-type Parser a = Mega.Parsec Void Text a
+type Parser a = Mega.Parsec RumorError Text a
+
+data RumorError = RumorError { rumorErrorToText :: Text, rumorErrorLength :: Int }
+  deriving (Eq, Ord)
+
+instance Error.ShowErrorComponent RumorError where
+  showErrorComponent = T.unpack . rumorErrorToText
+  errorComponentLen = rumorErrorLength
+
+rumorError :: Text -> Int -> Parser a
+rumorError message len = Mega.customFailure (RumorError message len)
 
 lexeme :: Parser a -> Parser a
 lexeme = Lexer.lexeme space

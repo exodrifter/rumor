@@ -7,9 +7,8 @@ module Rumor.Parser.Expression
 import Data.Char (isLetter, isMark, isDigit)
 import Data.Scientific (Scientific)
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, hspace, lexeme, space, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, rumorError, hspace, lexeme, space, (<?>), (<|>))
 
-import qualified Data.Foldable as Foldable
 import qualified Data.NonEmptyText as NET
 import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
@@ -43,6 +42,9 @@ import qualified Text.Parser.Combinators as Combinators
   LogicalNot (Boolean True)
 
   >>> parseTest booleanExpression "true == false"
+  EqualBoolean (Boolean True) (Boolean False)
+
+  >>> parseTest booleanExpression "true is false"
   EqualBoolean (Boolean True) (Boolean False)
 
   >>> parseTest booleanExpression "true /= false"
@@ -107,45 +109,58 @@ import qualified Text.Parser.Combinators as Combinators
   LogicalOr (Boolean True) (Boolean False)
 
   >>> parseTest booleanExpression "trueorfalse"
-  1:5:
-    |
-  1 | trueorfalse
-    |     ^
-  unexpected 'o'
-  expecting space
+  BooleanVariable (VariableName "trueorfalse")
 
   >>> parseTest booleanExpression "true&&false"
   LogicalAnd (Boolean True) (Boolean False)
 
   >>> parseTest booleanExpression "trueandfalse"
-  1:5:
-    |
-  1 | trueandfalse
-    |     ^
-  unexpected 'a'
-  expecting space
+  BooleanVariable (VariableName "trueandfalse")
 
   >>> parseTest booleanExpression "true^false"
   LogicalXor (Boolean True) (Boolean False)
 
   >>> parseTest booleanExpression "truexorfalse"
-  1:5:
-    |
-  1 | truexorfalse
-    |     ^
-  unexpected 'x'
-  expecting space
+  BooleanVariable (VariableName "truexorfalse")
 
   >>> parseTest booleanExpression "!false"
   LogicalNot (Boolean False)
 
   >>> parseTest booleanExpression "nottrue"
-  1:4:
-    |
-  1 | nottrue
-    |    ^
-  unexpected 't'
-  expecting space
+  BooleanVariable (VariableName "nottrue")
+
+  >>> parseTest booleanExpression "trueistrue"
+  BooleanVariable (VariableName "trueistrue")
+
+  The same applies for variables, though with variables you will just end up
+  with a different variable name.
+
+  >>> parseTest booleanExpression "foo||bar"
+  LogicalOr (BooleanVariable (VariableName "foo")) (BooleanVariable (VariableName "bar"))
+
+  >>> parseTest booleanExpression "fooorbar"
+  BooleanVariable (VariableName "fooorbar")
+
+  >>> parseTest booleanExpression "foo&&bar"
+  LogicalAnd (BooleanVariable (VariableName "foo")) (BooleanVariable (VariableName "bar"))
+
+  >>> parseTest booleanExpression "fooandbar"
+  BooleanVariable (VariableName "fooandbar")
+
+  >>> parseTest booleanExpression "foo^bar"
+  LogicalXor (BooleanVariable (VariableName "foo")) (BooleanVariable (VariableName "bar"))
+
+  >>> parseTest booleanExpression "fooxorbar"
+  BooleanVariable (VariableName "fooxorbar")
+
+  >>> parseTest booleanExpression "!bar"
+  LogicalNot (BooleanVariable (VariableName "bar"))
+
+  >>> parseTest booleanExpression "notfoo"
+  BooleanVariable (VariableName "notfoo")
+
+  >>> parseTest booleanExpression "fooistrue"
+  BooleanVariable (VariableName "fooistrue")
 
   You cannot write incomplete boolean expressions.
 
@@ -197,23 +212,24 @@ booleanExpression =
 
     term =
           Surround.parentheses expression
-      <|> variable Rumor.BooleanVariable
+      <|> Mega.try (variable Rumor.BooleanVariable)
       <|> valueEquality
             stringExpression
             Rumor.EqualString
             Rumor.NotEqualString
       <|> valueEquality
-            (Mega.try numberExpression <|> number)
+            (Mega.try numberExpression <|> number <|> variable Rumor.NumberVariable)
             Rumor.EqualNumber
             Rumor.NotEqualNumber
-      <|> notOperator boolean
+      <|> Mega.try (notOperator boolean)
+      <|> notOperator (variable Rumor.BooleanVariable)
       <|> boolean
 
     notOperator inner = do
       _ <- discardWhitespace ("!" <|> do _ <- "not"; " ")
       Rumor.LogicalNot <$> inner
     equalsOperator = do
-      _ <-"=="
+      _ <- "==" <|> "is"
       pure Rumor.EqualBoolean
     notEqualsOperator = do
       _ <- "/=" <|> "!="
@@ -299,7 +315,7 @@ valueEquality arg eqConstructor neqConstructor = do
 
   let
     equalsOperator = do
-      _ <- lexeme "=="
+      _ <- lexeme ("==" <|> "is")
       pure eqConstructor
     notEqualsOperator = do
       _ <-lexeme ("/=" <|> "!=")
@@ -347,6 +363,7 @@ boolean =
     notFollowedBy "or"
     notFollowedBy "and"
     notFollowedBy "xor"
+    notFollowedBy "is"
 
     pure result
 
@@ -581,11 +598,11 @@ stringExpression =
   expecting '\', close double quotes, interpolation, or literal char
 
   >>> parseTest stringExpression "Hello world!\""
-  1:7:
+  1:6:
     |
   1 | Hello world!"
-    |       ^
-  unexpected 'w'
+    |      ^
+  unexpected space
 
   You must provide both the open and close brace for interpolated values
   >>> parseTest stringExpression "\"{\""
@@ -726,7 +743,7 @@ escape escapes = do
   1 | {true
     |      ^
   unexpected end of input
-  expecting "!=", "&&", "/=", "==", "and", "or", "xor", "||", '^', or close brace
+  expecting "!=", "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', or close brace
 
   >>> parseTest interpolation "true}"
   1:1:
@@ -769,8 +786,8 @@ interpolation =
   1:1:
     |
   1 | true
-    | ^
-  unexpected 't'
+    | ^^^^
+  Cannot use true as a variable name
 -}
 variable :: (Rumor.VariableName -> Rumor.Expression a) -> Parser (Rumor.Expression a)
 variable constructor =
@@ -783,16 +800,30 @@ variable constructor =
     validRest ch =
          validFirst ch
       || isDigit ch
-    reservedKeywords = [ "true", "false", "not", "and", "or", "xor" ]
+    reservedKeywords =
+      [ NET.new 't' "rue"
+      , NET.new 'f' "alse"
+      , NET.new 'n' "ot"
+      , NET.new 'a' "nd"
+      , NET.new 'o' "r"
+      , NET.new 'x' "or"
+      , NET.new 'i' "s"
+      ]
 
     parser = do
       first <- Mega.satisfy validFirst <?> "non-digit variable character"
       rest <- Mega.takeWhileP (Just "variable character") validRest
-      pure (constructor (Rumor.VariableName (NET.new first rest)))
+      pure (NET.new first rest)
 
   in do
-    Foldable.traverse_ Mega.notFollowedBy reservedKeywords
-    lexeme parser <?> "variable"
+    name <- Mega.lookAhead (lexeme parser) <?> "variable"
+    if name `elem` reservedKeywords
+    then rumorError
+            ("Cannot use " <> NET.toText name <> " as a variable name")
+            (NET.length name)
+    else do
+      _ <- Mega.takeP (Just "variable character") (NET.length name)
+      pure (constructor (Rumor.VariableName name))
 
 -- Discards whitespace surrounding an operator on both sides
 discardWhitespace :: Parser a -> Parser a
