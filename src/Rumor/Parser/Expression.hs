@@ -87,15 +87,15 @@ import qualified Text.Parser.Combinators as Combinators
   You can also use variables.
 
   >>> parseTest booleanExpression "foobar"
-  BooleanVariable (VariableName "foobar")
+  BooleanVariable (VariableName (Unicode "foobar"))
 
   >>> parseTest booleanExpression "foobar || true"
-  LogicalOr (BooleanVariable (VariableName "foobar")) (Boolean True)
+  LogicalOr (BooleanVariable (VariableName (Unicode "foobar"))) (Boolean True)
 
   TODO: I'm not sure how to handle this case yet, I don't think it's a good idea
   to treat all variables as booleans when an equality is involved.
   >>> parseTest booleanExpression "foo == bar"
-  EqualBoolean (BooleanVariable (VariableName "foo")) (BooleanVariable (VariableName "bar"))
+  EqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
   You can use newlines.
 
@@ -109,58 +109,58 @@ import qualified Text.Parser.Combinators as Combinators
   LogicalOr (Boolean True) (Boolean False)
 
   >>> parseTest booleanExpression "trueorfalse"
-  BooleanVariable (VariableName "trueorfalse")
+  BooleanVariable (VariableName (Unicode "trueorfalse"))
 
   >>> parseTest booleanExpression "true&&false"
   LogicalAnd (Boolean True) (Boolean False)
 
   >>> parseTest booleanExpression "trueandfalse"
-  BooleanVariable (VariableName "trueandfalse")
+  BooleanVariable (VariableName (Unicode "trueandfalse"))
 
   >>> parseTest booleanExpression "true^false"
   LogicalXor (Boolean True) (Boolean False)
 
   >>> parseTest booleanExpression "truexorfalse"
-  BooleanVariable (VariableName "truexorfalse")
+  BooleanVariable (VariableName (Unicode "truexorfalse"))
 
   >>> parseTest booleanExpression "!false"
   LogicalNot (Boolean False)
 
   >>> parseTest booleanExpression "nottrue"
-  BooleanVariable (VariableName "nottrue")
+  BooleanVariable (VariableName (Unicode "nottrue"))
 
   >>> parseTest booleanExpression "trueistrue"
-  BooleanVariable (VariableName "trueistrue")
+  BooleanVariable (VariableName (Unicode "trueistrue"))
 
   The same applies for variables, though with variables you will just end up
   with a different variable name.
 
   >>> parseTest booleanExpression "foo||bar"
-  LogicalOr (BooleanVariable (VariableName "foo")) (BooleanVariable (VariableName "bar"))
+  LogicalOr (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
   >>> parseTest booleanExpression "fooorbar"
-  BooleanVariable (VariableName "fooorbar")
+  BooleanVariable (VariableName (Unicode "fooorbar"))
 
   >>> parseTest booleanExpression "foo&&bar"
-  LogicalAnd (BooleanVariable (VariableName "foo")) (BooleanVariable (VariableName "bar"))
+  LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
   >>> parseTest booleanExpression "fooandbar"
-  BooleanVariable (VariableName "fooandbar")
+  BooleanVariable (VariableName (Unicode "fooandbar"))
 
   >>> parseTest booleanExpression "foo^bar"
-  LogicalXor (BooleanVariable (VariableName "foo")) (BooleanVariable (VariableName "bar"))
+  LogicalXor (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
   >>> parseTest booleanExpression "fooxorbar"
-  BooleanVariable (VariableName "fooxorbar")
+  BooleanVariable (VariableName (Unicode "fooxorbar"))
 
   >>> parseTest booleanExpression "!bar"
-  LogicalNot (BooleanVariable (VariableName "bar"))
+  LogicalNot (BooleanVariable (VariableName (Unicode "bar")))
 
   >>> parseTest booleanExpression "notfoo"
-  BooleanVariable (VariableName "notfoo")
+  BooleanVariable (VariableName (Unicode "notfoo"))
 
   >>> parseTest booleanExpression "fooistrue"
-  BooleanVariable (VariableName "fooistrue")
+  BooleanVariable (VariableName (Unicode "fooistrue"))
 
   You cannot write incomplete boolean expressions.
 
@@ -410,10 +410,10 @@ boolean =
   You can also use variables.
 
   >>> parseTest numberExpression "foobar"
-  NumberVariable (VariableName "foobar")
+  NumberVariable (VariableName (Unicode "foobar"))
 
   >>> parseTest numberExpression "foobar + 1.0"
-  Addition (NumberVariable (VariableName "foobar")) (Number 1.0)
+  Addition (NumberVariable (VariableName (Unicode "foobar"))) (Number 1.0)
 
   You can use no whitespace or additional newlines:
 
@@ -769,10 +769,10 @@ interpolation =
   start with a number and isn't a reserved keyword.
 
   >>> parseTest (variable Rumor.StringVariable) "foobar"
-  StringVariable (VariableName "foobar")
+  StringVariable (VariableName (Unicode "foobar"))
 
   >>> parseTest (variable Rumor.StringVariable) "foo123"
-  StringVariable (VariableName "foo123")
+  StringVariable (VariableName (Unicode "foo123"))
 
   >>> parseTest (variable Rumor.StringVariable) "123foo"
   1:1:
@@ -823,7 +823,7 @@ variable constructor =
             (NET.length name)
     else do
       _ <- Mega.takeP (Just "variable character") (NET.length name)
-      pure (constructor (Rumor.VariableName name))
+      pure (constructor (Rumor.VariableName (Rumor.Unicode name)))
 
 -- Discards whitespace surrounding an operator on both sides
 discardWhitespace :: Parser a -> Parser a

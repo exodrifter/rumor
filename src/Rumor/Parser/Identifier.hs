@@ -3,7 +3,6 @@ module Rumor.Parser.Identifier
 , label
 ) where
 
-import Data.NonEmptyText (NonEmptyText)
 import Rumor.Parser.Common (Parser, hlexeme, (<?>))
 
 import qualified Data.Char
@@ -21,30 +20,30 @@ import qualified Text.Megaparsec.Char as Char
   letters, digits, marks, underscores, and dashes surrounded by square brackets.
 
   >>> parseTest label "[alice]"
-  Label "alice"
+  Label (Unicode "alice")
 
   >>> parseTest label "[alícia]"
-  Label "al\237cia"
+  Label (Unicode "al\237cia")
 
   >>> parseTest label "[アリス]"
-  Label "\12450\12522\12473"
+  Label (Unicode "\12450\12522\12473")
 
   >>> parseTest label "[123]"
-  Label "123"
+  Label (Unicode "123")
 
   >>> parseTest label "[alice-alícia-アリス]"
-  Label "alice-al\237cia-\12450\12522\12473"
+  Label (Unicode "alice-al\237cia-\12450\12522\12473")
 
   >>> parseTest label "[alice_alícia_アリス]"
-  Label "alice_al\237cia_\12450\12522\12473"
+  Label (Unicode "alice_al\237cia_\12450\12522\12473")
 
   You can have extra spaces between the brackets, but newlines are not okay.
 
   >>> parseTest label "[  alice  ]"
-  Label "alice"
+  Label (Unicode "alice")
 
   >>> parseTest label "[\talice\t]"
-  Label "alice"
+  Label (Unicode "alice")
 
   >>> parseTest label "[\nalice\n]"
   1:2:
@@ -75,7 +74,7 @@ import qualified Text.Megaparsec.Char as Char
   Trailing horizontal space is consumed, but not vertical space.
 
   >>> parseTest label "[alice]    "
-  Label "alice"
+  Label (Unicode "alice")
 
   >>> parseTest label "[alice]\n"
   1:8:
@@ -100,22 +99,22 @@ label =
   of letters, digits, marks, underscores, and dashes.
 
   >>> parseTest identifier "alice"
-  "alice"
+  Unicode "alice"
 
   >>> parseTest identifier "alícia"
-  "al\237cia"
+  Unicode "al\237cia"
 
   >>> parseTest identifier "アリス"
-  "\12450\12522\12473"
+  Unicode "\12450\12522\12473"
 
   >>> parseTest identifier "123"
-  "123"
+  Unicode "123"
 
   >>> parseTest identifier "alice-alícia-アリス"
-  "alice-al\237cia-\12450\12522\12473"
+  Unicode "alice-al\237cia-\12450\12522\12473"
 
   >>> parseTest identifier "alice_alícia_アリス"
-  "alice_al\237cia_\12450\12522\12473"
+  Unicode "alice_al\237cia_\12450\12522\12473"
 
   Identifiers cannot be empty or contain spaces.
 
@@ -138,7 +137,7 @@ label =
   Trailing horizontal space is consumed, but not vertical space.
 
   >>> parseTest identifier "alice    "
-  "alice"
+  Unicode "alice"
 
   >>> parseTest identifier "alice\n"
   1:6:
@@ -148,7 +147,7 @@ label =
   unexpected newline
   expecting end of input or identifier character
 
-  Identifiers cannot start with mark characters
+  Identifiers cannot start with mark characters.
 
   >>> parseTest identifier "◌̈mark"
   1:1:
@@ -158,7 +157,7 @@ label =
   unexpected '◌'
   expecting identifier
 -}
-identifier :: Parser NonEmptyText
+identifier :: Parser Rumor.Unicode
 identifier =
   let
     validCharLabel = "identifier character"
@@ -178,4 +177,4 @@ identifier =
       pure (NET.new first rest)
 
   in
-    hlexeme parser <?> "identifier"
+    Rumor.Unicode <$> hlexeme parser <?> "identifier"

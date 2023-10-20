@@ -5,13 +5,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Rumor.Internal.Types
-  ( Label(..)
-  , Speaker(..)
-  , Node(..)
-  
-  , VariableName(..)
+  ( Node(..)
   , Expression(..)
   , simplify
+
+  , Label(..)
+  , Speaker(..)
+  , VariableName(..)
+  , Unicode(..)
   ) where
 
 import Data.List.NonEmpty (NonEmpty)
@@ -21,29 +22,63 @@ import Data.Scientific (Scientific)
 
 import qualified Data.Maybe as Maybe
 import qualified Data.Scientific as S
+import qualified Data.NonEmptyText as NET
 import qualified Data.Text as T
+import qualified Data.Text.ICU.Normalize2 as Normalize
+
+-- $setup
+-- >>> import qualified Data.NonEmptyText as NET
 
 -- | The identifier for a node.
-newtype Label = Label NonEmptyText
+newtype Label = Label Unicode
   deriving (Eq, Show)
 
 -- | The identifier for a character who is saying something.
-newtype Speaker = Speaker NonEmptyText
+newtype Speaker = Speaker Unicode
   deriving (Eq, Show)
 
-newtype VariableName = VariableName NonEmptyText
+-- | The name of a variable.
+newtype VariableName = VariableName Unicode
   deriving (Eq, Show)
+
+{-| A non-empty unicode string. The string is converted to a normal form when
+  testing for equality, but is stored as it was originally written by the
+  user.
+
+  >>> Unicode (NET.new 'f' "oo") == Unicode (NET.new 'f' "oo")
+  True
+
+  >>> Unicode (NET.new 'f' "oo") == Unicode (NET.new 'b' "ar")
+  False
+
+  >>> Unicode (NET.singleton '\225') == Unicode (NET.new 'a' "\769")
+  True
+
+  >>> let unwrap (Unicode net) = net
+  >>> unwrap (Unicode (NET.singleton '\225')) == unwrap (Unicode (NET.new 'a' "\769"))
+  False
+-}
+newtype Unicode = Unicode NonEmptyText
+  deriving Show
+
+instance Eq Unicode where
+  (Unicode l) == (Unicode r) =
+    Normalize.compareUnicode' (NET.toText l) (NET.toText r) == EQ
+
+instance Ord Unicode where
+  compare (Unicode l) (Unicode r) =
+    Normalize.compareUnicode' (NET.toText l) (NET.toText r)
 
 -- | The nodes represent the abstract syntax tree of a Rumor dialog.
 data Node =
     Say (Maybe Speaker) (Expression Text) (Maybe Label)
   | Add (Maybe Speaker) (Expression Text) (Maybe Label)
   | Control (Expression Bool) (NonEmpty Node) (Maybe (NonEmpty Node))
-  | Action0 NonEmptyText
-  | Action1 NonEmptyText (Expression Text)
-  | Action2 NonEmptyText (Expression Text) (Expression Text)
-  | Action3 NonEmptyText (Expression Text) (Expression Text) (Expression Text)
-  | Action4 NonEmptyText (Expression Text) (Expression Text) (Expression Text) (Expression Text)
+  | Action0 Unicode
+  | Action1 Unicode (Expression Text)
+  | Action2 Unicode (Expression Text) (Expression Text)
+  | Action3 Unicode (Expression Text) (Expression Text) (Expression Text)
+  | Action4 Unicode (Expression Text) (Expression Text) (Expression Text) (Expression Text)
   | Choice (Expression Text) (Maybe Label) (Maybe (NonEmpty Node))
   deriving (Eq, Show)
 

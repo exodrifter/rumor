@@ -44,16 +44,16 @@ import qualified Rumor.Parser.Unquoted as Unquoted
   The choice text can be given a label.
 
   >>> parseTest (choice say) "choice\n  > foo bar baz [label]"
-  Choice (String "foo bar baz") (Just (Label "label")) Nothing
+  Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
 
   >>> parseTest (choice say) "choice\n  > foo\n    bar\n    baz [label]"
-  Choice (String "foo bar baz") (Just (Label "label")) Nothing
+  Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
 
   >>> parseTest (choice say) "choice\n  >\n    foo\n    bar\n    baz [label]"
-  Choice (String "foo bar baz") (Just (Label "label")) Nothing
+  Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
 
   >>> parseTest (choice say) "choice\n  >\n    foo\n    bar\n    baz\n    [label]"
-  Choice (String "foo bar baz") (Just (Label "label")) Nothing
+  Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
 
   Multi-line choice text must have the same level of indentation.
 

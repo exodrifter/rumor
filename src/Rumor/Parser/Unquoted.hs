@@ -29,7 +29,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   (String "Hello world!",Nothing)
 
   >>> parseTest (unquoted (Mega.mkPos 1)) "Hello world! [label]"
-  (String "Hello world!",Just (Label "label"))
+  (String "Hello world!",Just (Label (Unicode "label")))
 
   An unquoted string over multiple lines must indent all lines the same, except
   for the first line.
@@ -38,10 +38,10 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   (String "foo bar baz",Nothing)
 
   >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz [label]"
-  (String "foo bar baz",Just (Label "label"))
+  (String "foo bar baz",Just (Label (Unicode "label")))
 
   >>> parseTest (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz\n  [label]"
-  (String "foo bar baz",Just (Label "label"))
+  (String "foo bar baz",Just (Label (Unicode "label")))
 
   An unquoted string can start indented on the next line.
 
@@ -49,7 +49,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   (String "bar baz",Nothing)
 
   >>> parseTest (unquoted (Mega.mkPos 1)) "\n  bar\n  baz\n  [label]"
-  (String "bar baz",Just (Label "label"))
+  (String "bar baz",Just (Label (Unicode "label")))
 
   >>> parseTest (unquoted (Mega.mkPos 1)) "\nbar\nbaz"
   2:1:

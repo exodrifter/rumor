@@ -54,7 +54,8 @@ library
     non-empty-text,
     parsers,
     scientific,
-    text
+    text,
+    text-icu
 
 test-suite smokes
   type: exitcode-stdio-1.0
