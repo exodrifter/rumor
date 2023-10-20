@@ -21,7 +21,7 @@ smokeTest :: HUnit.Test
 smokeTest =
   HUnit.TestCase do
     let mkDialog cons speaker line =
-          cons (Just (Rumor.Speaker speaker)) (Rumor.String line)
+          cons (Just (Rumor.Speaker speaker)) (Rumor.String line) Nothing
         yuu = NET.new 'y' "uu"
         touko = NET.new 't' "ouko"
 
