@@ -4,15 +4,14 @@ module Rumor.Parser.Expression
 , stringExpression, stringEscapes, escape, interpolation
 ) where
 
-import Data.Char (isLetter, isMark, isDigit)
 import Data.Scientific (Scientific)
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, rumorError, hspace, lexeme, space, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, hspace, lexeme, space, (<?>), (<|>))
 
-import qualified Data.NonEmptyText as NET
 import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Surround as Surround
+import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
@@ -170,7 +169,7 @@ import qualified Text.Parser.Combinators as Combinators
   1 | /=
     | ^^
   unexpected "/="
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable name
 
   >>> parse booleanExpression "/= true"
   1:1:
@@ -178,7 +177,7 @@ import qualified Text.Parser.Combinators as Combinators
   1 | /= true
     | ^^^^^
   unexpected "/= tr"
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable name
 
   >>> parse booleanExpression "true /="
   1:8:
@@ -186,7 +185,7 @@ import qualified Text.Parser.Combinators as Combinators
   1 | true /=
     |        ^
   unexpected end of input
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable name
 
   This parser doesn't consume trailing whitespace.
 
@@ -432,7 +431,7 @@ boolean =
   1 | *
     | ^
   unexpected '*'
-  expecting open parenthesis, signed number, or variable
+  expecting open parenthesis, signed number, or variable name
 
   >>> parse numberExpression "1 * 2 + 3 /"
   1:12:
@@ -440,7 +439,7 @@ boolean =
   1 | 1 * 2 + 3 /
     |            ^
   unexpected end of input
-  expecting open parenthesis, signed number, or variable
+  expecting open parenthesis, signed number, or variable name
 
   You cannot use the `/=` operator.
 
@@ -736,7 +735,7 @@ escape escapes = do
   1 | {}
     |  ^
   unexpected '}'
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable name
 
   You must provide both braces for an interpolation.
 
@@ -768,65 +767,9 @@ interpolation =
 -- Helpers
 --------------------------------------------------------------------------------
 
-{-| Parses the name of a variable. A variable is any identifier that doesn't
-  start with a number and isn't a reserved keyword.
-
-  >>> parse (variable Rumor.StringVariable) "foobar"
-  StringVariable (VariableName (Unicode "foobar"))
-
-  >>> parse (variable Rumor.StringVariable) "foo123"
-  StringVariable (VariableName (Unicode "foo123"))
-
-  >>> parse (variable Rumor.StringVariable) "123foo"
-  1:1:
-    |
-  1 | 123foo
-    | ^
-  unexpected '1'
-  expecting variable
-
-  >>> parse (variable Rumor.StringVariable) "true"
-  1:1:
-    |
-  1 | true
-    | ^^^^
-  Cannot use true as a variable name
--}
-variable :: (Rumor.VariableName -> Rumor.Expression a) -> Parser (Rumor.Expression a)
-variable constructor =
-  let
-    validFirst ch =
-         isLetter ch
-      || isMark ch
-      || ch == '-'
-      || ch == '_'
-    validRest ch =
-         validFirst ch
-      || isDigit ch
-    reservedKeywords =
-      [ NET.new 't' "rue"
-      , NET.new 'f' "alse"
-      , NET.new 'n' "ot"
-      , NET.new 'a' "nd"
-      , NET.new 'o' "r"
-      , NET.new 'x' "or"
-      , NET.new 'i' "s"
-      ]
-
-    parser = do
-      first <- Mega.satisfy validFirst <?> "non-digit variable character"
-      rest <- Mega.takeWhileP (Just "variable character") validRest
-      pure (NET.new first rest)
-
-  in do
-    name <- Mega.lookAhead (lexeme parser) <?> "variable"
-    if name `elem` reservedKeywords
-    then rumorError
-            ("Cannot use " <> NET.toText name <> " as a variable name")
-            (NET.length name)
-    else do
-      _ <- Mega.takeP (Just "variable character") (NET.length name)
-      pure (constructor (Rumor.VariableName (Rumor.Unicode name)))
+variable ::
+  (Rumor.VariableName -> Rumor.Expression a) -> Parser (Rumor.Expression a)
+variable constructor = constructor <$> Identifier.variableName
 
 -- Discards whitespace surrounding an operator on both sides
 discardWhitespace :: Parser a -> Parser a

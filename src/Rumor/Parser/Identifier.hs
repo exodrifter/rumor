@@ -1,9 +1,10 @@
 module Rumor.Parser.Identifier
 ( identifier
 , label
+, variableName
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, (<?>))
+import Rumor.Parser.Common (Parser, hlexeme, lexeme, rumorError, (<?>))
 
 import qualified Data.Char
 import qualified Data.NonEmptyText as NET
@@ -178,3 +179,65 @@ identifier =
 
   in
     Rumor.Unicode <$> hlexeme parser <?> "identifier"
+
+{-| Parses the name of a variable. A variable name is any identifier that
+  doesn't start with a number and isn't a reserved keyword.
+
+  >>> parse variableName "foobar"
+  VariableName (Unicode "foobar")
+
+  >>> parse variableName "foo123"
+  VariableName (Unicode "foo123")
+
+  >>> parse variableName "123foo"
+  1:1:
+    |
+  1 | 123foo
+    | ^
+  unexpected '1'
+  expecting variable name
+
+  >>> parse variableName "true"
+  1:1:
+    |
+  1 | true
+    | ^^^^
+  Cannot use true as a variable name
+-}
+variableName :: Parser Rumor.VariableName
+variableName =
+  let
+    validCharLabel = "variable character"
+    validStart ch =
+         Data.Char.isLetter ch
+      || Data.Char.generalCategory ch == Data.Char.DashPunctuation
+      || Data.Char.generalCategory ch == Data.Char.ConnectorPunctuation
+    validEnd ch =
+         validStart ch
+      || Data.Char.isDigit ch
+      || Data.Char.isMark ch
+
+    parser = do
+      first <- Mega.satisfy validStart <?> validCharLabel
+      rest <- Mega.takeWhileP (Just validCharLabel) validEnd
+      pure (NET.new first rest)
+
+    reservedKeywords =
+      [ NET.new 't' "rue"
+      , NET.new 'f' "alse"
+      , NET.new 'n' "ot"
+      , NET.new 'a' "nd"
+      , NET.new 'o' "r"
+      , NET.new 'x' "or"
+      , NET.new 'i' "s"
+      ]
+
+  in do
+    name <- Mega.lookAhead (lexeme parser) <?> "variable name"
+    if name `elem` reservedKeywords
+    then rumorError
+            ("Cannot use " <> NET.toText name <> " as a variable name")
+            (NET.length name)
+    else do
+      _ <- Mega.takeP (Just validCharLabel) (NET.length name)
+      pure (Rumor.VariableName (Rumor.Unicode name))

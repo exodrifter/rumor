@@ -12,7 +12,7 @@ module Rumor.Internal.Types
   , Type(..)
   , Label(..)
   , Speaker(..)
-  , VariableName(..)
+  , VariableName(..), variableNameToText
   , Unicode(..)
   ) where
 
@@ -30,7 +30,7 @@ import qualified Data.Text.ICU.Normalize2 as Normalize
 -- $setup
 -- >>> import qualified Data.NonEmptyText as NET
 
-data Type = StringType | NumberType | BoolType
+data Type = BooleanType | NumberType | StringType
 
 -- | The identifier for a node.
 newtype Label = Label Unicode
@@ -42,7 +42,10 @@ newtype Speaker = Speaker Unicode
 
 -- | The name of a variable.
 newtype VariableName = VariableName Unicode
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
+
+variableNameToText :: VariableName -> Text
+variableNameToText (VariableName (Unicode net)) = NET.toText net
 
 {-| A non-empty unicode string. The string is converted to a normal form when
   testing for equality, but is stored as it was originally written by the
@@ -77,11 +80,11 @@ data Node =
     Say (Maybe Speaker) (Expression Text) (Maybe Label)
   | Add (Maybe Speaker) (Expression Text) (Maybe Label)
   | Control (Expression Bool) (NonEmpty Node) (Maybe (NonEmpty Node))
-  | Action0 Unicode
-  | Action1 Unicode (Expression Text)
-  | Action2 Unicode (Expression Text) (Expression Text)
-  | Action3 Unicode (Expression Text) (Expression Text) (Expression Text)
-  | Action4 Unicode (Expression Text) (Expression Text) (Expression Text) (Expression Text)
+  | Action0 VariableName
+  | Action1 VariableName (Expression Text)
+  | Action2 VariableName (Expression Text) (Expression Text)
+  | Action3 VariableName (Expression Text) (Expression Text) (Expression Text)
+  | Action4 VariableName (Expression Text) (Expression Text) (Expression Text) (Expression Text)
   | Choice (Expression Text) (Maybe Label) (Maybe (NonEmpty Node))
   deriving (Eq, Show)
 
