@@ -6,7 +6,7 @@ module Rumor.Parser.Expression
 
 import Data.Scientific (Scientific)
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, hspace, lexeme, modifyVariableType, space, (<?>), (<|>), rumorError)
+import Rumor.Parser.Common (Parser, attempt, hspace, lexeme, modifyVariableType, space, (<?>), (<|>))
 
 import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
@@ -877,24 +877,14 @@ interpolation =
 variable ::
   Rumor.Type -> (Rumor.VariableName -> Rumor.Expression a) -> Parser (Rumor.Expression a)
 variable typ constructor = do
-  let parser = do
-        start <- Mega.getOffset
-        name <- Identifier.variableName
-        result <- modifyVariableType name typ
-        end <- Mega.getOffset
-        case result of
-          Right () ->
-            pure (Right name, end - start)
-          Left err ->
-            pure (Left err, end - start)
-
-  result <- Mega.lookAhead parser <?> "variable name"
-  case result of
-    (Left err, len) ->
-      rumorError err len
-    (Right name, len) -> do
-      _ <- Mega.takeP Nothing len
-      pure (constructor name)
+  attempt do
+    name <- Identifier.variableName
+    result <- modifyVariableType name typ
+    case result of
+      Right () ->
+        pure (Right (constructor name))
+      Left err ->
+        pure (Left err)
 
 -- Discards whitespace surrounding an operator on both sides
 discardWhitespace :: Parser a -> Parser a

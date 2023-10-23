@@ -5,6 +5,7 @@ module Rumor.Parser.Common
 , getVariableType
 , setVariableType, modifyVariableType
 
+, attempt
 , rumorError
 
 , lexeme, hlexeme
@@ -120,6 +121,25 @@ instance Error.ShowErrorComponent RumorError where
 
 rumorError :: Text -> Int -> Parser a
 rumorError message len = Mega.customFailure (RumorError message len)
+
+{-| Attempt to parse something, but on failure highlight the part that was
+  parsed.
+-}
+attempt :: Parser (Either Text a) -> Parser a
+attempt inner = do
+  let parser = do
+        start <- Mega.getOffset
+        result <- inner
+        end <- Mega.getOffset
+        pure (result, end - start)
+
+  result <- Mega.lookAhead parser
+  case result of
+    (Left err, len) ->
+      rumorError err len
+    (Right a, len) -> do
+      _ <- Mega.takeP Nothing len
+      pure a
 
 --------------------------------------------------------------------------------
 -- Whitespace
