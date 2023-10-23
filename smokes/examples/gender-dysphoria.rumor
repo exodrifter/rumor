@@ -1,4 +1,5 @@
 // Gender Dysphoria, Networking 4
+let ask: String
 let blood: Boolean
 let pain: Boolean
 let phone: String

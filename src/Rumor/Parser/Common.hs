@@ -2,7 +2,8 @@ module Rumor.Parser.Common
 ( Parser, runParser, parseTest
 
 , Context, newContext
-, setVariableType
+, getVariableType
+, setVariableType, modifyVariableType
 
 , rumorError
 
@@ -71,15 +72,39 @@ newContext =
     { variableTypes = Map.empty
     }
 
-setVariableType :: Rumor.VariableName -> Rumor.Type -> Parser (Either Text ())
-setVariableType name typ = do
-  context <- State.get
-  case Map.lookup name (variableTypes context) of
-    Just _ ->
-      pure (Left (Rumor.variableNameToText name <> " has already been defined!"))
-    Nothing -> do
-      State.put
-        Context { variableTypes = Map.insert name typ (variableTypes context) }
+getVariableType :: Rumor.VariableName -> Context -> Maybe Rumor.Type
+getVariableType name context =
+  Map.lookup name (variableTypes context)
+
+setVariableType ::
+  Rumor.VariableName -> Rumor.Type -> Context -> Either Text Context
+setVariableType name typ context =
+  case getVariableType name context of
+    Just existingType
+      | existingType == typ ->
+          Right context
+      | otherwise ->
+          Left
+            ( "Variable `"
+                <> Rumor.variableNameToText name
+                <> "` cannot be a "
+                <> Rumor.typeToText typ
+                <> "; it has already been defined as a "
+                <> Rumor.typeToText existingType
+                <> "!"
+            )
+    Nothing ->
+      let newVariableTypes = Map.insert name typ (variableTypes context)
+      in  Right (Context { variableTypes = newVariableTypes })
+
+modifyVariableType :: Rumor.VariableName -> Rumor.Type -> Parser (Either Text ())
+modifyVariableType name typ = do
+  oldContext <- State.get
+  case setVariableType name typ oldContext of
+    Left err ->
+      pure (Left err)
+    Right context -> do
+      State.put context
       pure (Right ())
 
 --------------------------------------------------------------------------------

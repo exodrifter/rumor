@@ -2,7 +2,7 @@ module Rumor.Parser.Let
 ( let'
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, lexeme, rumorError, setVariableType, space, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, hlexeme, lexeme, rumorError, modifyVariableType, space, (<?>), (<|>))
 
 import qualified Rumor.Internal.Types as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
@@ -27,7 +27,7 @@ let' = do
              <|> Mega.try (do _ <- lexeme "String"; pure Rumor.StringType)
           end <- Mega.getOffset
 
-          result <- setVariableType name typ
+          result <- modifyVariableType name typ
           pure (result, end - start)
 
   result <- Mega.lookAhead parser <?> "variable"

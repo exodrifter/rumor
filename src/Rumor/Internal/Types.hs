@@ -9,7 +9,7 @@ module Rumor.Internal.Types
   , Expression(..)
   , simplify
 
-  , Type(..)
+  , Type(..), typeToText
   , Label(..)
   , Speaker(..)
   , VariableName(..), variableNameToText
@@ -31,6 +31,14 @@ import qualified Data.Text.ICU.Normalize2 as Normalize
 -- >>> import qualified Data.NonEmptyText as NET
 
 data Type = BooleanType | NumberType | StringType
+  deriving (Eq, Show)
+
+typeToText :: Type -> Text
+typeToText typ =
+  case typ of
+    BooleanType -> "Boolean"
+    NumberType -> "Number"
+    StringType -> "String"
 
 -- | The identifier for a node.
 newtype Label = Label Unicode

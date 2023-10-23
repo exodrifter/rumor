@@ -6,7 +6,7 @@ module Rumor.Parser.Expression
 
 import Data.Scientific (Scientific)
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, hspace, lexeme, space, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, hspace, lexeme, modifyVariableType, space, (<?>), (<|>), rumorError)
 
 import qualified Data.Text as T
 import qualified Rumor.Internal.Types as Rumor
@@ -18,9 +18,21 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Parser.Combinators as Combinators
 
 -- $setup
+-- >>> import Data.Either (fromRight)
+-- >>> import Data.NonEmptyText as NET
 -- >>> import Rumor.Parser.Common
--- >>> import Rumor.Internal.Types (Expression(..))
--- >>> let parse inner = parseTest newContext (inner <* eof)
+-- >>> import Rumor.Internal.Types
+--
+-- >>> :{
+-- let setVariableTypes c0 = do
+--       c1 <- setVariableType (VariableName (Unicode (NET.new 's' "tring"))) StringType c0
+--       c2 <- setVariableType (VariableName (Unicode (NET.new 'n' "umber"))) NumberType c1
+--       c3 <- setVariableType (VariableName (Unicode (NET.new 'b' "oolean"))) BooleanType c2
+--       pure c3
+-- :}
+--
+-- >>> let context = fromRight undefined (setVariableTypes newContext)
+-- >>> let parse inner = parseTest context (inner <* eof)
 
 --------------------------------------------------------------------------------
 -- Boolean
@@ -91,8 +103,87 @@ import qualified Text.Parser.Combinators as Combinators
   >>> parse booleanExpression "foobar || true"
   LogicalOr (BooleanVariable (VariableName (Unicode "foobar"))) (Boolean True)
 
-  TODO: I'm not sure how to handle this case yet, I don't think it's a good idea
-  to treat all variables as booleans when an equality is involved.
+  You can compare values of the same type.
+
+  >>> parse booleanExpression "true == boolean"
+  EqualBoolean (Boolean True) (BooleanVariable (VariableName (Unicode "boolean")))
+
+  >>> parse booleanExpression "1 == number"
+  EqualNumber (Number 1.0) (NumberVariable (VariableName (Unicode "number")))
+
+  >>> parse booleanExpression "\"foobar\" == string"
+  EqualString (String "foobar") (StringVariable (VariableName (Unicode "string")))
+
+  >>> parse booleanExpression "boolean == true"
+  EqualBoolean (BooleanVariable (VariableName (Unicode "boolean"))) (Boolean True)
+
+  >>> parse booleanExpression "number == 1"
+  EqualNumber (NumberVariable (VariableName (Unicode "number"))) (Number 1.0)
+
+  >>> parse booleanExpression "string == \"foobar\""
+  EqualString (StringVariable (VariableName (Unicode "string"))) (String "foobar")
+
+  You can compare variables that have the same known types
+
+  >>> parse booleanExpression "boolean == boolean"
+  EqualBoolean (BooleanVariable (VariableName (Unicode "boolean"))) (BooleanVariable (VariableName (Unicode "boolean")))
+
+  >>> parse booleanExpression "number == number"
+  EqualNumber (NumberVariable (VariableName (Unicode "number"))) (NumberVariable (VariableName (Unicode "number")))
+
+  >>> parse booleanExpression "string == string"
+  EqualString (StringVariable (VariableName (Unicode "string"))) (StringVariable (VariableName (Unicode "string")))
+
+  You cannot compare variables of different types.
+
+  TODO: boolean == var could use a better error message
+  >>> parse booleanExpression "boolean == string"
+  1:18:
+    |
+  1 | boolean == string
+    |                  ^
+  unexpected end of input
+  expecting "!=", "/=", "==", or "is"
+
+  >>> parse booleanExpression "string == boolean"
+  1:11:
+    |
+  1 | string == boolean
+    |           ^^^^^^^
+  Variable `boolean` cannot be a String; it has already been defined as a Boolean!
+
+  >>> parse booleanExpression "string == number"
+  1:11:
+    |
+  1 | string == number
+    |           ^^^^^^
+  Variable `number` cannot be a String; it has already been defined as a Number!
+
+  >>> parse booleanExpression "number == string"
+  1:11:
+    |
+  1 | number == string
+    |           ^^^^^^
+  Variable `string` cannot be a Number; it has already been defined as a String!
+
+  >>> parse booleanExpression "boolean == number"
+  1:18:
+    |
+  1 | boolean == number
+    |                  ^
+  unexpected end of input
+  expecting "!=", "/=", "==", "is", '*', '+', '-', or '/'
+
+  >>> parse booleanExpression "number == boolean"
+  1:11:
+    |
+  1 | number == boolean
+    |           ^^^^^^^
+  Variable `boolean` cannot be a Number; it has already been defined as a Boolean!
+
+  You cannot compare variables of unknown types.
+
+  TODO: We should not assume that these variables are booleans
   >>> parse booleanExpression "foo == bar"
   EqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
 
@@ -131,8 +222,7 @@ import qualified Text.Parser.Combinators as Combinators
   >>> parse booleanExpression "trueistrue"
   BooleanVariable (VariableName (Unicode "trueistrue"))
 
-  The same applies for variables, though with variables you will just end up
-  with a different variable name.
+  The same applies for variables.
 
   >>> parse booleanExpression "foo||bar"
   LogicalOr (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
@@ -211,17 +301,17 @@ booleanExpression =
 
     term =
           Surround.parentheses expression
-      <|> Mega.try (variable Rumor.BooleanVariable)
+      <|> Mega.try (variable Rumor.BooleanType Rumor.BooleanVariable)
       <|> valueEquality
             stringExpression
             Rumor.EqualString
             Rumor.NotEqualString
       <|> valueEquality
-            (Mega.try numberExpression <|> number <|> variable Rumor.NumberVariable)
+            (Mega.try numberExpression <|> number <|> variable Rumor.NumberType Rumor.NumberVariable)
             Rumor.EqualNumber
             Rumor.NotEqualNumber
       <|> Mega.try (notOperator boolean)
-      <|> notOperator (variable Rumor.BooleanVariable)
+      <|> notOperator (variable Rumor.BooleanType Rumor.BooleanVariable)
       <|> boolean
 
     notOperator inner = do
@@ -450,7 +540,24 @@ boolean =
     |            ^
   unexpected '='
 
+  You cannot use boolean or string variables in number expressions.
+
+  >>> parse numberExpression "boolean + 1"
+  1:1:
+    |
+  1 | boolean + 1
+    | ^^^^^^^
+  Variable `boolean` cannot be a Number; it has already been defined as a Boolean!
+
+  >>> parse numberExpression "string + 1"
+  1:1:
+    |
+  1 | string + 1
+    | ^^^^^^
+  Variable `string` cannot be a Number; it has already been defined as a String!
+
   This parser doesn't consume trailing whitespace.
+
   >>> parse numberExpression "1 * 2  \n  "
   1:6:
     |
@@ -471,7 +578,7 @@ numberExpression =
     term =
           Surround.parentheses expr
       <|> number
-      <|> variable Rumor.NumberVariable
+      <|> variable Rumor.NumberType Rumor.NumberVariable
 
     multiplicationOperator = do
       _ <- Char.char '*'
@@ -555,7 +662,7 @@ number = do
 stringExpression :: Parser (Rumor.Expression Text)
 stringExpression =
       string
-  <|> variable Rumor.StringVariable
+  <|> variable Rumor.StringType Rumor.StringVariable
 
 {-| Parses a string, which is any quoted string with interpolated values and no
   newlines.
@@ -768,8 +875,26 @@ interpolation =
 --------------------------------------------------------------------------------
 
 variable ::
-  (Rumor.VariableName -> Rumor.Expression a) -> Parser (Rumor.Expression a)
-variable constructor = constructor <$> Identifier.variableName
+  Rumor.Type -> (Rumor.VariableName -> Rumor.Expression a) -> Parser (Rumor.Expression a)
+variable typ constructor = do
+  let parser = do
+        start <- Mega.getOffset
+        name <- Identifier.variableName
+        result <- modifyVariableType name typ
+        end <- Mega.getOffset
+        case result of
+          Right () ->
+            pure (Right name, end - start)
+          Left err ->
+            pure (Left err, end - start)
+
+  result <- Mega.lookAhead parser <?> "variable name"
+  case result of
+    (Left err, len) ->
+      rumorError err len
+    (Right name, len) -> do
+      _ <- Mega.takeP Nothing len
+      pure (constructor name)
 
 -- Discards whitespace surrounding an operator on both sides
 discardWhitespace :: Parser a -> Parser a
