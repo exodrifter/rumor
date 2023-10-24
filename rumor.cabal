@@ -26,6 +26,7 @@ library
     Rumor
     Rumor.Internal
     Rumor.Internal.Expression
+    Rumor.Internal.Loose
     Rumor.Internal.Node
     Rumor.Internal.Unicode
     Rumor.Internal.VariableName
