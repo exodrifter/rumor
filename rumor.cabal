@@ -24,7 +24,12 @@ library
   hs-source-dirs: src
   exposed-modules:
     Rumor
-    Rumor.Internal.Types
+    Rumor.Internal
+    Rumor.Internal.Expression
+    Rumor.Internal.Node
+    Rumor.Internal.Unicode
+    Rumor.Internal.VariableName
+    Rumor.Internal.VariableType
     Rumor.Parser
     Rumor.Parser.Action
     Rumor.Parser.Choice

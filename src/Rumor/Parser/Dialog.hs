@@ -6,7 +6,7 @@ module Rumor.Parser.Dialog
 import Data.Text (Text)
 import Rumor.Parser.Common (Parser, hlexeme)
 
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Rumor.Parser.Unquoted as Unquoted
 import qualified Text.Megaparsec as Mega

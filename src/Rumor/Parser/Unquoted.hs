@@ -8,7 +8,7 @@ import Rumor.Parser.Common (Parser, eolf, space, (<?>), (<|>))
 
 import qualified Data.List as List
 import qualified Data.Text as T
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega

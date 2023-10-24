@@ -4,7 +4,7 @@ module Rumor.Parser.Action
 
 import Rumor.Parser.Common (Parser, hlexeme, lexeme, (<?>), (<|>))
 
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega

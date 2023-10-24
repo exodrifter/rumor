@@ -8,7 +8,7 @@ import Rumor.Parser.Common (Parser, hlexeme, lexeme, rumorError, (<?>))
 
 import qualified Data.Char
 import qualified Data.NonEmptyText as NET
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Surround as Surround
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char

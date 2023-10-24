@@ -9,7 +9,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Surround as Surround
 import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Indented as Indented

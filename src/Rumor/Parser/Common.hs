@@ -27,7 +27,7 @@ import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Megaparsec.Error as Error
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
@@ -64,7 +64,7 @@ parseTest context parser text =
 
 newtype Context =
   Context
-    { variableTypes :: Map.Map Rumor.VariableName Rumor.Type
+    { variableTypes :: Map.Map Rumor.VariableName Rumor.VariableType
     }
 
 newContext :: Context
@@ -73,12 +73,12 @@ newContext =
     { variableTypes = Map.empty
     }
 
-getVariableType :: Rumor.VariableName -> Context -> Maybe Rumor.Type
+getVariableType :: Rumor.VariableName -> Context -> Maybe Rumor.VariableType
 getVariableType name context =
   Map.lookup name (variableTypes context)
 
 setVariableType ::
-  Rumor.VariableName -> Rumor.Type -> Context -> Either Text Context
+  Rumor.VariableName -> Rumor.VariableType -> Context -> Either Text Context
 setVariableType name typ context =
   case getVariableType name context of
     Just existingType
@@ -98,7 +98,7 @@ setVariableType name typ context =
       let newVariableTypes = Map.insert name typ (variableTypes context)
       in  Right (Context { variableTypes = newVariableTypes })
 
-modifyVariableType :: Rumor.VariableName -> Rumor.Type -> Parser (Either Text ())
+modifyVariableType :: Rumor.VariableName -> Rumor.VariableType -> Parser (Either Text ())
 modifyVariableType name typ = do
   oldContext <- State.get
   case setVariableType name typ oldContext of

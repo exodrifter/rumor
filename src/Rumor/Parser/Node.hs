@@ -10,7 +10,7 @@ import qualified Rumor.Parser.Choice as Choice
 import qualified Rumor.Parser.Control as Control
 import qualified Rumor.Parser.Let as Let
 import qualified Rumor.Parser.Dialog as Dialog
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 

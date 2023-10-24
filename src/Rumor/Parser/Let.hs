@@ -4,7 +4,7 @@ module Rumor.Parser.Let
 
 import Rumor.Parser.Common (Parser, attempt, hlexeme, lexeme, modifyVariableType, space, (<|>))
 
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -14,7 +14,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 -- >>> import Data.Either (fromRight)
 -- >>> import Data.NonEmptyText as NET
 -- >>> import Rumor.Parser.Common
--- >>> import Rumor.Internal.Types
+-- >>> import Rumor.Internal
 --
 -- >>> :{
 -- let setVariableTypes c0 = do
@@ -113,7 +113,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   unexpected newline
   expecting ':'
 -}
-let' :: Parser (Rumor.VariableName, Rumor.Type)
+let' :: Parser (Rumor.VariableName, Rumor.VariableType)
 let' =
   attempt do
     Lexer.nonIndented space do

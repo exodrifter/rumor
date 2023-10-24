@@ -7,7 +7,7 @@ import Rumor.Parser.Common (Parser, eolf, hlexeme, space)
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
-import qualified Rumor.Internal.Types as Rumor
+import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Indented as Indented
 import qualified Rumor.Parser.Unquoted as Unquoted
 
