@@ -65,7 +65,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   1 | <empty line>
     | ^
   unexpected end of input
-  expecting carriage return, crlf newline, newline, or unquoted line
+  expecting end of line or unquoted line
 
   >>> parse (do hspace; unquoted (Mega.mkPos 1)) "  "
   1:3:
@@ -73,7 +73,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   1 |
     |   ^
   unexpected end of input
-  expecting carriage return, crlf newline, newline, or unquoted line
+  expecting end of line or unquoted line
 
   >>> parse (do hspace; unquoted (Mega.mkPos 1)) "  \n"
   2:1:

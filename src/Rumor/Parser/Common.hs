@@ -10,7 +10,7 @@ module Rumor.Parser.Common
 
 , lexeme, hlexeme
 , space, hspace
-, Mega.eof, eolf
+, Mega.eof, Char.eol, eolf
 
 -- Re-exports
 , (<?>)
@@ -175,11 +175,14 @@ blockComment = Lexer.skipBlockComment "/*" "*/"
   ()
 
   >>> parse eolf "\r"
-  ()
+  1:1:
+    |
+  1 |
+    | ^
+  unexpected carriage return
+  expecting end of input or end of line
 -}
 eolf :: Parser ()
 eolf =
-      (do _ <- "\r\n"; pure ())
-  <|> (do _ <- Char.char '\n'; pure ())
-  <|> (do _ <- Char.char '\r'; pure ())
+      (do _ <- Char.eol; pure ())
   <|> Mega.eof

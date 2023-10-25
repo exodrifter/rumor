@@ -74,7 +74,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   1 | +
     |  ^
   unexpected end of input
-  expecting carriage return, crlf newline, newline, or unquoted line
+  expecting end of line or unquoted line
 
   >>> parse add "+\n  "
   2:3:
@@ -154,7 +154,7 @@ add = dialog '+' Rumor.Add
   1 | :
     |  ^
   unexpected end of input
-  expecting carriage return, crlf newline, newline, or unquoted line
+  expecting end of line or unquoted line
 
   >>> parse say ":\n  "
   2:3:
