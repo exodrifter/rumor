@@ -262,7 +262,7 @@ unquotedBlock = do
     ( mconcat
         ( List.intersperse
             (Rumor.String " ")
-            (List.filter (/= mempty) texts)
+            texts
         )
     )
 

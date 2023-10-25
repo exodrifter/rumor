@@ -123,12 +123,8 @@ verifyBooleanTypes loose =
         Rumor.LogicalXor l r -> go2 l r
         Rumor.BooleanToString inner -> go inner
 
-        Rumor.EqualString l r -> go2 l r
-        Rumor.NotEqualString l r -> go2 l r
-        Rumor.EqualNumber l r -> go2 l r
-        Rumor.NotEqualNumber l r -> go2 l r
-        Rumor.EqualBoolean l r -> go2 l r
-        Rumor.NotEqualBoolean l r -> go2 l r
+        Rumor.Equal l r -> go2 l r
+        Rumor.NotEqual l r -> go2 l r
 
   in do
     case eExpression of

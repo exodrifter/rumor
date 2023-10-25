@@ -21,7 +21,7 @@ data Node =
   | Action3 VariableName (Expression Text) (Expression Text) (Expression Text)
   | Action4 VariableName (Expression Text) (Expression Text) (Expression Text) (Expression Text)
   | Choice (Expression Text) (Maybe Label) (Maybe (NonEmpty Node))
-  deriving (Eq, Show)
+  deriving (Show)
 
 -- | The identifier for a node.
 newtype Label = Label Unicode

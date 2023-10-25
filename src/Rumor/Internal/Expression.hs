@@ -37,14 +37,9 @@ data Expression typ where
   LogicalXor :: Expression Bool -> Expression Bool -> Expression Bool
   BooleanToString :: Expression Bool -> Expression Text
 
-  EqualString :: Expression Text -> Expression Text -> Expression Bool
-  NotEqualString :: Expression Text -> Expression Text -> Expression Bool
-  EqualNumber :: Expression Scientific -> Expression Scientific -> Expression Bool
-  NotEqualNumber :: Expression Scientific -> Expression Scientific -> Expression Bool
-  EqualBoolean :: Expression Bool -> Expression Bool -> Expression Bool
-  NotEqualBoolean :: Expression Bool -> Expression Bool -> Expression Bool
+  Equal :: Expression a -> Expression a -> Expression Bool
+  NotEqual :: Expression a -> Expression a -> Expression Bool
 
-deriving instance Eq (Expression a)
 deriving instance Show (Expression a)
 
 instance Semigroup (Expression Text) where
@@ -83,12 +78,12 @@ simplify expression =
     LogicalXor (Boolean l) (Boolean r) -> Boolean (l /= r)
     BooleanToString (Boolean b) -> String (booleanToString b)
 
-    EqualString (String l) (String r) -> Boolean (l == r)
-    NotEqualString (String l) (String r) -> Boolean (l /= r)
-    EqualNumber (Number l) (Number r) -> Boolean (l == r)
-    NotEqualNumber (Number l) (Number r) -> Boolean (l /= r)
-    EqualBoolean (Boolean l) (Boolean r) -> Boolean (l == r)
-    NotEqualBoolean (Boolean l) (Boolean r) -> Boolean (l /= r)
+    Equal (String l) (String r) -> Boolean (l == r)
+    NotEqual (String l) (String r) -> Boolean (l /= r)
+    Equal (Number l) (Number r) -> Boolean (l == r)
+    NotEqual (Number l) (Number r) -> Boolean (l /= r)
+    Equal (Boolean l) (Boolean r) -> Boolean (l == r)
+    NotEqual (Boolean l) (Boolean r) -> Boolean (l /= r)
 
     String _ -> expression
     StringVariable _ -> expression
@@ -110,12 +105,8 @@ simplify expression =
     LogicalXor _ _ -> expression
     BooleanToString _ -> expression
 
-    EqualString _ _ -> expression
-    NotEqualString _ _ -> expression
-    EqualNumber _ _ -> expression
-    NotEqualNumber _ _ -> expression
-    EqualBoolean _ _ -> expression
-    NotEqualBoolean _ _ -> expression
+    Equal _ _ -> expression
+    NotEqual _ _ -> expression
 
 numberToString :: Scientific -> Text
 numberToString number =

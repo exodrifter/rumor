@@ -100,73 +100,73 @@ data Loose =
   Left CannotInferExpression
 
   >>> toBoolean (LooseEqual foo (StringLiteral "bar"))
-  Right (EqualString (StringVariable (VariableName (Unicode "foo"))) (String "bar"))
+  Right (Equal (StringVariable (VariableName (Unicode "foo"))) (String "bar"))
 
   >>> toBoolean (LooseEqual (StringLiteral "foo") bar)
-  Right (EqualString (String "foo") (StringVariable (VariableName (Unicode "bar"))))
+  Right (Equal (String "foo") (StringVariable (VariableName (Unicode "bar"))))
 
   >>> toBoolean (LooseEqual foo (LooseConcat foo bar))
-  Right (EqualString (StringVariable (VariableName (Unicode "foo"))) (Concat (StringVariable (VariableName (Unicode "foo"))) (StringVariable (VariableName (Unicode "bar")))))
+  Right (Equal (StringVariable (VariableName (Unicode "foo"))) (Concat (StringVariable (VariableName (Unicode "foo"))) (StringVariable (VariableName (Unicode "bar")))))
 
   >>> toBoolean (LooseNotEqual foo bar)
   Left CannotInferExpression
 
   >>> toBoolean (LooseNotEqual foo (StringLiteral "bar"))
-  Right (NotEqualString (StringVariable (VariableName (Unicode "foo"))) (String "bar"))
+  Right (NotEqual (StringVariable (VariableName (Unicode "foo"))) (String "bar"))
 
   >>> toBoolean (LooseNotEqual (StringLiteral "foo") bar)
-  Right (NotEqualString (String "foo") (StringVariable (VariableName (Unicode "bar"))))
+  Right (NotEqual (String "foo") (StringVariable (VariableName (Unicode "bar"))))
 
   >>> toBoolean (LooseNotEqual foo (LooseConcat foo bar))
-  Right (NotEqualString (StringVariable (VariableName (Unicode "foo"))) (Concat (StringVariable (VariableName (Unicode "foo"))) (StringVariable (VariableName (Unicode "bar")))))
+  Right (NotEqual (StringVariable (VariableName (Unicode "foo"))) (Concat (StringVariable (VariableName (Unicode "foo"))) (StringVariable (VariableName (Unicode "bar")))))
 
   >>> toBoolean (LooseEqual foo bar)
   Left CannotInferExpression
 
   >>> toBoolean (LooseEqual foo (NumberLiteral 1))
-  Right (EqualNumber (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
+  Right (Equal (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
 
   >>> toBoolean (LooseEqual (NumberLiteral 1) bar)
-  Right (EqualNumber (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
+  Right (Equal (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
 
   >>> toBoolean (LooseEqual foo (LooseAddition foo bar))
-  Right (EqualNumber (NumberVariable (VariableName (Unicode "foo"))) (Addition (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar")))))
+  Right (Equal (NumberVariable (VariableName (Unicode "foo"))) (Addition (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar")))))
 
   >>> toBoolean (LooseNotEqual foo bar)
   Left CannotInferExpression
 
   >>> toBoolean (LooseNotEqual foo (NumberLiteral 1))
-  Right (NotEqualNumber (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
+  Right (NotEqual (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
 
   >>> toBoolean (LooseNotEqual (NumberLiteral 1) bar)
-  Right (NotEqualNumber (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
+  Right (NotEqual (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
 
   >>> toBoolean (LooseNotEqual foo (LooseAddition foo bar))
-  Right (NotEqualNumber (NumberVariable (VariableName (Unicode "foo"))) (Addition (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar")))))
+  Right (NotEqual (NumberVariable (VariableName (Unicode "foo"))) (Addition (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar")))))
 
   >>> toBoolean (LooseEqual foo bar)
   Left CannotInferExpression
 
   >>> toBoolean (LooseEqual foo (BooleanLiteral True))
-  Right (EqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
+  Right (Equal (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
 
   >>> toBoolean (LooseEqual (BooleanLiteral True) bar)
-  Right (EqualBoolean (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
+  Right (Equal (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
 
   >>> toBoolean (LooseEqual foo (LooseLogicalAnd foo bar))
-  Right (EqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))))
+  Right (Equal (BooleanVariable (VariableName (Unicode "foo"))) (LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))))
 
   >>> toBoolean (LooseNotEqual foo bar)
   Left CannotInferExpression
 
   >>> toBoolean (LooseNotEqual foo (BooleanLiteral True))
-  Right (NotEqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
+  Right (NotEqual (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
 
   >>> toBoolean (LooseNotEqual (BooleanLiteral True) bar)
-  Right (NotEqualBoolean (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
+  Right (NotEqual (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
 
   >>> toBoolean (LooseNotEqual foo (LooseLogicalAnd foo bar))
-  Right (NotEqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))))
+  Right (NotEqual (BooleanVariable (VariableName (Unicode "foo"))) (LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))))
 -}
 toBoolean :: Loose -> Either InferenceFailure (Expression Bool)
 toBoolean loose =
@@ -197,42 +197,42 @@ toBoolean loose =
             (LooseVariable _, LooseVariable _) -> Left CannotInferExpression
             (LooseVariable name, _) ->
               case (go r False, toNumber r, toString r) of
-                (Right inner, _, _) -> Right (EqualBoolean (BooleanVariable name) inner)
-                (_, Right inner, _) -> Right (EqualNumber (NumberVariable name) inner)
-                (_, _, Right inner) -> Right (EqualString (StringVariable name) inner)
+                (Right inner, _, _) -> Right (Equal (BooleanVariable name) inner)
+                (_, Right inner, _) -> Right (Equal (NumberVariable name) inner)
+                (_, _, Right inner) -> Right (Equal (StringVariable name) inner)
                 _ -> Left CannotInferExpression
             (_, LooseVariable name) ->
               case (go l False, toNumber l, toString l) of
-                (Right inner, _, _) -> Right (EqualBoolean inner (BooleanVariable name))
-                (_, Right inner, _) -> Right (EqualNumber inner (NumberVariable name))
-                (_, _, Right inner) -> Right (EqualString inner (StringVariable name))
+                (Right inner, _, _) -> Right (Equal inner (BooleanVariable name))
+                (_, Right inner, _) -> Right (Equal inner (NumberVariable name))
+                (_, _, Right inner) -> Right (Equal inner (StringVariable name))
                 _ -> Left CannotInferExpression
             (_, _) ->
               case (go l False, toNumber l, toString l) of
-                (Right inner, _, _) -> EqualBoolean inner <$> go r False
-                (_, Right inner, _) -> EqualNumber inner <$> toNumber r
-                (_, _, Right inner) -> EqualString inner <$> toString r
+                (Right inner, _, _) -> Equal inner <$> go r False
+                (_, Right inner, _) -> Equal inner <$> toNumber r
+                (_, _, Right inner) -> Equal inner <$> toString r
                 _ -> Left TypeMismatch
         LooseNotEqual l r ->
           case (l, r) of
             (LooseVariable _, LooseVariable _) -> Left CannotInferExpression
             (LooseVariable name, _) ->
               case (go r False, toNumber r, toString r) of
-                (Right inner, _, _) -> Right (NotEqualBoolean (BooleanVariable name) inner)
-                (_, Right inner, _) -> Right (NotEqualNumber (NumberVariable name) inner)
-                (_, _, Right inner) -> Right (NotEqualString (StringVariable name) inner)
+                (Right inner, _, _) -> Right (NotEqual (BooleanVariable name) inner)
+                (_, Right inner, _) -> Right (NotEqual (NumberVariable name) inner)
+                (_, _, Right inner) -> Right (NotEqual (StringVariable name) inner)
                 _ -> Left CannotInferExpression
             (_, LooseVariable name) ->
               case (go l False, toNumber l, toString l) of
-                (Right inner, _, _) -> Right (NotEqualBoolean inner (BooleanVariable name))
-                (_, Right inner, _) -> Right (NotEqualNumber inner (NumberVariable name))
-                (_, _, Right inner) -> Right (NotEqualString inner (StringVariable name))
+                (Right inner, _, _) -> Right (NotEqual inner (BooleanVariable name))
+                (_, Right inner, _) -> Right (NotEqual inner (NumberVariable name))
+                (_, _, Right inner) -> Right (NotEqual inner (StringVariable name))
                 _ -> Left CannotInferExpression
             (_, _) ->
               case (go l False, toNumber l, toString l) of
-                (Right inner, _, _) -> NotEqualBoolean inner <$> go r False
-                (_, Right inner, _) -> NotEqualNumber inner <$> toNumber r
-                (_, _, Right inner) -> NotEqualString inner <$> toString r
+                (Right inner, _, _) -> NotEqual inner <$> go r False
+                (_, Right inner, _) -> NotEqual inner <$> toNumber r
+                (_, _, Right inner) -> NotEqual inner <$> toString r
                 _ -> Left TypeMismatch
         ToString _ -> Left TypeMismatch
   in
