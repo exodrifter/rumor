@@ -3,7 +3,7 @@ module Rumor.Parser.Control
 ) where
 
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, eolf, hlexeme, space, (<|>))
+import Rumor.Parser.Common (Parser, eol, hlexeme, space, (<|>))
 import Data.List.NonEmpty (NonEmpty(..))
 
 import qualified Text.Megaparsec as Mega
@@ -61,7 +61,7 @@ import qualified Rumor.Parser.Indented as Indented
   1 | if true or false}
     |                 ^^
   unexpected "}<newline>"
-  expecting "!=", "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', end of input, or end of line
+  expecting end of line
 
   You cannot have an empty block of nodes.
 
@@ -71,7 +71,7 @@ import qualified Rumor.Parser.Indented as Indented
   1 | if true
     |        ^
   unexpected end of input
-  expecting "!=", "&&", "/=", "==", "and", "is", "or", "xor", "||", ':', '^', end of line, or identifier
+  expecting end of line
 
   >>> parse (control say) "if true\n"
   2:1:
@@ -198,7 +198,7 @@ controlIf name ref inner = do
       (     Surround.braces Expression.booleanExpression
         <|> Expression.booleanExpression
       )
-  _ <- eolf
+  _ <- eol
 
   successBlock <- Indented.someIndentedMoreThan ref inner
   failureBlock <- Mega.optional

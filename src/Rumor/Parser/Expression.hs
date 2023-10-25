@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+
 module Rumor.Parser.Expression
 ( booleanExpression
 , numberExpression
@@ -10,6 +12,7 @@ import Rumor.Parser.Common (Parser, attempt, hspace, lexeme, modifyVariableType,
 
 import qualified Data.Text as T
 import qualified Rumor.Internal as Rumor
+import qualified Rumor.Parser.Loose as Loose
 import qualified Rumor.Parser.Surround as Surround
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega
@@ -41,421 +44,103 @@ import qualified Text.Parser.Combinators as Combinators
 {-| Parses a boolean expression. Any amount of space, including newlines, is
   allowed between the terms of the boolean expression.
 
-  >>> parse booleanExpression "true"
-  Boolean True
+  You can use variables, if they are of type Boolean.
 
-  >>> parse booleanExpression "false"
-  Boolean False
+  >>> parse booleanExpression "boolean and true"
+  LogicalAnd (BooleanVariable (VariableName (Unicode "boolean"))) (Boolean True)
 
-  In order from highest to lowest precedence:
-
-  >>> parse booleanExpression "not true"
-  LogicalNot (Boolean True)
-
-  >>> parse booleanExpression "true == false"
-  EqualBoolean (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "true is false"
-  EqualBoolean (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "true /= false"
-  NotEqualBoolean (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "true xor false"
-  LogicalXor (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "true ^ false"
-  LogicalXor (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "true and false"
-  LogicalAnd (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "true && false"
-  LogicalAnd (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "true or false"
-  LogicalOr (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "true || false"
-  LogicalOr (Boolean True) (Boolean False)
-
-  You can use parenthesis to change the precedence of the operations.
-
-  >>> parse booleanExpression "true and true or false xor true"
-  LogicalOr (LogicalAnd (Boolean True) (Boolean True)) (LogicalXor (Boolean False) (Boolean True))
-
-  >>> parse booleanExpression "true and (true or false) xor true"
-  LogicalAnd (Boolean True) (LogicalXor (LogicalOr (Boolean True) (Boolean False)) (Boolean True))
-
-  You can also do value comparisons.
-
-  >>> parse booleanExpression "\"apples\" == \"oranges\""
-  EqualString (String "apples") (String "oranges")
-
-  >>> parse booleanExpression "1.0 /= 2.0"
-  NotEqualNumber (Number 1.0) (Number 2.0)
-
-  You can also use variables.
-
-  >>> parse booleanExpression "foobar"
-  BooleanVariable (VariableName (Unicode "foobar"))
-
-  >>> parse booleanExpression "foobar || true"
-  LogicalOr (BooleanVariable (VariableName (Unicode "foobar"))) (Boolean True)
-
-  You can compare values of the same type.
-
-  >>> parse booleanExpression "true == boolean"
-  EqualBoolean (Boolean True) (BooleanVariable (VariableName (Unicode "boolean")))
-
-  >>> parse booleanExpression "1 == number"
-  EqualNumber (Number 1.0) (NumberVariable (VariableName (Unicode "number")))
-
-  >>> parse booleanExpression "\"foobar\" == string"
-  EqualString (String "foobar") (StringVariable (VariableName (Unicode "string")))
-
-  >>> parse booleanExpression "boolean == true"
-  EqualBoolean (BooleanVariable (VariableName (Unicode "boolean"))) (Boolean True)
-
-  >>> parse booleanExpression "number == 1"
-  EqualNumber (NumberVariable (VariableName (Unicode "number"))) (Number 1.0)
-
-  >>> parse booleanExpression "string == \"foobar\""
-  EqualString (StringVariable (VariableName (Unicode "string"))) (String "foobar")
-
-  You can compare variables that have the same known types
-
-  >>> parse booleanExpression "boolean == boolean"
-  EqualBoolean (BooleanVariable (VariableName (Unicode "boolean"))) (BooleanVariable (VariableName (Unicode "boolean")))
-
-  >>> parse booleanExpression "number == number"
-  EqualNumber (NumberVariable (VariableName (Unicode "number"))) (NumberVariable (VariableName (Unicode "number")))
-
-  >>> parse booleanExpression "string == string"
-  EqualString (StringVariable (VariableName (Unicode "string"))) (StringVariable (VariableName (Unicode "string")))
-
-  You cannot compare variables of different types.
-
-  TODO: boolean == var could use a better error message
-  >>> parse booleanExpression "boolean == string"
-  1:18:
+  >>> parse booleanExpression "number and true"
+  1:1:
     |
-  1 | boolean == string
-    |                  ^
-  unexpected end of input
-  expecting "!=", "/=", "==", or "is"
+  1 | number and true
+    | ^^^^^^^^^^^^^^^
+  Variable `number` cannot be a Boolean; it has already been defined as a Number!
 
-  >>> parse booleanExpression "string == boolean"
-  1:11:
+  >>> parse booleanExpression "string and true"
+  1:1:
     |
-  1 | string == boolean
-    |           ^^^^^^^
-  Variable `boolean` cannot be a String; it has already been defined as a Boolean!
+  1 | string and true
+    | ^^^^^^^^^^^^^^^
+  Variable `string` cannot be a Boolean; it has already been defined as a String!
 
-  >>> parse booleanExpression "string == number"
-  1:11:
+  It can infer the types of undefined variables if the variables are used with a
+  boolean operator.
+
+  >>> parse booleanExpression "foo"
+  1:1:
     |
-  1 | string == number
-    |           ^^^^^^
-  Variable `number` cannot be a String; it has already been defined as a Number!
+  1 | foo
+    | ^^^
+  Cannot infer type of `foo`.
 
-  >>> parse booleanExpression "number == string"
-  1:11:
-    |
-  1 | number == string
-    |           ^^^^^^
-  Variable `string` cannot be a Number; it has already been defined as a String!
+  >>> parse booleanExpression "not foo"
+  LogicalNot (BooleanVariable (VariableName (Unicode "foo")))
 
-  >>> parse booleanExpression "boolean == number"
-  1:18:
-    |
-  1 | boolean == number
-    |                  ^
-  unexpected end of input
-  expecting "!=", "/=", "==", "is", '*', '+', '-', or '/'
-
-  >>> parse booleanExpression "number == boolean"
-  1:11:
-    |
-  1 | number == boolean
-    |           ^^^^^^^
-  Variable `boolean` cannot be a Number; it has already been defined as a Boolean!
-
-  You cannot compare variables of unknown types.
-
-  TODO: We should not assume that these variables are booleans
-  >>> parse booleanExpression "foo == bar"
-  EqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
-
-  You can use newlines.
-
-  >>> parse booleanExpression "true\n||\nfalse"
-  LogicalOr (Boolean True) (Boolean False)
-
-  You don't need to use whitespace if you are using the non-word forms of the
-  operators.
-
-  >>> parse booleanExpression "true||false"
-  LogicalOr (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "trueorfalse"
-  BooleanVariable (VariableName (Unicode "trueorfalse"))
-
-  >>> parse booleanExpression "true&&false"
-  LogicalAnd (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "trueandfalse"
-  BooleanVariable (VariableName (Unicode "trueandfalse"))
-
-  >>> parse booleanExpression "true^false"
-  LogicalXor (Boolean True) (Boolean False)
-
-  >>> parse booleanExpression "truexorfalse"
-  BooleanVariable (VariableName (Unicode "truexorfalse"))
-
-  >>> parse booleanExpression "!false"
-  LogicalNot (Boolean False)
-
-  >>> parse booleanExpression "nottrue"
-  BooleanVariable (VariableName (Unicode "nottrue"))
-
-  >>> parse booleanExpression "trueistrue"
-  BooleanVariable (VariableName (Unicode "trueistrue"))
-
-  The same applies for variables.
-
-  >>> parse booleanExpression "foo||bar"
-  LogicalOr (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
-
-  >>> parse booleanExpression "fooorbar"
-  BooleanVariable (VariableName (Unicode "fooorbar"))
-
-  >>> parse booleanExpression "foo&&bar"
+  >>> parse booleanExpression "foo and bar"
   LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
-
-  >>> parse booleanExpression "fooandbar"
-  BooleanVariable (VariableName (Unicode "fooandbar"))
-
-  >>> parse booleanExpression "foo^bar"
-  LogicalXor (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
-
-  >>> parse booleanExpression "fooxorbar"
-  BooleanVariable (VariableName (Unicode "fooxorbar"))
-
-  >>> parse booleanExpression "!bar"
-  LogicalNot (BooleanVariable (VariableName (Unicode "bar")))
-
-  >>> parse booleanExpression "notfoo"
-  BooleanVariable (VariableName (Unicode "notfoo"))
-
-  >>> parse booleanExpression "fooistrue"
-  BooleanVariable (VariableName (Unicode "fooistrue"))
-
-  You cannot write incomplete boolean expressions.
-
-  >>> parse booleanExpression "/="
-  1:1:
-    |
-  1 | /=
-    | ^^
-  unexpected "/="
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable name
-
-  >>> parse booleanExpression "/= true"
-  1:1:
-    |
-  1 | /= true
-    | ^^^^^
-  unexpected "/= tr"
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable name
-
-  >>> parse booleanExpression "true /="
-  1:8:
-    |
-  1 | true /=
-    |        ^
-  unexpected end of input
-  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable name
-
-  This parser doesn't consume trailing whitespace.
-
-  >>> parse booleanExpression "true  \n  "
-  1:5:
-    |
-  1 | true
-    |     ^
-  unexpected space
-  expecting end of input
 -}
 booleanExpression :: Parser (Rumor.Expression Bool)
 booleanExpression =
-  let
-    -- Parse a boolean expression with the left associative operators from
-    -- highest to lowest precedence.
-    expression = term
-      `Combinators.chainl1` discardWhitespace equalsOperator
-      `Combinators.chainl1` discardWhitespace notEqualsOperator
-      `Combinators.chainl1` discardWhitespace xorOperator
-      `Combinators.chainl1` discardWhitespace andOperator
-      `Combinators.chainl1` discardWhitespace orOperator
+  attempt do
+    loose <- Loose.booleanLoose
+    verifyTypes loose
 
-    term =
-          Surround.parentheses expression
-      <|> Mega.try (variable Rumor.BooleanType Rumor.BooleanVariable)
-      <|> valueEquality
-            stringExpression
-            Rumor.EqualString
-            Rumor.NotEqualString
-      <|> valueEquality
-            (Mega.try numberExpression <|> number <|> variable Rumor.NumberType Rumor.NumberVariable)
-            Rumor.EqualNumber
-            Rumor.NotEqualNumber
-      <|> Mega.try (notOperator boolean)
-      <|> notOperator (variable Rumor.BooleanType Rumor.BooleanVariable)
-      <|> boolean
-
-    notOperator inner = do
-      _ <- discardWhitespace ("!" <|> do _ <- "not"; " ")
-      Rumor.LogicalNot <$> inner
-    equalsOperator = do
-      _ <- "==" <|> "is"
-      pure Rumor.EqualBoolean
-    notEqualsOperator = do
-      _ <- "/=" <|> "!="
-      pure Rumor.NotEqualBoolean
-    xorOperator = do
-      _ <- "^" <|> "xor"
-      pure Rumor.LogicalXor
-    andOperator = do
-      _ <- "&&" <|> "and"
-      pure Rumor.LogicalAnd
-    orOperator = do
-      _ <- "||" <|> "or"
-      pure Rumor.LogicalOr
-
-  in
-    expression
-
-{-| Parses a value equality comparison.
-
-  >>> let booleanEquality = valueEquality boolean EqualBoolean NotEqualBoolean
-  >>> parse booleanEquality "true == false"
-  EqualBoolean (Boolean True) (Boolean False)
-
-  >>> parse booleanEquality "true /= false"
-  NotEqualBoolean (Boolean True) (Boolean False)
-
-  >>> parse booleanEquality "true != false"
-  NotEqualBoolean (Boolean True) (Boolean False)
-
-  You can use newlines.
-
-  >>> parse booleanEquality "true\n\n==\n\nfalse" -- Newlines are fine
-  EqualBoolean (Boolean True) (Boolean False)
-
-  You don't need to use whitespace if you are using the non-word forms of the
-  operators.
-
-  >>> parse booleanEquality "true==false"
-  EqualBoolean (Boolean True) (Boolean False)
-
-  You cannot write incomplete equality expressions.
-
-  >>> parse booleanEquality "=="
-  1:1:
-    |
-  1 | ==
-    | ^^
-  unexpected "=="
-  expecting "false" or "true"
-
-  >>> parse booleanEquality "true =="
-  1:8:
-    |
-  1 | true ==
-    |        ^
-  unexpected end of input
-  expecting "false" or "true"
-
-  >>> parse booleanEquality "== true"
-  1:1:
-    |
-  1 | == true
-    | ^^^^^
-  unexpected "== tr"
-  expecting "false" or "true"
-
-  This parser doesn't consume trailing whitespace.
-
-  >>> parse booleanExpression "true == false  \n  "
-  1:14:
-    |
-  1 | true == false
-    |              ^
-  unexpected space
-  expecting end of input
+{-| Converts a loosely-typed expression into a strictly-typed one as long as the
+  variables in the strictly-typed expression do not conflict with existing
+  variable definition.
 -}
-valueEquality :: Show a
-              => Parser a
-              -> (a -> a -> Rumor.Expression Bool)
-              -> (a -> a -> Rumor.Expression Bool)
-              -> Parser (Rumor.Expression Bool)
-valueEquality arg eqConstructor neqConstructor = do
-  l <- lexeme arg
-
+verifyTypes :: Rumor.Loose a -> Parser (Either Text (Rumor.Expression a))
+verifyTypes loose =
   let
-    equalsOperator = do
-      _ <- lexeme ("==" <|> "is")
-      pure eqConstructor
-    notEqualsOperator = do
-      _ <-lexeme ("/=" <|> "!=")
-      pure neqConstructor
-  constructor <- equalsOperator <|> notEqualsOperator
+    eExpression = Rumor.looseToExpression loose
 
-  r <- arg
-  pure (constructor l r)
+    go2 l r = do
+      result <- go l
+      case result of
+        Left err -> pure (Left err)
+        Right () -> go r
 
-{-| Parses a boolean literal, which can either be true or false.
+    go :: Rumor.Expression a -> Parser (Either Text ())
+    go expr =
+      case expr of
+        Rumor.String _ -> pure (Right ())
+        Rumor.StringVariable name -> modifyVariableType name Rumor.StringType
+        Rumor.Concat l r -> go2 l r
 
-  >>> parse boolean "true"
-  Boolean True
+        Rumor.Number _ -> pure (Right ())
+        Rumor.NumberVariable name -> modifyVariableType name Rumor.NumberType
+        Rumor.Addition l r -> go2 l r
+        Rumor.Subtraction l r -> go2 l r
+        Rumor.Multiplication l r -> go2 l r
+        Rumor.Division l r -> go2 l r
+        Rumor.NumberToString inner -> go inner
 
-  >>> parse boolean "false"
-  Boolean False
+        Rumor.Boolean _ -> pure (Right ())
+        Rumor.BooleanVariable name -> modifyVariableType name Rumor.BooleanType
+        Rumor.LogicalNot inner -> go inner
+        Rumor.LogicalAnd l r -> go2 l r
+        Rumor.LogicalOr l r -> go2 l r
+        Rumor.LogicalXor l r -> go2 l r
+        Rumor.BooleanToString inner -> go inner
 
-  >>> parse boolean "True"
-  1:1:
-    |
-  1 | True
-    | ^^^^
-  unexpected "True"
-  expecting "false" or "true"
--}
-boolean :: Parser (Rumor.Expression Bool)
-boolean =
-  let
-    true = do
-      _ <- "true"
-      pure (Rumor.Boolean True)
-    false = do
-      _ <- "false"
-      pure (Rumor.Boolean False)
-
-    -- Slightly nicer error messages compared to `Mega.notFollowedBy`.
-    notFollowedBy :: Parser Text -> Parser ()
-    notFollowedBy str =
-      Mega.notFollowedBy str <|> (do _ <- " "; pure ())
+        Rumor.EqualString l r -> go2 l r
+        Rumor.NotEqualString l r -> go2 l r
+        Rumor.EqualNumber l r -> go2 l r
+        Rumor.NotEqualNumber l r -> go2 l r
+        Rumor.EqualBoolean l r -> go2 l r
+        Rumor.NotEqualBoolean l r -> go2 l r
 
   in do
-    result <- true <|> false
-
-    -- literals cannot be followed by any of the following
-    notFollowedBy "or"
-    notFollowedBy "and"
-    notFollowedBy "xor"
-    notFollowedBy "is"
-
-    pure result
+    case eExpression of
+      Left err ->
+        pure (Left (Rumor.inferenceFailureToText err))
+      Right expression -> do
+        result <- go expression
+        case result of
+          Right () ->
+            pure (Right expression)
+          Left err ->
+            pure (Left err)
 
 --------------------------------------------------------------------------------
 -- Number
@@ -852,7 +537,7 @@ escape escapes = do
   1 | {true
     |      ^
   unexpected end of input
-  expecting "!=", "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', or close brace
+  expecting close brace
 
   >>> parse interpolation "true}"
   1:1:
