@@ -1,9 +1,8 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE StandaloneDeriving #-}
-
 module Rumor.Internal.Loose
 ( Loose(..)
-, looseToExpression
+, toBoolean
+, toNumber
+, toString
 , InferenceFailure(..)
 , inferenceFailureToText
 ) where
@@ -25,392 +24,366 @@ import Rumor.Internal.VariableName (VariableName, variableNameToText)
 
   This is lets us do the parsing step separately from the type inference step.
 -}
-data Loose a where
-  LooseVariable :: VariableName -> Loose a
+data Loose =
+  -- Boolean
+    BooleanLiteral Bool
+  | LooseLogicalNot Loose
+  | LooseLogicalAnd Loose Loose
+  | LooseLogicalOr Loose Loose
+  | LooseLogicalXor Loose Loose
 
-  StringLiteral :: Text -> Loose Text
-  LooseConcat :: Loose Text -> Loose Text -> Loose Text
+  -- Number
+  | NumberLiteral Scientific
+  | LooseAddition Loose Loose
+  | LooseSubtraction Loose Loose
+  | LooseMultiplication Loose Loose
+  | LooseDivision Loose Loose
 
-  NumberLiteral :: Scientific -> Loose Scientific
-  LooseAddition :: Loose Scientific -> Loose Scientific -> Loose Scientific
-  LooseSubtraction :: Loose Scientific -> Loose Scientific -> Loose Scientific
-  LooseMultiplication :: Loose Scientific -> Loose Scientific -> Loose Scientific
-  LooseDivision :: Loose Scientific -> Loose Scientific -> Loose Scientific
-  LooseNumberToString :: Loose Scientific -> Loose Text
+  -- String
+  | StringLiteral Text
+  | LooseConcat Loose Loose
 
-  BooleanLiteral :: Bool -> Loose Bool
-  LooseLogicalNot :: Loose Bool -> Loose Bool
-  LooseLogicalAnd :: Loose Bool -> Loose Bool -> Loose Bool
-  LooseLogicalOr :: Loose Bool -> Loose Bool -> Loose Bool
-  LooseLogicalXor :: Loose Bool -> Loose Bool -> Loose Bool
-  LooseBooleanToString :: Loose Bool -> Loose Text
+  -- Overloaded
+  | LooseVariable VariableName
+  | LooseEqual Loose Loose
+  | LooseNotEqual Loose Loose
+  | ToString Loose
+  deriving (Eq, Show)
 
-  LooseEqualString :: Loose Text -> Loose Text -> Loose Bool
-  LooseNotEqualString :: Loose Text -> Loose Text -> Loose Bool
-  LooseEqualNumber :: Loose Scientific -> Loose Scientific -> Loose Bool
-  LooseNotEqualNumber :: Loose Scientific -> Loose Scientific -> Loose Bool
-  LooseEqualBoolean :: Loose Bool -> Loose Bool -> Loose Bool
-  LooseNotEqualBoolean :: Loose Bool -> Loose Bool -> Loose Bool
-
-deriving instance Eq (Loose a)
-deriving instance Show (Loose a)
-
-{-| Converts a loose expression into a strict expression, if possible. Fails
-  when the type of a variable cannot be inferred.
+{-| Converts a loose boolean expression into a strict boolean expression, if
+  possible. Fails when the type of a variable cannot be inferred.
 
   Can't infer the types of variables on its own.
 
-  >>> looseToExpression foo
+  >>> toBoolean foo
   Left (CannotInferVariable (VariableName (Unicode "foo")))
-
-  Can infer the types of variables when using string operators.
-
-  >>> looseToExpression (LooseConcat (StringLiteral ("foo")) bar)
-  Right (Concat (String "foo") (StringVariable (VariableName (Unicode "bar"))))
-
-  >>> looseToExpression (LooseConcat foo (StringLiteral ("bar")))
-  Right (Concat (StringVariable (VariableName (Unicode "foo"))) (String "bar"))
-
-  >>> looseToExpression (LooseConcat foo bar)
-  Right (Concat (StringVariable (VariableName (Unicode "foo"))) (StringVariable (VariableName (Unicode "bar"))))
-
-  Can infer the types of variables when using number operators.
-
-  >>> looseToExpression (LooseAddition (NumberLiteral 1) bar)
-  Right (Addition (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
-
-  >>> looseToExpression (LooseAddition foo (NumberLiteral 1))
-  Right (Addition (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
-
-  >>> looseToExpression (LooseAddition foo bar)
-  Right (Addition (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar"))))
-
-  >>> looseToExpression (LooseSubtraction (NumberLiteral 1) bar)
-  Right (Subtraction (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
-
-  >>> looseToExpression (LooseSubtraction foo (NumberLiteral 1))
-  Right (Subtraction (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
-
-  >>> looseToExpression (LooseSubtraction foo bar)
-  Right (Subtraction (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar"))))
-
-  >>> looseToExpression (LooseMultiplication (NumberLiteral 1) bar)
-  Right (Multiplication (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
-
-  >>> looseToExpression (LooseMultiplication foo (NumberLiteral 1))
-  Right (Multiplication (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
-
-  >>> looseToExpression (LooseMultiplication foo bar)
-  Right (Multiplication (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar"))))
-
-  >>> looseToExpression (LooseDivision (NumberLiteral 1) bar)
-  Right (Division (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
-
-  >>> looseToExpression (LooseDivision foo (NumberLiteral 1))
-  Right (Division (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
-
-  >>> looseToExpression (LooseDivision foo bar)
-  Right (Division (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar"))))
 
   Can infer the types of variables when using logic operators.
 
-  >>> looseToExpression (LooseLogicalNot (BooleanLiteral True))
+  >>> toBoolean (LooseLogicalNot (BooleanLiteral True))
   Right (LogicalNot (Boolean True))
 
-  >>> looseToExpression (LooseLogicalNot foo)
+  >>> toBoolean (LooseLogicalNot foo)
   Right (LogicalNot (BooleanVariable (VariableName (Unicode "foo"))))
 
-  >>> looseToExpression (LooseLogicalAnd (BooleanLiteral True) bar)
+  >>> toBoolean (LooseLogicalAnd (BooleanLiteral True) bar)
   Right (LogicalAnd (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseLogicalAnd foo (BooleanLiteral True))
+  >>> toBoolean (LooseLogicalAnd foo (BooleanLiteral True))
   Right (LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
 
-  >>> looseToExpression (LooseLogicalAnd foo bar)
+  >>> toBoolean (LooseLogicalAnd foo bar)
   Right (LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseLogicalOr (BooleanLiteral True) bar)
+  >>> toBoolean (LooseLogicalOr (BooleanLiteral True) bar)
   Right (LogicalOr (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseLogicalOr foo (BooleanLiteral True))
+  >>> toBoolean (LooseLogicalOr foo (BooleanLiteral True))
   Right (LogicalOr (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
 
-  >>> looseToExpression (LooseLogicalOr foo bar)
+  >>> toBoolean (LooseLogicalOr foo bar)
   Right (LogicalOr (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseLogicalXor (BooleanLiteral True) bar)
+  >>> toBoolean (LooseLogicalXor (BooleanLiteral True) bar)
   Right (LogicalXor (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseLogicalXor foo (BooleanLiteral True))
+  >>> toBoolean (LooseLogicalXor foo (BooleanLiteral True))
   Right (LogicalXor (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
 
-  >>> looseToExpression (LooseLogicalXor foo bar)
+  >>> toBoolean (LooseLogicalXor foo bar)
   Right (LogicalXor (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar"))))
-
-  Cannot infer the types of variables in ToString expressions, because ToString
-  operations are overloaded.
-
-  >>> looseToExpression (LooseNumberToString foo)
-  Left (CannotInferVariable (VariableName (Unicode "foo")))
-
-  >>> looseToExpression (LooseBooleanToString foo)
-  Left (CannotInferVariable (VariableName (Unicode "foo")))
 
   Can only infer the types of equality operations when the type of at least one
   side is known.
 
-  >>> looseToExpression (LooseEqualString foo bar)
+  >>> toBoolean (LooseEqual foo bar)
   Left CannotInferExpression
 
-  >>> looseToExpression (LooseEqualString foo (StringLiteral "bar"))
+  >>> toBoolean (LooseEqual foo (StringLiteral "bar"))
   Right (EqualString (StringVariable (VariableName (Unicode "foo"))) (String "bar"))
 
-  >>> looseToExpression (LooseEqualString (StringLiteral "foo") bar)
+  >>> toBoolean (LooseEqual (StringLiteral "foo") bar)
   Right (EqualString (String "foo") (StringVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseEqualString foo (LooseConcat foo bar))
+  >>> toBoolean (LooseEqual foo (LooseConcat foo bar))
   Right (EqualString (StringVariable (VariableName (Unicode "foo"))) (Concat (StringVariable (VariableName (Unicode "foo"))) (StringVariable (VariableName (Unicode "bar")))))
 
-  >>> looseToExpression (LooseNotEqualString foo bar)
+  >>> toBoolean (LooseNotEqual foo bar)
   Left CannotInferExpression
 
-  >>> looseToExpression (LooseNotEqualString foo (StringLiteral "bar"))
+  >>> toBoolean (LooseNotEqual foo (StringLiteral "bar"))
   Right (NotEqualString (StringVariable (VariableName (Unicode "foo"))) (String "bar"))
 
-  >>> looseToExpression (LooseNotEqualString (StringLiteral "foo") bar)
+  >>> toBoolean (LooseNotEqual (StringLiteral "foo") bar)
   Right (NotEqualString (String "foo") (StringVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseNotEqualString foo (LooseConcat foo bar))
+  >>> toBoolean (LooseNotEqual foo (LooseConcat foo bar))
   Right (NotEqualString (StringVariable (VariableName (Unicode "foo"))) (Concat (StringVariable (VariableName (Unicode "foo"))) (StringVariable (VariableName (Unicode "bar")))))
 
-  >>> looseToExpression (LooseEqualNumber foo bar)
+  >>> toBoolean (LooseEqual foo bar)
   Left CannotInferExpression
 
-  >>> looseToExpression (LooseEqualNumber foo (NumberLiteral 1))
+  >>> toBoolean (LooseEqual foo (NumberLiteral 1))
   Right (EqualNumber (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
 
-  >>> looseToExpression (LooseEqualNumber (NumberLiteral 1) bar)
+  >>> toBoolean (LooseEqual (NumberLiteral 1) bar)
   Right (EqualNumber (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseEqualNumber foo (LooseAddition foo bar))
+  >>> toBoolean (LooseEqual foo (LooseAddition foo bar))
   Right (EqualNumber (NumberVariable (VariableName (Unicode "foo"))) (Addition (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar")))))
 
-  >>> looseToExpression (LooseNotEqualNumber foo bar)
+  >>> toBoolean (LooseNotEqual foo bar)
   Left CannotInferExpression
 
-  >>> looseToExpression (LooseNotEqualNumber foo (NumberLiteral 1))
+  >>> toBoolean (LooseNotEqual foo (NumberLiteral 1))
   Right (NotEqualNumber (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
 
-  >>> looseToExpression (LooseNotEqualNumber (NumberLiteral 1) bar)
+  >>> toBoolean (LooseNotEqual (NumberLiteral 1) bar)
   Right (NotEqualNumber (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseNotEqualNumber foo (LooseAddition foo bar))
+  >>> toBoolean (LooseNotEqual foo (LooseAddition foo bar))
   Right (NotEqualNumber (NumberVariable (VariableName (Unicode "foo"))) (Addition (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar")))))
 
-  >>> looseToExpression (LooseEqualBoolean foo bar)
+  >>> toBoolean (LooseEqual foo bar)
   Left CannotInferExpression
 
-  >>> looseToExpression (LooseEqualBoolean foo (BooleanLiteral True))
+  >>> toBoolean (LooseEqual foo (BooleanLiteral True))
   Right (EqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
 
-  >>> looseToExpression (LooseEqualBoolean (BooleanLiteral True) bar)
+  >>> toBoolean (LooseEqual (BooleanLiteral True) bar)
   Right (EqualBoolean (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseEqualBoolean foo (LooseLogicalAnd foo bar))
+  >>> toBoolean (LooseEqual foo (LooseLogicalAnd foo bar))
   Right (EqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))))
 
-  >>> looseToExpression (LooseNotEqualBoolean foo bar)
+  >>> toBoolean (LooseNotEqual foo bar)
   Left CannotInferExpression
 
-  >>> looseToExpression (LooseNotEqualBoolean foo (BooleanLiteral True))
+  >>> toBoolean (LooseNotEqual foo (BooleanLiteral True))
   Right (NotEqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (Boolean True))
 
-  >>> looseToExpression (LooseNotEqualBoolean (BooleanLiteral True) bar)
+  >>> toBoolean (LooseNotEqual (BooleanLiteral True) bar)
   Right (NotEqualBoolean (Boolean True) (BooleanVariable (VariableName (Unicode "bar"))))
 
-  >>> looseToExpression (LooseNotEqualBoolean foo (LooseLogicalAnd foo bar))
+  >>> toBoolean (LooseNotEqual foo (LooseLogicalAnd foo bar))
   Right (NotEqualBoolean (BooleanVariable (VariableName (Unicode "foo"))) (LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))))
 -}
-looseToExpression :: Loose a -> Either InferenceFailure (Expression a)
-looseToExpression loose =
+toBoolean :: Loose -> Either InferenceFailure (Expression Bool)
+toBoolean loose =
   let
-    stringOperator ::
-      Loose Text ->
-      Loose Text ->
-      (Expression Text -> Expression Text -> Expression Text) ->
-      Either InferenceFailure (Expression Text)
-    stringOperator l r op =
-      case (l, r) of
-        (LooseVariable leftName, LooseVariable rightName) ->
-          Right (op (StringVariable leftName) (StringVariable rightName))
-        (LooseVariable name, _) ->
-          op (StringVariable name) <$> looseToExpression r
-        (_, LooseVariable name) ->
-          op <$> looseToExpression l
-             <*> pure (StringVariable name)
-        (_, _) ->
-          op <$> looseToExpression l
-             <*> looseToExpression r
+    go expr first =
+      case expr of
+        BooleanLiteral b -> Right (Boolean b)
+        LooseLogicalNot b -> LogicalNot <$> go b False
+        LooseLogicalAnd l r -> LogicalAnd <$> go l False <*> go r False
+        LooseLogicalOr l r -> LogicalOr <$> go l False <*> go r False
+        LooseLogicalXor l r -> LogicalXor <$> go l False <*> go r False
 
-    numberOperator ::
-      Loose Scientific ->
-      Loose Scientific ->
-      (Expression Scientific -> Expression Scientific -> Expression Scientific) ->
-      Either InferenceFailure (Expression Scientific)
-    numberOperator l r op =
-      case (l, r) of
-        (LooseVariable leftName, LooseVariable rightName) ->
-          Right (op (NumberVariable leftName) (NumberVariable rightName))
-        (LooseVariable name, _) ->
-          op (NumberVariable name) <$> looseToExpression r
-        (_, LooseVariable name) ->
-          op <$> looseToExpression l
-             <*> pure (NumberVariable name)
-        (_, _) ->
-          op <$> looseToExpression l
-             <*> looseToExpression r
+        NumberLiteral _ -> Left TypeMismatch
+        LooseAddition _ _ -> Left TypeMismatch
+        LooseSubtraction _ _ -> Left TypeMismatch
+        LooseMultiplication _ _ -> Left TypeMismatch
+        LooseDivision _ _ -> Left TypeMismatch
 
-    booleanOperator ::
-      Loose Bool ->
-      Loose Bool ->
-      (Expression Bool -> Expression Bool -> Expression Bool) ->
-      Either InferenceFailure (Expression Bool)
-    booleanOperator l r op =
-      case (l, r) of
-        (LooseVariable leftName, LooseVariable rightName) ->
-          Right (op (BooleanVariable leftName) (BooleanVariable rightName))
-        (LooseVariable name, _) ->
-          op (BooleanVariable name) <$> looseToExpression r
-        (_, LooseVariable name) ->
-          op <$> looseToExpression l
-             <*> pure (BooleanVariable name)
-        (_, _) ->
-          op <$> looseToExpression l
-             <*> looseToExpression r
+        StringLiteral _ -> Left TypeMismatch
+        LooseConcat _ _ -> Left TypeMismatch
 
-    booleanUnaryOperator ::
-      Loose Bool ->
-      (Expression Bool -> Expression Bool) ->
-      Either InferenceFailure (Expression Bool)
-    booleanUnaryOperator inner op =
-        case inner of
-          (LooseVariable name) -> Right (op (BooleanVariable name))
-          _ -> op <$> looseToExpression inner
-
-    overloadedStringOperator ::
-      Loose Text ->
-      Loose Text ->
-      (Expression Text -> Expression Text -> Expression Bool) ->
-      Either InferenceFailure (Expression Bool)
-    overloadedStringOperator l r op = do
-      case (looseToExpression l, looseToExpression r) of
-        (Left _, Right rightExpression) ->
-          Right (op (infer l StringVariable) rightExpression)
-        (Right leftExpression, Left _) ->
-          Right (op leftExpression (infer r StringVariable))
-        (Right leftExpression, Right rightExpression) ->
-          Right (op leftExpression rightExpression)
-        (Left _, Left _) ->
-          Left CannotInferExpression
-
-    overloadedNumberOperator ::
-      Loose Scientific ->
-      Loose Scientific ->
-      (Expression Scientific -> Expression Scientific -> Expression Bool) ->
-      Either InferenceFailure (Expression Bool)
-    overloadedNumberOperator l r op = do
-      case (looseToExpression l, looseToExpression r) of
-        (Left _, Right rightExpression) ->
-          Right (op (infer l NumberVariable) rightExpression)
-        (Right leftExpression, Left _) ->
-          Right (op leftExpression (infer r NumberVariable))
-        (Right leftExpression, Right rightExpression) ->
-          Right (op leftExpression rightExpression)
-        (Left _, Left _) ->
-          Left CannotInferExpression
-
-    overloadedBooleanOperator ::
-      Loose Bool ->
-      Loose Bool ->
-      (Expression Bool -> Expression Bool -> Expression Bool) ->
-      Either InferenceFailure (Expression Bool)
-    overloadedBooleanOperator l r op = do
-      case (looseToExpression l, looseToExpression r) of
-        (Left _, Right rightExpression) ->
-          Right (op (infer l BooleanVariable) rightExpression)
-        (Right leftExpression, Left _) ->
-          Right (op leftExpression (infer r BooleanVariable))
-        (Right leftExpression, Right rightExpression) ->
-          Right (op leftExpression rightExpression)
-        (Left _, Left _) ->
-          Left CannotInferExpression
+        LooseVariable name ->
+          if first
+          then Left (CannotInferVariable name)
+          else Right (BooleanVariable name)
+        LooseEqual l r ->
+          case (l, r) of
+            (LooseVariable _, LooseVariable _) -> Left CannotInferExpression
+            (LooseVariable name, _) ->
+              case (go r False, toNumber r, toString r) of
+                (Right inner, _, _) -> Right (EqualBoolean (BooleanVariable name) inner)
+                (_, Right inner, _) -> Right (EqualNumber (NumberVariable name) inner)
+                (_, _, Right inner) -> Right (EqualString (StringVariable name) inner)
+                _ -> Left CannotInferExpression
+            (_, LooseVariable name) ->
+              case (go l False, toNumber l, toString l) of
+                (Right inner, _, _) -> Right (EqualBoolean inner (BooleanVariable name))
+                (_, Right inner, _) -> Right (EqualNumber inner (NumberVariable name))
+                (_, _, Right inner) -> Right (EqualString inner (StringVariable name))
+                _ -> Left CannotInferExpression
+            (_, _) ->
+              case (go l False, toNumber l, toString l) of
+                (Right inner, _, _) -> EqualBoolean inner <$> go r False
+                (_, Right inner, _) -> EqualNumber inner <$> toNumber r
+                (_, _, Right inner) -> EqualString inner <$> toString r
+                _ -> Left TypeMismatch
+        LooseNotEqual l r ->
+          case (l, r) of
+            (LooseVariable _, LooseVariable _) -> Left CannotInferExpression
+            (LooseVariable name, _) ->
+              case (go r False, toNumber r, toString r) of
+                (Right inner, _, _) -> Right (NotEqualBoolean (BooleanVariable name) inner)
+                (_, Right inner, _) -> Right (NotEqualNumber (NumberVariable name) inner)
+                (_, _, Right inner) -> Right (NotEqualString (StringVariable name) inner)
+                _ -> Left CannotInferExpression
+            (_, LooseVariable name) ->
+              case (go l False, toNumber l, toString l) of
+                (Right inner, _, _) -> Right (NotEqualBoolean inner (BooleanVariable name))
+                (_, Right inner, _) -> Right (NotEqualNumber inner (NumberVariable name))
+                (_, _, Right inner) -> Right (NotEqualString inner (StringVariable name))
+                _ -> Left CannotInferExpression
+            (_, _) ->
+              case (go l False, toNumber l, toString l) of
+                (Right inner, _, _) -> NotEqualBoolean inner <$> go r False
+                (_, Right inner, _) -> NotEqualNumber inner <$> toNumber r
+                (_, _, Right inner) -> NotEqualString inner <$> toString r
+                _ -> Left TypeMismatch
+        ToString _ -> Left TypeMismatch
   in
-    case loose of
-      LooseVariable variableName ->
-        Left (CannotInferVariable variableName)
+    go loose True
 
-      StringLiteral text -> Right (String text)
-      LooseConcat l r -> stringOperator l r Concat
+{-| Converts a loose number expression into a strict number expression, if
+  possible. Fails when the type of a variable cannot be inferred.
 
-      NumberLiteral number -> Right (Number number)
-      LooseAddition l r -> numberOperator l r Addition
-      LooseSubtraction l r -> numberOperator l r Subtraction
-      LooseMultiplication l r -> numberOperator l r Multiplication
-      LooseDivision l r -> numberOperator l r Division
-      LooseNumberToString inner ->
-        NumberToString <$> looseToExpression inner
+  Can infer the types of variables when using number operators.
 
-      BooleanLiteral boolean -> Right (Boolean boolean)
-      LooseLogicalNot inner -> booleanUnaryOperator inner LogicalNot
-      LooseLogicalAnd l r -> booleanOperator l r LogicalAnd
-      LooseLogicalOr l r -> booleanOperator l r LogicalOr
-      LooseLogicalXor l r -> booleanOperator l r LogicalXor
-      LooseBooleanToString inner -> BooleanToString <$> looseToExpression inner
+  >>> toNumber (LooseAddition (NumberLiteral 1) bar)
+  Right (Addition (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
 
-      LooseEqualString l r -> overloadedStringOperator l r EqualString
-      LooseNotEqualString l r -> overloadedStringOperator l r NotEqualString
-      LooseEqualNumber l r -> overloadedNumberOperator l r EqualNumber
-      LooseNotEqualNumber l r -> overloadedNumberOperator l r NotEqualNumber
-      LooseEqualBoolean l r -> overloadedBooleanOperator l r EqualBoolean
-      LooseNotEqualBoolean l r -> overloadedBooleanOperator l r NotEqualBoolean
+  >>> toNumber (LooseAddition foo (NumberLiteral 1))
+  Right (Addition (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
 
-{-| Converts a loose expression into a strictly typed one by treating all
-  variables as the expected type.
+  >>> toNumber (LooseAddition foo bar)
+  Right (Addition (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar"))))
+
+  >>> toNumber (LooseSubtraction (NumberLiteral 1) bar)
+  Right (Subtraction (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
+
+  >>> toNumber (LooseSubtraction foo (NumberLiteral 1))
+  Right (Subtraction (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
+
+  >>> toNumber (LooseSubtraction foo bar)
+  Right (Subtraction (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar"))))
+
+  >>> toNumber (LooseMultiplication (NumberLiteral 1) bar)
+  Right (Multiplication (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
+
+  >>> toNumber (LooseMultiplication foo (NumberLiteral 1))
+  Right (Multiplication (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
+
+  >>> toNumber (LooseMultiplication foo bar)
+  Right (Multiplication (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar"))))
+
+  >>> toNumber (LooseDivision (NumberLiteral 1) bar)
+  Right (Division (Number 1.0) (NumberVariable (VariableName (Unicode "bar"))))
+
+  >>> toNumber (LooseDivision foo (NumberLiteral 1))
+  Right (Division (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0))
+
+  >>> toNumber (LooseDivision foo bar)
+  Right (Division (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "bar"))))
 -}
-infer :: Loose a -> (VariableName -> Expression a) -> Expression a
-infer loose var =
-  case loose of
-    LooseVariable variableName ->
-      var variableName
+toNumber :: Loose -> Either InferenceFailure (Expression Scientific)
+toNumber loose =
+  let
+    go expr first =
+      case expr of
+        BooleanLiteral _ -> Left TypeMismatch
+        LooseLogicalNot _ -> Left TypeMismatch
+        LooseLogicalAnd _ _ -> Left TypeMismatch
+        LooseLogicalOr _ _ -> Left TypeMismatch
+        LooseLogicalXor _ _ -> Left TypeMismatch
 
-    StringLiteral text -> String text
-    LooseConcat l r -> Concat (infer l var) (infer r var)
+        NumberLiteral n -> Right (Number n)
+        LooseAddition l r -> Addition <$> go l False <*> go r False
+        LooseSubtraction l r -> Subtraction <$> go l False <*> go r False
+        LooseMultiplication l r -> Multiplication <$> go l False <*> go r False
+        LooseDivision l r -> Division <$> go l False <*> go r False
 
-    NumberLiteral number -> Number number
-    LooseAddition l r -> Addition (infer l var) (infer r var)
-    LooseSubtraction l r -> Subtraction (infer l var) (infer r var)
-    LooseMultiplication l r -> Multiplication (infer l var) (infer r var)
-    LooseDivision l r -> Division (infer l var) (infer r var)
-    LooseNumberToString inner -> NumberToString (infer inner NumberVariable)
+        StringLiteral _ -> Left TypeMismatch
+        LooseConcat _ _ -> Left TypeMismatch
 
-    BooleanLiteral boolean -> Boolean boolean
-    LooseLogicalNot inner -> LogicalNot (infer inner var)
-    LooseLogicalAnd l r -> LogicalAnd (infer l var) (infer r var)
-    LooseLogicalOr l r -> LogicalOr (infer l var) (infer r var)
-    LooseLogicalXor l r -> LogicalXor (infer l var) (infer r var)
-    LooseBooleanToString inner -> BooleanToString (infer inner BooleanVariable)
+        LooseVariable name ->
+          if first
+          then Left (CannotInferVariable name)
+          else Right (NumberVariable name)
+        LooseEqual _ _ -> Left TypeMismatch
+        LooseNotEqual _ _ -> Left TypeMismatch
+        ToString _ -> Left TypeMismatch
+  in
+    go loose True
 
-    LooseEqualString l r -> EqualString (infer l StringVariable) (infer r StringVariable)
-    LooseNotEqualString l r -> NotEqualString (infer l StringVariable) (infer r StringVariable)
-    LooseEqualNumber l r -> EqualNumber (infer l NumberVariable) (infer r NumberVariable)
-    LooseNotEqualNumber l r -> NotEqualNumber (infer l NumberVariable) (infer r NumberVariable)
-    LooseEqualBoolean l r -> EqualBoolean (infer l BooleanVariable) (infer r BooleanVariable)
-    LooseNotEqualBoolean l r -> NotEqualBoolean (infer l BooleanVariable) (infer r BooleanVariable)
+{-| Converts a loose string expression into a strict string expression, if
+  possible. Fails when the type of a variable cannot be inferred.
+
+  Can infer the types of variables when using string operators.
+
+  >>> toString (LooseConcat (StringLiteral ("foo")) bar)
+  Right (Concat (String "foo") (StringVariable (VariableName (Unicode "bar"))))
+
+  >>> toString (LooseConcat foo (StringLiteral ("bar")))
+  Right (Concat (StringVariable (VariableName (Unicode "foo"))) (String "bar"))
+
+  >>> toString (LooseConcat foo bar)
+  Right (Concat (StringVariable (VariableName (Unicode "foo"))) (StringVariable (VariableName (Unicode "bar"))))
+
+  Cannot infer the types of variables in ToString expressions, because ToString
+  operations are overloaded.
+
+  >>> toString (ToString foo)
+  Left (CannotInferVariable (VariableName (Unicode "foo")))
+
+  >>> toString (ToString foo)
+  Left (CannotInferVariable (VariableName (Unicode "foo")))
+-}
+toString :: Loose -> Either InferenceFailure (Expression Text)
+toString loose =
+  let
+    go expr first =
+      case expr of
+        BooleanLiteral _ -> Left TypeMismatch
+        LooseLogicalNot _ -> Left TypeMismatch
+        LooseLogicalAnd _ _ -> Left TypeMismatch
+        LooseLogicalOr _ _ -> Left TypeMismatch
+        LooseLogicalXor _ _ -> Left TypeMismatch
+
+        NumberLiteral _ -> Left TypeMismatch
+        LooseAddition _ _ -> Left TypeMismatch
+        LooseSubtraction _ _ -> Left TypeMismatch
+        LooseMultiplication _ _ -> Left TypeMismatch
+        LooseDivision _ _ -> Left TypeMismatch
+
+        StringLiteral s -> Right (String s)
+        LooseConcat l r -> Concat <$> go l False <*> go r False
+
+        LooseVariable name -> Right (StringVariable name)
+        LooseEqual _ _ -> Left TypeMismatch
+        LooseNotEqual _ _ -> Left TypeMismatch
+        ToString inner ->
+          case inner of
+            BooleanLiteral _ -> BooleanToString <$> toBoolean inner
+            LooseLogicalNot _ -> BooleanToString <$> toBoolean inner
+            LooseLogicalAnd _ _ -> BooleanToString <$> toBoolean inner
+            LooseLogicalOr _ _ -> BooleanToString <$> toBoolean inner
+            LooseLogicalXor _ _ -> BooleanToString <$> toBoolean inner
+
+            NumberLiteral _ -> NumberToString <$> toNumber inner
+            LooseAddition _ _ -> NumberToString <$> toNumber inner
+            LooseSubtraction _ _ -> NumberToString <$> toNumber inner
+            LooseMultiplication _ _ -> NumberToString <$> toNumber inner
+            LooseDivision _ _ -> NumberToString <$> toNumber inner
+
+            StringLiteral _ -> go inner False
+            LooseConcat _ _ -> go inner False
+
+            LooseVariable name -> Left (CannotInferVariable name)
+            LooseEqual _ _ -> BooleanToString <$> toBoolean inner
+            LooseNotEqual _ _ -> BooleanToString <$> toBoolean inner
+            ToString _ -> go inner first -- Nested ToStrings should be treated as one
+  in
+    go loose True
 
 -- | The types of inference failures that can occur.
 data InferenceFailure =
     CannotInferVariable VariableName
   | CannotInferExpression
+  | TypeMismatch
   deriving Show
 
 inferenceFailureToText :: InferenceFailure -> Text
@@ -420,3 +393,6 @@ inferenceFailureToText failure =
       "Cannot infer type of `" <> variableNameToText name <> "`."
     CannotInferExpression ->
       "Cannot infer the type of this expression."
+    TypeMismatch ->
+      "Unexpected error when inferring expression type! \
+      \This is a bug; please report this."

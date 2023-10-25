@@ -165,7 +165,7 @@ import qualified Text.Parser.Combinators as Combinators
   unexpected space
   expecting end of input
 -}
-booleanLoose :: Parser (Rumor.Loose Bool)
+booleanLoose :: Parser Rumor.Loose
 booleanLoose =
   let
     -- Parse a boolean expression with the left associative operators from
@@ -200,7 +200,7 @@ booleanLoose =
   in
     expression
 
-boolean :: Parser (Rumor.Loose Bool)
+boolean :: Parser Rumor.Loose
 boolean =
   let
     true = do

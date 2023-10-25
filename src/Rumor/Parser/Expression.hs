@@ -83,16 +83,16 @@ booleanExpression :: Parser (Rumor.Expression Bool)
 booleanExpression =
   attempt do
     loose <- Loose.booleanLoose
-    verifyTypes loose
+    verifyBooleanTypes loose
 
 {-| Converts a loosely-typed expression into a strictly-typed one as long as the
   variables in the strictly-typed expression do not conflict with existing
   variable definition.
 -}
-verifyTypes :: Rumor.Loose a -> Parser (Either Text (Rumor.Expression a))
-verifyTypes loose =
+verifyBooleanTypes :: Rumor.Loose -> Parser (Either Text (Rumor.Expression Bool))
+verifyBooleanTypes loose =
   let
-    eExpression = Rumor.looseToExpression loose
+    eExpression = Rumor.toBoolean loose
 
     go2 l r = do
       result <- go l
