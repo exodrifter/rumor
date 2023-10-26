@@ -1,5 +1,6 @@
 module Rumor.Parser.Loose
 ( booleanLoose
+, equalityLoose
 ) where
 
 import Data.Text (Text)
@@ -30,6 +31,15 @@ import qualified Text.Parser.Combinators as Combinators
 
   >>> parse booleanLoose "not true"
   LooseLogicalNot (BooleanLiteral True)
+
+  >>> parse booleanLoose "true is false"
+  LooseEqual (BooleanLiteral True) (BooleanLiteral False)
+
+  >>> parse booleanLoose "true == false"
+  LooseEqual (BooleanLiteral True) (BooleanLiteral False)
+
+  >>> parse booleanLoose "true /= false"
+  LooseNotEqual (BooleanLiteral True) (BooleanLiteral False)
 
   >>> parse booleanLoose "true xor false"
   LooseLogicalXor (BooleanLiteral True) (BooleanLiteral False)
@@ -65,6 +75,15 @@ import qualified Text.Parser.Combinators as Combinators
   >>> parse booleanLoose "foobar || true"
   LooseLogicalOr (LooseVariable (VariableName (Unicode "foobar"))) (BooleanLiteral True)
 
+  >>> parse booleanLoose "foo == bar"
+  LooseEqual (LooseVariable (VariableName (Unicode "foo"))) (LooseVariable (VariableName (Unicode "bar")))
+
+  >>> parse booleanLoose "foo == bar == baz"
+  LooseEqual (LooseEqual (LooseVariable (VariableName (Unicode "foo"))) (LooseVariable (VariableName (Unicode "bar")))) (LooseVariable (VariableName (Unicode "baz")))
+
+  >>> parse booleanLoose "foo == bar == baz == biz"
+  LooseEqual (LooseEqual (LooseVariable (VariableName (Unicode "foo"))) (LooseVariable (VariableName (Unicode "bar")))) (LooseEqual (LooseVariable (VariableName (Unicode "baz"))) (LooseVariable (VariableName (Unicode "biz"))))
+
   You can use newlines.
 
   >>> parse booleanLoose "true\n||\nfalse"
@@ -97,6 +116,9 @@ import qualified Text.Parser.Combinators as Combinators
   >>> parse booleanLoose "nottrue"
   LooseVariable (VariableName (Unicode "nottrue"))
 
+  >>> parse booleanLoose "true==true"
+  LooseEqual (BooleanLiteral True) (BooleanLiteral True)
+
   >>> parse booleanLoose "trueistrue"
   LooseVariable (VariableName (Unicode "trueistrue"))
 
@@ -125,6 +147,9 @@ import qualified Text.Parser.Combinators as Combinators
 
   >>> parse booleanLoose "notfoo"
   LooseVariable (VariableName (Unicode "notfoo"))
+
+  >>> parse booleanLoose "foo==true"
+  LooseEqual (LooseVariable (VariableName (Unicode "foo"))) (BooleanLiteral True)
 
   >>> parse booleanLoose "fooistrue"
   LooseVariable (VariableName (Unicode "fooistrue"))
@@ -170,23 +195,30 @@ booleanLoose =
   let
     -- Parse a boolean expression with the left associative operators from
     -- highest to lowest precedence.
-    expression = factor
+    expression = term
+      `Combinators.chainl1` discardWhitespace eqOperator
+      `Combinators.chainl1` discardWhitespace neqOperator
       `Combinators.chainl1` discardWhitespace xorOperator
       `Combinators.chainl1` discardWhitespace andOperator
       `Combinators.chainl1` discardWhitespace orOperator
 
-    factor =
-          Mega.try (Surround.parentheses expression)
-      <|> Mega.try (notOperator term)
-      <|> term
-
     term =
-          Mega.try boolean
+          Mega.try (Surround.parentheses expression)
+      <|> Mega.try (notOperator boolean)
+      <|> Mega.try (notOperator (Rumor.LooseVariable <$> Identifier.variableName))
+      <|> Mega.try boolean
+      <|> Mega.try equalityLoose
       <|> Rumor.LooseVariable <$> Identifier.variableName
 
     notOperator inner = do
       _ <- discardWhitespace ("!" <|> do _ <- "not"; " ")
       Rumor.LooseLogicalNot <$> inner
+    eqOperator = do
+      _ <- "==" <|> "is"
+      pure Rumor.LooseEqual
+    neqOperator = do
+      _ <- "/="
+      pure Rumor.LooseNotEqual
     xorOperator = do
       _ <- "^" <|> "xor"
       pure Rumor.LooseLogicalXor
@@ -225,6 +257,39 @@ boolean =
     notFollowedBy "is"
 
     pure result
+
+--------------------------------------------------------------------------------
+-- Equality
+--------------------------------------------------------------------------------
+
+{-| Parses a loosely-typed equality expression. Any amount of space, including
+  newlines, is allowed between the terms of the equality expression.
+
+  >>> parse equalityLoose "foo == bar"
+  LooseEqual (LooseVariable (VariableName (Unicode "foo"))) (LooseVariable (VariableName (Unicode "bar")))
+
+  >>> parse equalityLoose "foo /= bar"
+  LooseNotEqual (LooseVariable (VariableName (Unicode "foo"))) (LooseVariable (VariableName (Unicode "bar")))
+-}
+equalityLoose :: Parser Rumor.Loose
+equalityLoose = do
+  let
+    term =
+          Mega.try (Surround.parentheses equalityLoose)
+      <|> Rumor.LooseVariable <$> Identifier.variableName
+
+    eqOperator = do
+      _ <- "==" <|> "is"
+      pure Rumor.LooseEqual
+    neqOperator = do
+      _ <- "/="
+      pure Rumor.LooseNotEqual
+
+  l <- lexeme term
+  op <- lexeme (eqOperator <|> neqOperator)
+  r <- lexeme term
+
+  pure (op l r)
 
 --------------------------------------------------------------------------------
 -- Helpers
