@@ -10,11 +10,12 @@ import Data.Scientific (Scientific)
 import Data.Text (Text)
 import Rumor.Parser.Common (Parser, attempt, lexeme, modifyVariableType, (<?>), (<|>))
 
+import qualified Control.Monad.State.Strict as State
 import qualified Data.Text as T
 import qualified Rumor.Internal as Rumor
+import qualified Rumor.Parser.Identifier as Identifier
 import qualified Rumor.Parser.Loose as Loose
 import qualified Rumor.Parser.Surround as Surround
-import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 
@@ -52,17 +53,17 @@ import qualified Text.Megaparsec.Char as Char
     |
   1 | number and true
     | ^^^^^^^^^^^^^^^
-  Variable `number` cannot be a Boolean; it has already been defined as a Number!
+  Expected `number` to be of type Boolean, but it has been defined as or inferred to be a Number.
 
   >>> parse booleanExpression "string and true"
   1:1:
     |
   1 | string and true
     | ^^^^^^^^^^^^^^^
-  Variable `string` cannot be a Boolean; it has already been defined as a String!
+  Expected `string` to be of type Boolean, but it has been defined as or inferred to be a String.
 
   It can infer the types of undefined variables if the variables are used with a
-  boolean operator.
+  boolean operator or if the variable already has a known type.
 
   >>> parse booleanExpression "foo"
   1:1:
@@ -71,11 +72,40 @@ import qualified Text.Megaparsec.Char as Char
     | ^^^
   Cannot infer type of `foo`.
 
+  >>> parse booleanExpression "boolean"
+  BooleanVariable (VariableName (Unicode "boolean"))
+
   >>> parse booleanExpression "not foo"
   LogicalNot (BooleanVariable (VariableName (Unicode "foo")))
 
-  >>> parse booleanExpression "foo and bar"
-  LogicalAnd (BooleanVariable (VariableName (Unicode "foo"))) (BooleanVariable (VariableName (Unicode "bar")))
+  It can only infer the types of equalities if at least one side has a known
+  type.
+
+  >>> parse booleanExpression "foo == 1"
+  Equal (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0)
+
+  >>> parse booleanExpression "1 == foo"
+  Equal (Number 1.0) (NumberVariable (VariableName (Unicode "foo")))
+
+  >>> parse booleanExpression "foo == number"
+  Equal (NumberVariable (VariableName (Unicode "foo"))) (NumberVariable (VariableName (Unicode "number")))
+
+  >>> parse booleanExpression "number == foo"
+  Equal (NumberVariable (VariableName (Unicode "number"))) (NumberVariable (VariableName (Unicode "foo")))
+
+  >>> parse booleanExpression "foo == bar"
+  1:1:
+    |
+  1 | foo == bar
+    | ^^^^^^^^^^
+  Cannot infer the type of this expression.
+
+  >>> parse booleanExpression "number == boolean"
+  1:1:
+    |
+  1 | number == boolean
+    | ^^^^^^^^^^^^^^^^^
+  Variable `boolean` cannot be a Number; it has already been defined as a Boolean!
 -}
 booleanExpression :: Parser (Rumor.Expression Bool)
 booleanExpression =
@@ -86,7 +116,7 @@ booleanExpression =
 {-| Parses a number expression. Any amount of space, including newlines, is
   allowed between the terms of the number expression.
 
-  You can use variables, if they are of type Boolean.
+  You can use variables, if they are of type Number.
 
   >>> parse numberExpression "number + 1"
   Addition (NumberVariable (VariableName (Unicode "number"))) (Number 1.0)
@@ -96,17 +126,17 @@ booleanExpression =
     |
   1 | boolean + 1
     | ^^^^^^^^^^^
-  Variable `boolean` cannot be a Number; it has already been defined as a Boolean!
+  Expected `boolean` to be of type Number, but it has been defined as or inferred to be a Boolean.
 
   >>> parse numberExpression "string + 1"
   1:1:
     |
   1 | string + 1
     | ^^^^^^^^^^
-  Variable `string` cannot be a Number; it has already been defined as a String!
+  Expected `string` to be of type Number, but it has been defined as or inferred to be a String.
 
   It can infer the types of undefined variables if the variables are used with a
-  boolean operator.
+  boolean operator or if the variable already has a known type.
 
   >>> parse numberExpression "foo"
   1:1:
@@ -114,6 +144,9 @@ booleanExpression =
   1 | foo
     | ^^^
   Cannot infer type of `foo`.
+
+  >>> parse numberExpression "number"
+  NumberVariable (VariableName (Unicode "number"))
 
   >>> parse numberExpression "foo + 1"
   Addition (NumberVariable (VariableName (Unicode "foo"))) (Number 1.0)
@@ -129,13 +162,11 @@ numberExpression =
   variable definition.
 -}
 verifyTypes ::
-  (Rumor.Loose -> Either Rumor.InferenceFailure (Rumor.Expression a)) ->
+  (Rumor.Context -> Rumor.Loose -> Either Rumor.InferenceFailure (Rumor.Expression a)) ->
   Rumor.Loose ->
   Parser (Either Text (Rumor.Expression a))
-verifyTypes toExpression loose =
+verifyTypes toExpression loose = do
   let
-    eExpression = toExpression loose
-
     go2 l r = do
       result <- go l
       case result of
@@ -168,17 +199,17 @@ verifyTypes toExpression loose =
         Rumor.Equal l r -> go2 l r
         Rumor.NotEqual l r -> go2 l r
 
-  in do
-    case eExpression of
-      Left err ->
-        pure (Left (Rumor.inferenceFailureToText err))
-      Right expression -> do
-        result <- go expression
-        case result of
-          Right () ->
-            pure (Right expression)
-          Left err ->
-            pure (Left err)
+  context <- State.get
+  case toExpression context loose of
+    Left err ->
+      pure (Left (Rumor.inferenceFailureToText err))
+    Right expression -> do
+      result <- go expression
+      case result of
+        Right () ->
+          pure (Right expression)
+        Left err ->
+          pure (Left err)
 
 --------------------------------------------------------------------------------
 -- Text

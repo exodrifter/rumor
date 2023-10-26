@@ -164,7 +164,7 @@ import qualified Text.Parser.Combinators as Combinators
   1 | &&
     | ^^
   unexpected "&&"
-  expecting "false", "not", "true", '!', open parenthesis, or variable name
+  expecting "false", "not", "true", '!', open parenthesis, signed number, or variable name
 
   >>> parse booleanLoose "&& true"
   1:1:
@@ -172,7 +172,7 @@ import qualified Text.Parser.Combinators as Combinators
   1 | && true
     | ^^^^^
   unexpected "&& tr"
-  expecting "false", "not", "true", '!', open parenthesis, or variable name
+  expecting "false", "not", "true", '!', open parenthesis, signed number, or variable name
 
   >>> parse booleanLoose "true &&"
   1:8:
@@ -180,7 +180,7 @@ import qualified Text.Parser.Combinators as Combinators
   1 | true &&
     |        ^
   unexpected end of input
-  expecting "false", "not", "true", '!', open parenthesis, or variable name
+  expecting "false", "not", "true", '!', open parenthesis, signed number, or variable name
 
   This parser doesn't consume trailing whitespace.
 
@@ -197,19 +197,21 @@ booleanLoose =
   let
     -- Parse a boolean expression with the left associative operators from
     -- highest to lowest precedence.
-    expression = term
+    expression = factor
       `Combinators.chainl1` discardWhitespace eqOperator
       `Combinators.chainl1` discardWhitespace neqOperator
       `Combinators.chainl1` discardWhitespace xorOperator
       `Combinators.chainl1` discardWhitespace andOperator
       `Combinators.chainl1` discardWhitespace orOperator
 
-    term =
+    factor =
           Mega.try (Surround.parentheses expression)
-      <|> Mega.try (notOperator boolean)
-      <|> Mega.try (notOperator variable)
-      <|> Mega.try boolean
+      <|> Mega.try (notOperator term)
       <|> Mega.try equalityLoose
+      <|> term
+
+    term =
+          Mega.try boolean
       <|> variable
 
     notOperator inner = do
@@ -278,6 +280,7 @@ equalityLoose = do
   let
     term =
           Mega.try (Surround.parentheses equalityLoose)
+      <|> Mega.try number
       <|> Rumor.LooseVariable <$> Identifier.variableName
 
     eqOperator = do
