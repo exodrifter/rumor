@@ -25,6 +25,7 @@ library
   exposed-modules:
     Rumor
     Rumor.Internal
+    Rumor.Internal.Context
     Rumor.Internal.Expression
     Rumor.Internal.Loose
     Rumor.Internal.Node

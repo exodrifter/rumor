@@ -1,9 +1,9 @@
 module Rumor.Parser.Common
 ( Parser, runParser, parseTest
 
-, Context, newContext
-, getVariableType
-, setVariableType, modifyVariableType
+, Rumor.Context, Rumor.newContext
+, Rumor.getVariableType
+, Rumor.setVariableType, modifyVariableType
 
 , attempt
 , rumorError
@@ -21,7 +21,6 @@ import Data.Text (Text)
 import Text.Megaparsec ((<?>), (<|>))
 
 import qualified Control.Monad.State.Strict as State
-import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -31,16 +30,16 @@ import qualified Rumor.Internal as Rumor
 
 -- $setup
 -- >>> import qualified Text.Megaparsec as Mega
--- >>> let parse inner = parseTest newContext (inner <* Mega.eof)
+-- >>> let parse inner = parseTest Rumor.newContext (inner <* Mega.eof)
 
 --------------------------------------------------------------------------------
 -- Parser
 --------------------------------------------------------------------------------
 
 type Parser a =
-  Mega.ParsecT RumorError Text (State.State Context) a
+  Mega.ParsecT RumorError Text (State.State Rumor.Context) a
 
-runParser :: Context -> Parser a -> FilePath -> Text -> Either String a
+runParser :: Rumor.Context -> Parser a -> FilePath -> Text -> Either String a
 runParser context parser fileName fileContents =
   let
     result =
@@ -52,7 +51,7 @@ runParser context parser fileName fileContents =
       (Right a, _) -> Right a
       (Left err, _) -> Left (Error.errorBundlePretty err)
 
-parseTest :: Show a => Context -> Parser a -> Text -> IO ()
+parseTest :: Show a => Rumor.Context -> Parser a -> Text -> IO ()
 parseTest context parser text =
   case runParser context parser "" text of
     Left e -> putStr e
@@ -62,46 +61,10 @@ parseTest context parser text =
 -- Typing
 --------------------------------------------------------------------------------
 
-newtype Context =
-  Context
-    { variableTypes :: Map.Map Rumor.VariableName Rumor.VariableType
-    }
-
-newContext :: Context
-newContext =
-  Context
-    { variableTypes = Map.empty
-    }
-
-getVariableType :: Rumor.VariableName -> Context -> Maybe Rumor.VariableType
-getVariableType name context =
-  Map.lookup name (variableTypes context)
-
-setVariableType ::
-  Rumor.VariableName -> Rumor.VariableType -> Context -> Either Text Context
-setVariableType name typ context =
-  case getVariableType name context of
-    Just existingType
-      | existingType == typ ->
-          Right context
-      | otherwise ->
-          Left
-            ( "Variable `"
-                <> Rumor.variableNameToText name
-                <> "` cannot be a "
-                <> Rumor.typeToText typ
-                <> "; it has already been defined as a "
-                <> Rumor.typeToText existingType
-                <> "!"
-            )
-    Nothing ->
-      let newVariableTypes = Map.insert name typ (variableTypes context)
-      in  Right (Context { variableTypes = newVariableTypes })
-
 modifyVariableType :: Rumor.VariableName -> Rumor.VariableType -> Parser (Either Text ())
 modifyVariableType name typ = do
   oldContext <- State.get
-  case setVariableType name typ oldContext of
+  case Rumor.setVariableType name typ oldContext of
     Left err ->
       pure (Left err)
     Right context -> do
