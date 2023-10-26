@@ -1,15 +1,17 @@
 module Rumor.Parser.Loose
 ( booleanLoose
-, equalityLoose
+, numberLoose
 ) where
 
 import Data.Text (Text)
-import Rumor.Parser.Common (Parser, lexeme, space, (<|>))
+import Rumor.Parser.Common (Parser, hspace, lexeme, space, (<|>), (<?>))
 
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Surround as Surround
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega
+import qualified Text.Megaparsec.Char as Char
+import qualified Text.Megaparsec.Char.Lexer as Lexer
 import qualified Text.Parser.Combinators as Combinators
 
 -- $setup
@@ -205,10 +207,10 @@ booleanLoose =
     term =
           Mega.try (Surround.parentheses expression)
       <|> Mega.try (notOperator boolean)
-      <|> Mega.try (notOperator (Rumor.LooseVariable <$> Identifier.variableName))
+      <|> Mega.try (notOperator variable)
       <|> Mega.try boolean
       <|> Mega.try equalityLoose
-      <|> Rumor.LooseVariable <$> Identifier.variableName
+      <|> variable
 
     notOperator inner = do
       _ <- discardWhitespace ("!" <|> do _ <- "not"; " ")
@@ -292,8 +294,193 @@ equalityLoose = do
   pure (op l r)
 
 --------------------------------------------------------------------------------
+-- Number
+--------------------------------------------------------------------------------
+
+{-| Parses a mathematical expression. Any amount of space, including newlines,
+  is allowed between the terms of the mathematical expression.
+
+  >>> parse numberLoose "1"
+  NumberLiteral 1.0
+
+  >>> parse numberLoose "-1"
+  NumberLiteral (-1.0)
+
+  In order from highest to lowest precedence:
+
+  >>> parse numberLoose "1 * 2"
+  LooseMultiplication (NumberLiteral 1.0) (NumberLiteral 2.0)
+
+  >>> parse numberLoose "1 / 2"
+  LooseDivision (NumberLiteral 1.0) (NumberLiteral 2.0)
+
+  >>> parse numberLoose "1 + 2"
+  LooseAddition (NumberLiteral 1.0) (NumberLiteral 2.0)
+
+  >>> parse numberLoose "1 - 2"
+  LooseSubtraction (NumberLiteral 1.0) (NumberLiteral 2.0)
+
+  You can use parenthesis to change the precedence of the operations.
+
+  >>> parse numberLoose "1 * 2 + 3 / -4"
+  LooseAddition (LooseMultiplication (NumberLiteral 1.0) (NumberLiteral 2.0)) (LooseDivision (NumberLiteral 3.0) (NumberLiteral (-4.0)))
+
+  >>> parse numberLoose "1 * (2 + 3) / -4"
+  LooseDivision (LooseMultiplication (NumberLiteral 1.0) (LooseAddition (NumberLiteral 2.0) (NumberLiteral 3.0))) (NumberLiteral (-4.0))
+
+  You can use negative signs in an expression.
+
+  >>> parse numberLoose "-1 - -2"
+  LooseSubtraction (NumberLiteral (-1.0)) (NumberLiteral (-2.0))
+
+  You can also use variables.
+
+  >>> parse numberLoose "foobar"
+  LooseVariable (VariableName (Unicode "foobar"))
+
+  >>> parse numberLoose "foobar + 1.0"
+  LooseAddition (LooseVariable (VariableName (Unicode "foobar"))) (NumberLiteral 1.0)
+
+  You can use no whitespace or additional newlines:
+
+  >>> parse numberLoose "1*3--4/2" -- No whitespace is okay
+  LooseSubtraction (LooseMultiplication (NumberLiteral 1.0) (NumberLiteral 3.0)) (LooseDivision (NumberLiteral (-4.0)) (NumberLiteral 2.0))
+
+  >>> parse numberLoose "1\n*\n3\n-\n-4\n/\n2" -- Newlines are okay
+  LooseSubtraction (LooseMultiplication (NumberLiteral 1.0) (NumberLiteral 3.0)) (LooseDivision (NumberLiteral (-4.0)) (NumberLiteral 2.0))
+
+  You cannot write incomplete number expressions.
+
+  >>> parse numberLoose "*"
+  1:1:
+    |
+  1 | *
+    | ^
+  unexpected '*'
+  expecting open parenthesis, signed number, or variable name
+
+  >>> parse numberLoose "1 * 2 + 3 /"
+  1:12:
+    |
+  1 | 1 * 2 + 3 /
+    |            ^
+  unexpected end of input
+  expecting open parenthesis, signed number, or variable name
+
+  You cannot use the `/=` operator.
+
+  >>> parse numberLoose "1 * 2 + 3 /= 4"
+  1:12:
+    |
+  1 | 1 * 2 + 3 /= 4
+    |            ^
+  unexpected '='
+
+  This parser doesn't consume trailing whitespace.
+
+  >>> parse numberLoose "1 * 2  \n  "
+  1:6:
+    |
+  1 | 1 * 2
+    |      ^
+  unexpected space
+  expecting '.', 'E', 'e', digit, or end of input
+
+-}
+numberLoose :: Parser Rumor.Loose
+numberLoose =
+  let
+    expression = term
+      `Combinators.chainl1` discardWhitespace multiplicationOperator
+      `Combinators.chainl1` divisionOperator
+      `Combinators.chainl1` discardWhitespace additionOperator
+      `Combinators.chainl1` discardWhitespace subtractionOperator
+    term =
+          Surround.parentheses expression
+      <|> number
+      <|> variable
+
+    multiplicationOperator = do
+      _ <- Char.char '*'
+      pure Rumor.LooseMultiplication
+    divisionOperator = do
+      Mega.try do
+        space
+        _ <- Char.char '/'
+        pure ()
+
+      -- Ensure this isn't a `/=` operator
+      Mega.notFollowedBy (Char.char '=')
+      space
+      pure Rumor.LooseDivision
+    additionOperator = do
+      _ <- Char.char '+'
+      pure Rumor.LooseAddition
+    subtractionOperator = do
+      _ <- Char.char '-'
+      pure Rumor.LooseSubtraction
+
+  in
+    expression
+
+{-| Parses a number literal, which can be any signed decimal number. It can be
+  written using scientific notation.
+
+  >>> parse number "1"
+  NumberLiteral 1.0
+
+  >>> parse number "1.0"
+  NumberLiteral 1.0
+
+  >>> parse number "+1.0"
+  NumberLiteral 1.0
+
+  >>> parse number "-1.0"
+  NumberLiteral (-1.0)
+
+  >>> parse number "+1"
+  NumberLiteral 1.0
+
+  >>> parse number "-1"
+  NumberLiteral (-1.0)
+
+  >>> parse number "1e10"
+  NumberLiteral 1.0e10
+
+  >>> parse number "+1e10"
+  NumberLiteral 1.0e10
+
+  >>> parse number "-1e10"
+  NumberLiteral (-1.0e10)
+
+  Error examples:
+  >>> parse number "1."
+  1:2:
+    |
+  1 | 1.
+    |  ^
+  unexpected '.'
+  expecting 'E', 'e', digit, or end of input
+
+  >>> parse number ".1"
+  1:1:
+    |
+  1 | .1
+    | ^
+  unexpected '.'
+  expecting signed number
+-}
+number :: Parser Rumor.Loose
+number = do
+  n <- Lexer.signed hspace Lexer.scientific <?> "signed number"
+  pure (Rumor.NumberLiteral n)
+
+--------------------------------------------------------------------------------
 -- Helpers
 --------------------------------------------------------------------------------
+
+variable :: Parser Rumor.Loose
+variable = Rumor.LooseVariable <$> Identifier.variableName
 
 -- Discards whitespace surrounding an operator on both sides
 discardWhitespace :: Parser a -> Parser a
