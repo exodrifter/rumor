@@ -26,7 +26,7 @@ library
     Rumor
     Rumor.Internal
     Rumor.Internal.Context
-    Rumor.Internal.Loose
+    Rumor.Internal.Expression
     Rumor.Internal.Node
     Rumor.Internal.Unicode
     Rumor.Internal.VariableName
@@ -40,7 +40,7 @@ library
     Rumor.Parser.Identifier
     Rumor.Parser.Indented
     Rumor.Parser.Let
-    Rumor.Parser.Loose
+    Rumor.Parser.Expression
     Rumor.Parser.Node
     Rumor.Parser.Surround
     Rumor.Parser.Unquoted

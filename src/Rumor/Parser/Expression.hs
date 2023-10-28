@@ -1,4 +1,4 @@
-module Rumor.Parser.Loose
+module Rumor.Parser.Expression
 ( booleanLoose
 , numberLoose
 ) where

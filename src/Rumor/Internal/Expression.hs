@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-module Rumor.Internal.Loose
+module Rumor.Internal.Expression
 ( Loose(..)
 , toBoolean
 , toNumber
@@ -10,7 +10,6 @@ module Rumor.Internal.Loose
 
 import Data.Text (Text)
 import Data.Scientific (Scientific)
-import Rumor.Internal.Expression (Expression(..))
 import Rumor.Internal.VariableName (VariableName, variableNameToText)
 import Rumor.Internal.VariableType (VariableType(..), typeToText)
 import Rumor.Internal.Context (Context, getVariableType)
