@@ -26,7 +26,6 @@ library
     Rumor
     Rumor.Internal
     Rumor.Internal.Context
-    Rumor.Internal.Expression
     Rumor.Internal.Loose
     Rumor.Internal.Node
     Rumor.Internal.Unicode
@@ -38,7 +37,6 @@ library
     Rumor.Parser.Common
     Rumor.Parser.Control
     Rumor.Parser.Dialog
-    Rumor.Parser.Expression
     Rumor.Parser.Identifier
     Rumor.Parser.Indented
     Rumor.Parser.Let
