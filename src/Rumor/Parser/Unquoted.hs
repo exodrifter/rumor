@@ -111,7 +111,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n  "
   (String "foo bar baz",Nothing)
 -}
-unquoted :: Mega.Pos -> Parser (Rumor.Expression Text, Maybe Rumor.Label)
+unquoted :: Mega.Pos -> Parser (Rumor.Expression, Maybe Rumor.Label)
 unquoted ref = do
   emptyLine <- Mega.try (do eolf; pure True) <|> pure False
 
@@ -140,7 +140,7 @@ unquoted ref = do
         else pure Nothing
 
       case block of
-        Just rest -> pure (first <> Rumor.String " " <> rest)
+        Just rest -> pure (Rumor.concatStrings [first, Rumor.String " ", rest])
         Nothing -> pure first
 
   space
@@ -160,7 +160,7 @@ unquoted ref = do
   String "Hello world!"
 
   >>> parse unquotedBlock "I have { 5 } mangoes!"
-  Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
+  Concat (String "I have ") (Concat (ToString (Number 5.0)) (String " mangoes!"))
 
   >>> parse unquotedBlock "Hello\\nworld!"
   String "Hello\nworld!"
@@ -224,7 +224,7 @@ unquoted ref = do
   unexpected newline
   expecting '\', end of input, interpolation, or literal char
 -}
-unquotedBlock :: Parser (Rumor.Expression Text)
+unquotedBlock :: Parser Rumor.Expression
 unquotedBlock = do
   ref <- Lexer.indentLevel
 
@@ -259,7 +259,7 @@ unquotedBlock = do
       )
 
   pure
-    ( mconcat
+    ( Rumor.concatStrings
         ( List.intersperse
             (Rumor.String " ")
             texts
@@ -272,7 +272,7 @@ unquotedBlock = do
   String "Hello world!"
 
   >>> parse unquotedLine "I have { 5 } mangoes!"
-  Concat (String "I have ") (Concat (NumberToString (Number 5.0)) (String " mangoes!"))
+  Concat (String "I have ") (Concat (ToString (Number 5.0)) (String " mangoes!"))
 
   Unquoted lines end whenever vertical space or a label is enountered, without
   consuming the vertical space or label.
@@ -340,7 +340,7 @@ unquotedBlock = do
   unexpected space
   expecting '\', interpolation, or non-space literal char
 -}
-unquotedLine :: Parser (Rumor.Expression Text)
+unquotedLine :: Parser Rumor.Expression
 unquotedLine = do
   let
     end = (do _ <- Char.char '['; pure ()) <|> eolf
@@ -374,7 +374,7 @@ unquotedLine = do
       <|> Expression.interpolation
     )
 
-  pure (mconcat (first:rest))
+  pure (Rumor.concatStrings (first:rest))
 
 unquotedEscapes :: [(Char, Text)]
 unquotedEscapes =

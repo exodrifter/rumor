@@ -1,11 +1,13 @@
 module Rumor.Parser.Expression
-( booleanLoose
-, numberLoose
+( booleanExpression
+, numberExpression
+, stringExpression, escape, interpolation, stringEscapes
 ) where
 
 import Data.Text (Text)
 import Rumor.Parser.Common (Parser, hspace, lexeme, space, (<|>), (<?>))
 
+import qualified Data.Text as T
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Surround as Surround
 import qualified Rumor.Parser.Identifier as Identifier
@@ -473,6 +475,221 @@ number :: Parser Rumor.Expression
 number = do
   n <- Lexer.signed hspace Lexer.scientific <?> "signed number"
   pure (Rumor.Number n)
+
+--------------------------------------------------------------------------------
+-- String
+--------------------------------------------------------------------------------
+
+stringExpression :: Parser Rumor.Expression
+stringExpression =
+      string
+  <|> variable
+
+{-| Parses a string, which is any quoted string with interpolated values and no
+  newlines.
+
+  >>> parse stringExpression "\"Hello world!\""
+  String "Hello world!"
+
+  >>> parse stringExpression "\"I have { 5 } mangoes!\""
+  Concat (String "I have ") (Concat (ToString (Number 5.0)) (String " mangoes!"))
+
+  >>> parse stringExpression "\"Hello\\nworld!\""
+  String "Hello\nworld!"
+
+  You cannot use newlines in a string.
+
+  >>> parse stringExpression "\"Hello\nworld!\"" -- Newlines are not okay
+  1:7:
+    |
+  1 | "Hello
+    |       ^
+  unexpected newline
+  expecting '\', close double quotes, interpolation, or literal char
+
+  You must provide both the open and close double quotes.
+
+  >>> parse stringExpression "\""
+  1:2:
+    |
+  1 | "
+    |  ^
+  unexpected end of input
+  expecting '\', close double quotes, interpolation, or literal char
+
+  >>> parse stringExpression "\"Hello world!"
+  1:14:
+    |
+  1 | "Hello world!
+    |              ^
+  unexpected end of input
+  expecting '\', close double quotes, interpolation, or literal char
+
+  >>> parse stringExpression "Hello world!\""
+  1:6:
+    |
+  1 | Hello world!"
+    |      ^
+  unexpected space
+  expecting end of input
+
+  You must provide both the open and close brace for interpolated values
+  >>> parse stringExpression "\"{\""
+  1:4:
+    |
+  1 | "{"
+    |    ^
+  unexpected end of input
+  expecting '\', close double quotes, interpolation, or literal char
+
+  >>> parse stringExpression "\"}\""
+  1:2:
+    |
+  1 | "}"
+    |  ^
+  unexpected '}'
+  expecting '\', close double quotes, interpolation, or literal char
+
+  This parser doesn't consume trailing whitespace.
+
+  >>> parse stringExpression "\"Hello world!\"   "
+  1:15:
+    |
+  1 | "Hello world!"
+    |               ^
+  unexpected space
+  expecting end of input
+-}
+string :: Parser Rumor.Expression
+string = do
+  let
+    literalString = do
+      text <-
+        Mega.takeWhile1P
+          (Just "literal char")
+          (`notElem` (fst <$> stringEscapes))
+      pure (Rumor.String text)
+
+  Surround.doubleQuotes do
+    texts <- Mega.many
+      (     Mega.try literalString
+        <|> Mega.try (escape stringEscapes)
+        <|> interpolation
+      )
+    pure (Rumor.concatStrings texts)
+
+{-| The characters that can be escaped, and their corresponding escape code.
+-}
+stringEscapes :: [(Char, Text)]
+stringEscapes =
+  [ ('\n', "n")
+  , ('\r', "r")
+  , ('\\', "\\")
+  , ('{', "{")
+  , ('}', "}")
+  , ('"', "\"")
+  ]
+
+{-| Parses a character escape sequence.
+
+  >>> parse (escape stringEscapes) "\\n"
+  String "\n"
+
+  >>> parse (escape stringEscapes) "\\r"
+  String "\r"
+
+  >>> parse (escape stringEscapes) "\\\\"
+  String "\\"
+
+  >>> parse (escape stringEscapes) "\\{"
+  String "{"
+
+  >>> parse (escape stringEscapes) "\\}"
+  String "}"
+
+  >>> parse (escape stringEscapes) "\\\""
+  String "\""
+
+  >>> parse (escape stringEscapes) "\\"
+  1:2:
+    |
+  1 | \
+    |  ^
+  unexpected end of input
+  expecting '"', '\', 'n', 'r', '{', or '}'
+-}
+escape :: [(Char, Text)] -> Parser Rumor.Expression
+escape escapes = do
+  let
+    escapeParser (ch, escapeCode) = do
+      _ <- Char.string escapeCode
+      pure (Rumor.String (T.singleton ch))
+
+  _ <- Char.char '\\'
+  Mega.choice (escapeParser <$> escapes)
+
+{-| Parses a string interpolation, which is a boolean, number, or string
+  expression surrounded by braces.
+
+  Examples:
+  >>> parse interpolation "{ true }"
+  ToString (Boolean True)
+
+  >>> parse interpolation "{ true || false }"
+  ToString (LogicalOr (Boolean True) (Boolean False))
+
+  >>> parse interpolation "{ 123 }"
+  ToString (Number 123.0)
+
+  >>> parse interpolation "{ 123 + 456 }"
+  ToString (Addition (Number 123.0) (Number 456.0))
+
+  >>> parse interpolation "{ \"foobar\" }"
+  String "foobar"
+
+  You can use whitespace between the braces and the expression.
+
+  >>> parse interpolation "{true}" -- No whitespace is okay
+  ToString (Boolean True)
+
+  >>> parse interpolation "{\ntrue\n}" -- Newlines are okay
+  ToString (Boolean True)
+
+  The interpolation cannot be empty.
+
+  >>> parse interpolation "{}"
+  1:2:
+    |
+  1 | {}
+    |  ^
+  unexpected '}'
+  expecting "false", "not", "true", '!', open double quotes, open parenthesis, signed number, or variable name
+
+  You must provide both braces for an interpolation.
+
+  >>> parse interpolation "{true"
+  1:6:
+    |
+  1 | {true
+    |      ^
+  unexpected end of input
+  expecting "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', or close brace
+
+  >>> parse interpolation "true}"
+  1:1:
+    |
+  1 | true}
+    | ^
+  unexpected 't'
+  expecting interpolation
+-}
+interpolation :: Parser Rumor.Expression
+interpolation =
+  Surround.braces
+    (     Mega.try (Rumor.ToString <$> lexeme booleanExpression)
+      <|> Mega.try (Rumor.ToString <$> lexeme numberExpression)
+      <|> lexeme stringExpression
+    ) <?> "interpolation"
 
 --------------------------------------------------------------------------------
 -- Helpers

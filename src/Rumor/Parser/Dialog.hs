@@ -3,7 +3,6 @@ module Rumor.Parser.Dialog
 , add
 ) where
 
-import Data.Text (Text)
 import Rumor.Parser.Common (Parser, hlexeme)
 
 import qualified Rumor.Internal as Rumor
@@ -179,7 +178,7 @@ say = dialog ':' Rumor.Say
 
 dialog ::
   Char ->
-  (Maybe Rumor.Speaker -> Rumor.Expression Text -> Maybe Rumor.Label -> Rumor.Node) ->
+  (Maybe Rumor.Speaker -> Rumor.Expression -> Maybe Rumor.Label -> Rumor.Node) ->
   Parser Rumor.Node
 dialog sep constructor = do
   ref <- Lexer.indentLevel

@@ -61,7 +61,7 @@ import qualified Rumor.Parser.Indented as Indented
   1 | if true or false}
     |                 ^^
   unexpected "}<newline>"
-  expecting end of line
+  expecting "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', or end of line
 
   You cannot have an empty block of nodes.
 
@@ -71,7 +71,7 @@ import qualified Rumor.Parser.Indented as Indented
   1 | if true
     |        ^
   unexpected end of input
-  expecting end of line
+  expecting "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', or end of line
 
   >>> parse (control say) "if true\n"
   2:1:

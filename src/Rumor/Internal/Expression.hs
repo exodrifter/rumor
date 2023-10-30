@@ -1,7 +1,10 @@
 {-# LANGUAGE RankNTypes #-}
 module Rumor.Internal.Expression
 ( Expression(..)
+, concatStrings
+
 , infer
+, check
 , InferenceFailure(..)
 , inferenceFailureToText
 ) where
@@ -11,6 +14,8 @@ import Data.Scientific (Scientific)
 import Rumor.Internal.VariableName (VariableName, variableNameToText)
 import Rumor.Internal.VariableType (VariableType(..), typeToText)
 import Rumor.Internal.Context (Context, getVariableType)
+
+import qualified Data.List as List
 
 -- $setup
 -- >>> import Data.Either (fromRight)
@@ -29,11 +34,11 @@ import Rumor.Internal.Context (Context, getVariableType)
 -- :}
 --
 -- >>> let context = fromRight undefined (setVariableTypes newContext)
--- >>> let foo = LooseVariable (VariableName (Unicode (NET.new 'f' "oo")))
--- >>> let bar = LooseVariable (VariableName (Unicode (NET.new 'b' "ar")))
--- >>> let string = LooseVariable (VariableName (Unicode (NET.new 's' "tring")))
--- >>> let number = LooseVariable (VariableName (Unicode (NET.new 'n' "umber")))
--- >>> let boolean = LooseVariable (VariableName (Unicode (NET.new 'b' "oolean")))
+-- >>> let foo = Variable (VariableName (Unicode (NET.new 'f' "oo")))
+-- >>> let bar = Variable (VariableName (Unicode (NET.new 'b' "ar")))
+-- >>> let string = Variable (VariableName (Unicode (NET.new 's' "tring")))
+-- >>> let number = Variable (VariableName (Unicode (NET.new 'n' "umber")))
+-- >>> let boolean = Variable (VariableName (Unicode (NET.new 'b' "oolean")))
 
 {-| When parsing, Rumor will parse expressions into this type, which is an
   expression which is loosely typed -- the types of the variables are not known.
@@ -65,6 +70,26 @@ data Expression =
   | NotEqual Expression Expression
   | ToString Expression
   deriving (Eq, Show)
+
+concatStrings :: [Expression] -> Expression
+concatStrings expressions =
+  let
+    step lhs rhs =
+      case (lhs, rhs) of
+        (String l, String r) ->
+          String (l <> r)
+        (String l, Concat (String r1) r2) ->
+          Concat (String (l <> r1)) r2
+        (Concat l1 (String l2), String r) ->
+          Concat l1 (String (l2 <> r))
+        (Concat l1 (String l2), Concat (String r1) r2) ->
+          Concat l1 (Concat (String (l2 <> r1)) r2)
+        (l, r) -> Concat l r
+  in
+    case List.filter ((/=) (String "")) expressions of
+      [] -> String ""
+      [expression] -> expression
+      _ -> List.foldr1 step expressions
 
 --------------------------------------------------------------------------------
 -- Inference
