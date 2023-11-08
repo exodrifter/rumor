@@ -44,6 +44,7 @@ library
     Rumor.Parser.Node
     Rumor.Parser.Surround
     Rumor.Parser.Unquoted
+    Rumor.TypeCheck
 
   default-language:
     Haskell2010
