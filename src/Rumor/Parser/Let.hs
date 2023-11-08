@@ -2,7 +2,7 @@ module Rumor.Parser.Let
 ( let'
 ) where
 
-import Rumor.Parser.Common (Parser, attempt, hlexeme, lexeme, modifyVariableType, space, (<|>))
+import Rumor.Parser.Common (Parser, hlexeme, lexeme, modifyVariableType, rumorError, space, (<|>))
 
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
@@ -111,22 +111,23 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   1 | let foobar
     |           ^
   unexpected newline
-  expecting ':'
+  expecting ':' or variable character
 -}
 let' :: Parser (Rumor.VariableName, Rumor.VariableType)
 let' =
-  attempt do
-    Lexer.nonIndented space do
-      _ <- hlexeme "let"
-      name <- hlexeme Identifier.variableName
-      _ <- hlexeme (Char.char ':')
-      typ <- Mega.try (do _ <- lexeme "Boolean"; pure Rumor.BooleanType)
-         <|> Mega.try (do _ <- lexeme "Number"; pure Rumor.NumberType)
-         <|> Mega.try (do _ <- lexeme "String"; pure Rumor.StringType)
+  Lexer.nonIndented space do
+    start <- Mega.getOffset
+    _ <- hlexeme "let"
+    name <- hlexeme Identifier.variableName
+    _ <- hlexeme (Char.char ':')
+    typ <- Mega.try (do _ <- lexeme "Boolean"; pure Rumor.BooleanType)
+       <|> Mega.try (do _ <- lexeme "Number"; pure Rumor.NumberType)
+       <|> Mega.try (do _ <- lexeme "String"; pure Rumor.StringType)
+    end <- Mega.getOffset
 
-      result <- modifyVariableType name typ
-      case result of
-        Left err ->
-          pure (Left err)
-        Right () ->
-          pure (Right (name, typ))
+    result <- modifyVariableType name typ
+    case result of
+      Left err ->
+        rumorError err start (end - start)
+      Right () ->
+        pure (name, typ)

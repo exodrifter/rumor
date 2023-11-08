@@ -105,7 +105,7 @@ import qualified Text.Megaparsec.Char as Char
   1 | foobar)
     |       ^
   unexpected ')'
-  expecting open parenthesis
+  expecting open parenthesis or variable character
 
   Trailing whitespace is consumed.
 

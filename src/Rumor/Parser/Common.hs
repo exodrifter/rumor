@@ -5,7 +5,6 @@ module Rumor.Parser.Common
 , Rumor.getVariableType
 , Rumor.setVariableType, modifyVariableType
 
-, attempt
 , rumorError
 
 , lexeme, hlexeme
@@ -21,6 +20,7 @@ import Data.Text (Text)
 import Text.Megaparsec ((<?>), (<|>))
 
 import qualified Control.Monad.State.Strict as State
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
@@ -75,34 +75,23 @@ modifyVariableType name typ = do
 -- Errors
 --------------------------------------------------------------------------------
 
-data RumorError = RumorError { rumorErrorToText :: Text, rumorErrorLength :: Int }
+data RumorError =
+  RumorError
+    { rumorErrorToText :: Text
+    , rumorErrorLength :: Int
+    }
   deriving (Eq, Ord)
 
 instance Error.ShowErrorComponent RumorError where
   showErrorComponent = T.unpack . rumorErrorToText
   errorComponentLen = rumorErrorLength
 
-rumorError :: Text -> Int -> Parser a
-rumorError message len = Mega.customFailure (RumorError message len)
-
-{-| Attempt to parse something, but on failure highlight the part that was
-  parsed.
--}
-attempt :: Parser (Either Text a) -> Parser a
-attempt inner = do
-  let parser = do
-        start <- Mega.getOffset
-        result <- inner
-        end <- Mega.getOffset
-        pure (result, end - start)
-
-  result <- Mega.lookAhead parser
-  case result of
-    (Left err, len) ->
-      rumorError err len
-    (Right a, len) -> do
-      _ <- Mega.takeP Nothing len
-      pure a
+rumorError :: Text -> Int -> Int -> Parser a
+rumorError message pos len =
+  let
+    err = Mega.ErrorCustom (RumorError message len)
+  in
+    Mega.parseError (Mega.FancyError pos (Set.singleton err))
 
 --------------------------------------------------------------------------------
 -- Whitespace

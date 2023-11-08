@@ -4,7 +4,7 @@ module Rumor.Parser.Identifier
 , variableName
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, lexeme, rumorError, (<?>))
+import Rumor.Parser.Common (Parser, hlexeme, rumorError, (<?>))
 
 import qualified Data.Char
 import qualified Data.NonEmptyText as NET
@@ -233,11 +233,12 @@ variableName =
       ]
 
   in do
-    name <- Mega.lookAhead (lexeme parser) <?> "variable name"
+    pos <- Mega.getOffset
+    name <- parser <?> "variable name"
     if name `elem` reservedKeywords
     then rumorError
             ("Cannot use " <> NET.toText name <> " as a variable name")
+            pos
             (NET.length name)
-    else do
-      _ <- Mega.takeP (Just validCharLabel) (NET.length name)
+    else
       pure (Rumor.VariableName (Rumor.Unicode name))

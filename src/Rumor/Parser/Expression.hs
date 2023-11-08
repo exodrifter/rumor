@@ -279,7 +279,7 @@ equalityExpression = do
     term =
           Mega.try (Surround.parentheses equalityExpression)
       <|> Mega.try number
-      <|> Rumor.Variable <$> Identifier.variableName
+      <|> variable
 
     eqOperator = do
       _ <- "==" <|> "is"
@@ -531,7 +531,7 @@ stringExpression =
   1 | Hello world!"
     |      ^
   unexpected space
-  expecting end of input
+  expecting end of input or variable character
 
   You must provide both the open and close brace for interpolated values
   >>> parse stringExpression "\"{\""
