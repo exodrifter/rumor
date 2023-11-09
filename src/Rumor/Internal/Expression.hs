@@ -10,29 +10,6 @@ import Rumor.Internal.VariableName (VariableName)
 
 import qualified Data.List as List
 
--- $setup
--- >>> import Data.Either (fromRight)
--- >>> import Data.NonEmptyText as NET
--- >>> import Rumor.Internal
--- >>> import Rumor.Internal.Unicode
--- >>> import Rumor.Internal.VariableName
--- >>> import Rumor.Parser.Common
---
--- >>> :{
--- let setVariableTypes c0 = do
---       c1 <- setVariableType (VariableName (Unicode (NET.new 's' "tring"))) StringType c0
---       c2 <- setVariableType (VariableName (Unicode (NET.new 'n' "umber"))) NumberType c1
---       c3 <- setVariableType (VariableName (Unicode (NET.new 'b' "oolean"))) BooleanType c2
---       pure c3
--- :}
---
--- >>> let context = fromRight undefined (setVariableTypes newContext)
--- >>> let foo = Variable (VariableName (Unicode (NET.new 'f' "oo")))
--- >>> let bar = Variable (VariableName (Unicode (NET.new 'b' "ar")))
--- >>> let string = Variable (VariableName (Unicode (NET.new 's' "tring")))
--- >>> let number = Variable (VariableName (Unicode (NET.new 'n' "umber")))
--- >>> let boolean = Variable (VariableName (Unicode (NET.new 'b' "oolean")))
-
 {-| When parsing, Rumor will parse expressions into this type, which is an
   expression which is loosely typed -- the types of the variables are not known.
 

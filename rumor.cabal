@@ -37,10 +37,10 @@ library
     Rumor.Parser.Common
     Rumor.Parser.Control
     Rumor.Parser.Dialog
+    Rumor.Parser.Expression
     Rumor.Parser.Identifier
     Rumor.Parser.Indented
     Rumor.Parser.Let
-    Rumor.Parser.Expression
     Rumor.Parser.Node
     Rumor.Parser.Surround
     Rumor.Parser.Unquoted

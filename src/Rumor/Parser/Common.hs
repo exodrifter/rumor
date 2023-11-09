@@ -1,11 +1,14 @@
 module Rumor.Parser.Common
 ( Parser, runParser, parseTest
+, State.gets
 
 , Rumor.Context, Rumor.newContext
 , Rumor.getVariableType
 , Rumor.setVariableType, modifyVariableType
 
+, RumorError(..)
 , rumorError
+, inferenceError
 
 , lexeme, hlexeme
 , space, hspace
@@ -61,30 +64,55 @@ parseTest context parser text =
 -- Typing
 --------------------------------------------------------------------------------
 
-modifyVariableType :: Rumor.VariableName -> Rumor.VariableType -> Parser (Either Text ())
-modifyVariableType name typ = do
+modifyVariableType :: Rumor.VariableName -> Rumor.VariableType -> Int -> Int -> Parser ()
+modifyVariableType name typ pos len = do
   oldContext <- State.get
   case Rumor.setVariableType name typ oldContext of
     Left err ->
-      pure (Left err)
+      rumorError err pos len
     Right context -> do
       State.put context
-      pure (Right ())
+      pure ()
 
 --------------------------------------------------------------------------------
 -- Errors
 --------------------------------------------------------------------------------
 
 data RumorError =
-  RumorError
-    { rumorErrorToText :: Text
-    , rumorErrorLength :: Int
-    }
-  deriving (Eq, Ord)
+    RumorError Text Int
+  | CannotInferVariable Rumor.VariableName
+  | CannotInferExpression
+  | TypeMismatch Rumor.VariableType Rumor.VariableType
+  | UnexpectedFailure
+  deriving (Eq, Ord, Show)
 
 instance Error.ShowErrorComponent RumorError where
-  showErrorComponent = T.unpack . rumorErrorToText
-  errorComponentLen = rumorErrorLength
+  showErrorComponent err =
+    case err of
+      RumorError msg _ ->
+        T.unpack msg
+      CannotInferVariable name ->
+           "Cannot infer type of `"
+        <> T.unpack (Rumor.variableNameToText name)
+        <> "`."
+      CannotInferExpression ->
+        "Cannot infer the type of this expression."
+      TypeMismatch expected actual ->
+           "Expected a "
+        <> T.unpack (Rumor.typeToText expected)
+        <> " expression but this expression is actually a "
+        <> T.unpack (Rumor.typeToText actual)
+        <> "!"
+      UnexpectedFailure ->
+        "Unexpected error when inferring expression type! \
+        \This is a bug; please report this."
+  errorComponentLen err = -- TODO: Better error positions
+    case err of
+      RumorError _ len -> len
+      CannotInferVariable _ -> 0
+      CannotInferExpression -> 0
+      TypeMismatch _ _ -> 0
+      UnexpectedFailure -> 0
 
 rumorError :: Text -> Int -> Int -> Parser a
 rumorError message pos len =
@@ -92,6 +120,15 @@ rumorError message pos len =
     err = Mega.ErrorCustom (RumorError message len)
   in
     Mega.parseError (Mega.FancyError pos (Set.singleton err))
+
+-- TODO: Replace rumorError with this
+inferenceError :: RumorError -> Parser a
+inferenceError customError = do
+  let
+    err = Mega.ErrorCustom customError
+
+  pos <- Mega.getOffset
+  Mega.parseError (Mega.FancyError pos (Set.singleton err))
 
 --------------------------------------------------------------------------------
 -- Whitespace

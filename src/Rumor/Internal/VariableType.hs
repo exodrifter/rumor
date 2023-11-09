@@ -6,7 +6,7 @@ module Rumor.Internal.VariableType
 import Data.Text (Text)
 
 data VariableType = BooleanType | NumberType | StringType
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 typeToText :: VariableType -> Text
 typeToText typ =

@@ -2,7 +2,7 @@ module Rumor.Parser.Let
 ( let'
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, lexeme, modifyVariableType, rumorError, space, (<|>))
+import Rumor.Parser.Common (Parser, hlexeme, lexeme, modifyVariableType, space, (<|>))
 
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
@@ -125,9 +125,5 @@ let' =
        <|> Mega.try (do _ <- lexeme "String"; pure Rumor.StringType)
     end <- Mega.getOffset
 
-    result <- modifyVariableType name typ
-    case result of
-      Left err ->
-        rumorError err start (end - start)
-      Right () ->
-        pure (name, typ)
+    modifyVariableType name typ start (end - start)
+    pure (name, typ)
