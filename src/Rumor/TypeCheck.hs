@@ -13,25 +13,12 @@ import qualified Text.Megaparsec as Mega
 -- $setup
 -- >>> import Data.Either (fromRight)
 -- >>> import Data.NonEmptyText as NET
--- >>> import Rumor.Internal
--- >>> import Rumor.Internal.Unicode
--- >>> import Rumor.Internal.VariableName
 -- >>> import Rumor.Parser.Common
+-- >>> import Rumor.Internal
 --
--- >>> :{
--- let setVariableTypes c0 = do
---       c1 <- setVariableType (VariableName (Unicode (NET.new 's' "tring"))) StringType c0
---       c2 <- setVariableType (VariableName (Unicode (NET.new 'n' "umber"))) NumberType c1
---       c3 <- setVariableType (VariableName (Unicode (NET.new 'b' "oolean"))) BooleanType c2
---       pure c3
--- :}
---
--- >>> let context = fromRight undefined (setVariableTypes newContext)
 -- >>> let foo = Variable (VariableName (Unicode (NET.new 'f' "oo")))
 -- >>> let bar = Variable (VariableName (Unicode (NET.new 'b' "ar")))
--- >>> let string = Variable (VariableName (Unicode (NET.new 's' "tring")))
--- >>> let number = Variable (VariableName (Unicode (NET.new 'n' "umber")))
--- >>> let boolean = Variable (VariableName (Unicode (NET.new 'b' "oolean")))
+-- >>> let parse inner = parseTest newContext (inner <* eof) ""
 
 --------------------------------------------------------------------------------
 -- Type Checking
@@ -42,49 +29,62 @@ import qualified Text.Megaparsec as Mega
   For boolean, string, and number operations, we can infer that all of the
   variables must be a boolean, string, or number respectively.
 
-  >>> parseTest context (infer (Rumor.LogicalNot foo)) ""
+  >>> parse (infer (Rumor.LogicalNot foo))
   BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),BooleanType)]}
 
-  >>> parseTest context (infer (Rumor.LogicalAnd foo bar)) ""
+  >>> parse (infer (Rumor.LogicalAnd foo bar))
   BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),BooleanType),(VariableName (Unicode "foo"),BooleanType)]}
 
-  >>> parseTest context (infer (Rumor.LogicalOr foo bar)) ""
+  >>> parse (infer (Rumor.LogicalOr foo bar))
   BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),BooleanType),(VariableName (Unicode "foo"),BooleanType)]}
 
-  >>> parseTest context (infer (Rumor.LogicalXor foo bar)) ""
+  >>> parse (infer (Rumor.LogicalXor foo bar))
   BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),BooleanType),(VariableName (Unicode "foo"),BooleanType)]}
 
-  >>> parseTest context (infer (Rumor.Addition foo bar)) ""
+  >>> parse (infer (Rumor.Addition foo bar))
   NumberType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),NumberType),(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (Rumor.Subtraction foo bar)) ""
+  >>> parse (infer (Rumor.Subtraction foo bar))
   NumberType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),NumberType),(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (Rumor.Multiplication foo bar)) ""
+  >>> parse (infer (Rumor.Multiplication foo bar))
   NumberType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),NumberType),(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (Rumor.Division foo bar)) ""
+  >>> parse (infer (Rumor.Division foo bar))
   NumberType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),NumberType),(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (Rumor.Concat foo bar)) ""
+  >>> parse (infer (Rumor.Concat foo bar))
   StringType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),StringType),(VariableName (Unicode "foo"),StringType)]}
 
   We can infer the type of a variable with an overloaded operator if the other
   argument has a known type.
 
-  >>> parseTest context (infer (Equal foo number)) ""
+  >>> parse (infer (Equal foo (Number 1)))
   BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (Equal number foo)) ""
+  >>> parse (infer (Equal (Number 1) foo))
   BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (Equal foo number)) ""
+  >>> parse (infer (Equal foo (Number 1)))
   BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (Equal number foo)) ""
+  >>> parse (infer (Equal (Number 1) foo))
   BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (Equal foo bar)) ""
+  >>> parse (infer (Equal foo bar))
   1:1:
     |
   1 | <empty line>
@@ -92,7 +92,21 @@ import qualified Text.Megaparsec as Mega
   Cannot infer type of `bar`.
   Cannot infer type of `foo`.
 
-  >>> parseTest context (infer (Equal bar foo)) ""
+  >>> parse (infer (Equal bar foo))
+  1:1:
+    |
+  1 | <empty line>
+    | ^
+  Cannot infer type of `bar`.
+  Cannot infer type of `foo`.
+
+  -- TODO: It would be nice if this didn't matter.
+  We can only infer the types of variables from left to right.
+  >>> parse (infer (LogicalAnd (Equal foo (Number 1)) (Equal foo bar)))
+  BooleanType
+  Context {variableTypes = fromList [(VariableName (Unicode "bar"),NumberType),(VariableName (Unicode "foo"),NumberType)]}
+
+  >>> parse (infer (LogicalAnd (Equal foo bar) (Equal foo (Number 1))))
   1:1:
     |
   1 | <empty line>
@@ -103,10 +117,11 @@ import qualified Text.Megaparsec as Mega
   We can only infer the type of an interpolation if the expression within it has
   a known type.
 
-  >>> parseTest context (infer (ToString (Equal foo number))) ""
+  >>> parse (infer (ToString (Equal foo (Number 1))))
   StringType
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parseTest context (infer (ToString (Equal foo bar))) ""
+  >>> parse (infer (ToString (Equal foo bar)))
   1:1:
     |
   1 | <empty line>
@@ -116,7 +131,7 @@ import qualified Text.Megaparsec as Mega
 
   We can't infer the type of a variable on its own.
 
-  >>> parseTest context (infer foo) ""
+  >>> parse (infer foo)
   1:1:
     |
   1 | <empty line>
@@ -126,19 +141,19 @@ import qualified Text.Megaparsec as Mega
   This function will fail if the variables being used already have types
   assigned to them that don't match the inferred use.
 
-  >>> parseTest context (infer (LogicalNot string)) ""
+  >>> parse (infer (LogicalNot (Number 1)))
   1:1:
     |
   1 | <empty line>
     | ^
-  Expected a Boolean expression but this expression is actually a String!
+  Expected a Boolean expression but this expression is actually a Number!
 
-  >>> parseTest context (infer (LogicalAnd (Equal foo string) (Equal foo number))) ""
+  >>> parse (infer (LogicalAnd (Equal foo (Boolean True)) (Equal foo (Number 1))))
   1:1:
     |
   1 | <empty line>
     | ^
-  Expected a String expression but this expression is actually a Number!
+  Expected a Boolean expression but this expression is actually a Number!
 -}
 infer :: Rumor.Expression -> Parser Rumor.VariableType
 infer expression =

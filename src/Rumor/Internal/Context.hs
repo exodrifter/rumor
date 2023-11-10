@@ -13,7 +13,7 @@ import qualified Data.Map.Strict as Map
 newtype Context =
   Context
     { variableTypes :: Map.Map VariableName VariableType
-    }
+    } deriving (Eq, Show)
 
 newContext :: Context
 newContext =

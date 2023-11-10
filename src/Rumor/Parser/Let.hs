@@ -16,66 +16,63 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 -- >>> import Rumor.Parser.Common
 -- >>> import Rumor.Internal
 --
--- >>> :{
--- let setVariableTypes c0 = do
---       c1 <- setVariableType (VariableName (Unicode (NET.new 's' "tring"))) StringType c0
---       c2 <- setVariableType (VariableName (Unicode (NET.new 'n' "umber"))) NumberType c1
---       c3 <- setVariableType (VariableName (Unicode (NET.new 'b' "oolean"))) BooleanType c2
---       pure c3
--- :}
---
--- >>> let context = fromRight undefined (setVariableTypes newContext)
--- >>> let parse inner = parseTest context (inner <* eof)
+-- >>> let stringContext = fromRight newContext (setVariableType (VariableName (Unicode (NET.new 's' "tring"))) StringType newContext)
+-- >>> let numberContext = fromRight newContext (setVariableType (VariableName (Unicode (NET.new 'n' "umber"))) NumberType newContext)
+-- >>> let booleanContext = fromRight newContext (setVariableType (VariableName (Unicode (NET.new 'b' "oolean"))) BooleanType newContext)
+-- >>> let parse c inner = parseTest c (inner <* eof)
 
 {-| Parses a let binding, which can be used to assign types to variables.
 
-  >>> parse let' "let foo: Boolean"
+  >>> parse newContext let' "let foo: Boolean"
   (VariableName (Unicode "foo"),BooleanType)
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),BooleanType)]}
 
-  >>> parse let' "let foo: Number"
+  >>> parse newContext let' "let foo: Number"
   (VariableName (Unicode "foo"),NumberType)
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parse let' "let foo: String"
+  >>> parse newContext let' "let foo: String"
   (VariableName (Unicode "foo"),StringType)
+  Context {variableTypes = fromList [(VariableName (Unicode "foo"),StringType)]}
 
   You cannot change the types of already-defined variables.
 
-  >>> parse let' "let boolean: Number"
+  >>> parse booleanContext let' "let boolean: Number"
   1:1:
     |
   1 | let boolean: Number
     | ^^^^^^^^^^^^^^^^^^^
   Variable `boolean` cannot be a Number; it has already been defined as a Boolean!
 
-  >>> parse let' "let boolean: String"
+  >>> parse booleanContext let' "let boolean: String"
   1:1:
     |
   1 | let boolean: String
     | ^^^^^^^^^^^^^^^^^^^
   Variable `boolean` cannot be a String; it has already been defined as a Boolean!
 
-  >>> parse let' "let number: Boolean"
+  >>> parse numberContext let' "let number: Boolean"
   1:1:
     |
   1 | let number: Boolean
     | ^^^^^^^^^^^^^^^^^^^
   Variable `number` cannot be a Boolean; it has already been defined as a Number!
 
-  >>> parse let' "let number: String"
+  >>> parse numberContext let' "let number: String"
   1:1:
     |
   1 | let number: String
     | ^^^^^^^^^^^^^^^^^^
   Variable `number` cannot be a String; it has already been defined as a Number!
 
-  >>> parse let' "let string: Boolean"
+  >>> parse stringContext let' "let string: Boolean"
   1:1:
     |
   1 | let string: Boolean
     | ^^^^^^^^^^^^^^^^^^^
   Variable `string` cannot be a Boolean; it has already been defined as a String!
 
-  >>> parse let' "let string: Number"
+  >>> parse stringContext let' "let string: Number"
   1:1:
     |
   1 | let string: Number
@@ -84,28 +81,34 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
   You can re-define variables to the same type.
 
-  >>> parse let' "let boolean: Boolean"
+  >>> parse booleanContext let' "let boolean: Boolean"
   (VariableName (Unicode "boolean"),BooleanType)
+  Context {variableTypes = fromList [(VariableName (Unicode "boolean"),BooleanType)]}
 
-  >>> parse let' "let number: Number"
+  >>> parse numberContext let' "let number: Number"
   (VariableName (Unicode "number"),NumberType)
+  Context {variableTypes = fromList [(VariableName (Unicode "number"),NumberType)]}
 
-  >>> parse let' "let string: String"
+  >>> parse stringContext let' "let string: String"
   (VariableName (Unicode "string"),StringType)
+  Context {variableTypes = fromList [(VariableName (Unicode "string"),StringType)]}
 
   You can have extra horizontal whitespace around the colon, but not vertical
   whitespace.
 
-  >>> parse let' "let foobar:String"
+  >>> parse newContext let' "let foobar:String"
   (VariableName (Unicode "foobar"),StringType)
+  Context {variableTypes = fromList [(VariableName (Unicode "foobar"),StringType)]}
 
-  >>> parse let' "let foobar  :  String"
+  >>> parse newContext let' "let foobar  :  String"
   (VariableName (Unicode "foobar"),StringType)
+  Context {variableTypes = fromList [(VariableName (Unicode "foobar"),StringType)]}
 
-  >>> parse let' "let foobar\t:\tString"
+  >>> parse newContext let' "let foobar\t:\tString"
   (VariableName (Unicode "foobar"),StringType)
+  Context {variableTypes = fromList [(VariableName (Unicode "foobar"),StringType)]}
 
-  >>> parse let' "let foobar\n:\nString"
+  >>> parse newContext let' "let foobar\n:\nString"
   1:11:
     |
   1 | let foobar

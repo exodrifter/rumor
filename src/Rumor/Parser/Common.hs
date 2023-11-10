@@ -42,7 +42,12 @@ import qualified Rumor.Internal as Rumor
 type Parser a =
   Mega.ParsecT RumorError Text (State.State Rumor.Context) a
 
-runParser :: Rumor.Context -> Parser a -> FilePath -> Text -> Either String a
+runParser ::
+  Rumor.Context ->
+  Parser a ->
+  FilePath ->
+  Text ->
+  Either String (a, Rumor.Context)
 runParser context parser fileName fileContents =
   let
     result =
@@ -51,14 +56,18 @@ runParser context parser fileName fileContents =
         context
   in
     case result of
-      (Right a, _) -> Right a
+      (Right a, updatedContext) -> Right (a, updatedContext)
       (Left err, _) -> Left (Error.errorBundlePretty err)
 
 parseTest :: Show a => Rumor.Context -> Parser a -> Text -> IO ()
 parseTest context parser text =
   case runParser context parser "" text of
-    Left e -> putStr e
-    Right x -> print x
+    Left e ->
+      putStr e
+    Right (a, updatedContext) -> do
+      print a
+      State.when (updatedContext /= Rumor.newContext) do
+        print updatedContext
 
 --------------------------------------------------------------------------------
 -- Typing
