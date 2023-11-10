@@ -4,11 +4,11 @@ module Rumor.Parser.Common
 
 , Rumor.Context, Rumor.newContext
 , Rumor.getVariableType
-, Rumor.setVariableType, modifyVariableType
+, Rumor.setVariableType
+, modifyVariableType
 
 , RumorError(..)
-, rumorError
-, inferenceError
+, throw
 
 , lexeme, hlexeme
 , space, hspace
@@ -73,12 +73,13 @@ parseTest context parser text =
 -- Typing
 --------------------------------------------------------------------------------
 
-modifyVariableType :: Rumor.VariableName -> Rumor.VariableType -> Int -> Int -> Parser ()
-modifyVariableType name typ pos len = do
+modifyVariableType ::
+  Rumor.VariableName -> Rumor.VariableType -> Int -> Int -> Parser ()
+modifyVariableType name new begin end = do
   oldContext <- State.get
-  case Rumor.setVariableType name typ oldContext of
-    Left err ->
-      rumorError err pos len
+  case Rumor.setVariableType name new oldContext of
+    Left old ->
+      throw (VariableAlreadyDefinedAs name old new begin end)
     Right context -> do
       State.put context
       pure ()
@@ -88,53 +89,51 @@ modifyVariableType name typ pos len = do
 --------------------------------------------------------------------------------
 
 data RumorError =
-    RumorError Text Int
-  | CannotInferVariable Rumor.AnnotatedExpression Rumor.VariableName
+    CannotInferVariable Rumor.AnnotatedExpression Rumor.VariableName
+  | CannotUseReservedKeyword Rumor.VariableName Int Int
   | TypeMismatch Rumor.AnnotatedExpression Rumor.VariableType
-  | UnexpectedFailure
+  | VariableAlreadyDefinedAs Rumor.VariableName Rumor.VariableType Rumor.VariableType Int Int
   deriving (Eq, Ord, Show)
 
 instance Error.ShowErrorComponent RumorError where
   showErrorComponent err =
     case err of
-      RumorError msg _ ->
-        T.unpack msg
       CannotInferVariable _ name ->
            "Cannot infer type of the variable `"
         <> T.unpack (Rumor.variableNameToText name)
         <> "`."
+      CannotUseReservedKeyword name _ _ ->
+          "Cannot use `"
+        <> T.unpack (Rumor.variableNameToText name)
+        <> "` as a variable name because it is a reserved keyword"
       TypeMismatch _ actual ->
            "Expected expression to have the type "
         <> T.unpack (Rumor.typeToText actual)
         <> "!"
-      UnexpectedFailure ->
-        "Unexpected error when inferring expression type! \
-        \This is a bug; please report this."
+      VariableAlreadyDefinedAs name old new _ _ ->
+           "Variable `"
+        <> T.unpack (Rumor.variableNameToText name)
+        <> "` cannot be a "
+        <> T.unpack (Rumor.typeToText new)
+        <> "; it has already been defined as a "
+        <> T.unpack (Rumor.typeToText old)
+        <> "!"
   errorComponentLen err = -- TODO: Better error positions
     case err of
-      RumorError _ len -> len
       CannotInferVariable annotation _ -> Rumor.annotationLength annotation
+      CannotUseReservedKeyword _ begin end -> end - begin
       TypeMismatch annotation _ -> Rumor.annotationLength annotation
-      UnexpectedFailure -> 0
+      VariableAlreadyDefinedAs _ _ _ begin end -> end - begin
 
-rumorError :: Text -> Int -> Int -> Parser a
-rumorError message pos len =
+throw :: RumorError -> Parser a
+throw customError = do
   let
-    err = Mega.ErrorCustom (RumorError message len)
-  in
-    Mega.parseError (Mega.FancyError pos (Set.singleton err))
-
--- TODO: Replace rumorError with this
-inferenceError :: RumorError -> Parser a
-inferenceError customError = do
-  pos <-
-    case customError of
-      RumorError {} -> Mega.getOffset
-      CannotInferVariable annotation _ ->
-        pure (Rumor.annotationBegin annotation)
-      TypeMismatch annotation _ ->
-        pure (Rumor.annotationBegin annotation)
-      UnexpectedFailure -> Mega.getOffset
+    pos =
+      case customError of
+        CannotUseReservedKeyword _ begin _ -> begin
+        CannotInferVariable annotation _ -> Rumor.annotationBegin annotation
+        TypeMismatch annotation _ -> Rumor.annotationBegin annotation
+        VariableAlreadyDefinedAs _ _ _ begin _ -> begin
   let
     err = Mega.ErrorCustom customError
 

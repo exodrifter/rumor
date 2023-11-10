@@ -5,7 +5,7 @@ module Rumor.TypeCheck
 
 import Control.Applicative ((<|>))
 import Data.Foldable (traverse_)
-import Rumor.Parser (Parser, RumorError(..), gets, inferenceError, modifyVariableType)
+import Rumor.Parser (Parser, RumorError(..), gets, throw, modifyVariableType)
 
 import qualified Rumor.Internal as Rumor
 import qualified Text.Megaparsec as Mega
@@ -220,7 +220,7 @@ infer expression =
       mVariableType <- gets (Rumor.getVariableType name)
       case mVariableType of
         Just typ -> pure typ
-        Nothing -> inferenceError (CannotInferVariable expression name)
+        Nothing -> throw (CannotInferVariable expression name)
     Rumor.AnnotatedEqual l r _ _ -> do
       expected <- infer l <|> infer r
       check expected l
@@ -241,7 +241,7 @@ check expected expression =
     Rumor.AnnotatedBoolean {} ->
       if expected == Rumor.BooleanType
       then pure ()
-      else inferenceError (TypeMismatch expression expected)
+      else throw (TypeMismatch expression expected)
     Rumor.AnnotatedLogicalNot a _ _ -> do
       check Rumor.BooleanType a
     Rumor.AnnotatedLogicalAnd l r _ _ -> do
@@ -257,7 +257,7 @@ check expected expression =
     Rumor.AnnotatedNumber {} ->
       if expected == Rumor.NumberType
       then pure ()
-      else inferenceError (TypeMismatch expression expected)
+      else throw (TypeMismatch expression expected)
     Rumor.AnnotatedAddition l r _ _ -> do
       check Rumor.NumberType l
       check Rumor.NumberType r
@@ -274,7 +274,7 @@ check expected expression =
     Rumor.AnnotatedString {} ->
       if expected == Rumor.StringType
       then pure ()
-      else inferenceError (TypeMismatch expression expected)
+      else throw (TypeMismatch expression expected)
     Rumor.AnnotatedConcat l r _ _ -> do
       check Rumor.StringType l
       check Rumor.StringType r
@@ -289,25 +289,25 @@ check expected expression =
         Just actual ->
           if expected == actual
           then pure ()
-          else inferenceError (TypeMismatch expression actual)
+          else throw (TypeMismatch expression actual)
     Rumor.AnnotatedEqual l r _ _ -> do
       inner <- infer l <|> infer r
       check inner l
       check inner r
       if expected == Rumor.BooleanType
       then pure ()
-      else inferenceError (TypeMismatch expression Rumor.BooleanType)
+      else throw (TypeMismatch expression Rumor.BooleanType)
     Rumor.AnnotatedNotEqual l r _ _ -> do
       inner <- infer l <|> infer r
       check inner l
       check inner r
       if expected == Rumor.BooleanType
       then pure ()
-      else inferenceError (TypeMismatch expression Rumor.BooleanType)
+      else throw (TypeMismatch expression Rumor.BooleanType)
     Rumor.AnnotatedToString a _ _ -> do
       -- If we can infer the type of the interpolation, then we can convert it
       -- to a string.
       _ <- infer a
       if expected == Rumor.StringType
       then pure ()
-      else inferenceError (TypeMismatch expression Rumor.StringType)
+      else throw (TypeMismatch expression Rumor.StringType)

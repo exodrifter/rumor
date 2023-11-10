@@ -119,7 +119,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 let' :: Parser (Rumor.VariableName, Rumor.VariableType)
 let' =
   Lexer.nonIndented space do
-    start <- Mega.getOffset
+    begin <- Mega.getOffset
     _ <- hlexeme "let"
     name <- hlexeme Identifier.variableName
     _ <- hlexeme (Char.char ':')
@@ -128,5 +128,5 @@ let' =
        <|> Mega.try (do _ <- lexeme "String"; pure Rumor.StringType)
     end <- Mega.getOffset
 
-    modifyVariableType name typ start (end - start)
+    modifyVariableType name typ begin end
     pure (name, typ)

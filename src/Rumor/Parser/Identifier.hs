@@ -4,7 +4,7 @@ module Rumor.Parser.Identifier
 , variableName
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, rumorError, (<?>))
+import Rumor.Parser.Common (Parser, hlexeme, throw, (<?>), RumorError (CannotUseReservedKeyword))
 
 import qualified Data.Char
 import qualified Data.NonEmptyText as NET
@@ -202,7 +202,7 @@ identifier =
     |
   1 | true
     | ^^^^
-  Cannot use true as a variable name
+  Cannot use `true` as a variable name because it is a reserved keyword
 -}
 variableName :: Parser Rumor.VariableName
 variableName =
@@ -233,12 +233,13 @@ variableName =
       ]
 
   in do
-    pos <- Mega.getOffset
+    begin <- Mega.getOffset
     name <- parser <?> "variable name"
+    end <- Mega.getOffset
+
+    let variable = Rumor.VariableName (Rumor.Unicode name)
     if name `elem` reservedKeywords
-    then rumorError
-            ("Cannot use " <> NET.toText name <> " as a variable name")
-            pos
-            (NET.length name)
+    then
+      throw (CannotUseReservedKeyword variable begin end)
     else
-      pure (Rumor.VariableName (Rumor.Unicode name))
+      pure variable
