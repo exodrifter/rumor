@@ -89,9 +89,8 @@ modifyVariableType name typ pos len = do
 
 data RumorError =
     RumorError Text Int
-  | CannotInferVariable Rumor.VariableName
-  | CannotInferExpression
-  | TypeMismatch Rumor.VariableType Rumor.VariableType
+  | CannotInferVariable Rumor.AnnotatedExpression Rumor.VariableName
+  | TypeMismatch Rumor.AnnotatedExpression Rumor.VariableType
   | UnexpectedFailure
   deriving (Eq, Ord, Show)
 
@@ -100,16 +99,12 @@ instance Error.ShowErrorComponent RumorError where
     case err of
       RumorError msg _ ->
         T.unpack msg
-      CannotInferVariable name ->
-           "Cannot infer type of `"
+      CannotInferVariable _ name ->
+           "Cannot infer type of the variable `"
         <> T.unpack (Rumor.variableNameToText name)
         <> "`."
-      CannotInferExpression ->
-        "Cannot infer the type of this expression."
-      TypeMismatch expected actual ->
-           "Expected a "
-        <> T.unpack (Rumor.typeToText expected)
-        <> " expression but this expression is actually a "
+      TypeMismatch _ actual ->
+           "Expected expression to have the type "
         <> T.unpack (Rumor.typeToText actual)
         <> "!"
       UnexpectedFailure ->
@@ -118,9 +113,8 @@ instance Error.ShowErrorComponent RumorError where
   errorComponentLen err = -- TODO: Better error positions
     case err of
       RumorError _ len -> len
-      CannotInferVariable _ -> 0
-      CannotInferExpression -> 0
-      TypeMismatch _ _ -> 0
+      CannotInferVariable annotation _ -> Rumor.annotationLength annotation
+      TypeMismatch annotation _ -> Rumor.annotationLength annotation
       UnexpectedFailure -> 0
 
 rumorError :: Text -> Int -> Int -> Parser a
@@ -133,10 +127,17 @@ rumorError message pos len =
 -- TODO: Replace rumorError with this
 inferenceError :: RumorError -> Parser a
 inferenceError customError = do
+  pos <-
+    case customError of
+      RumorError {} -> Mega.getOffset
+      CannotInferVariable annotation _ ->
+        pure (Rumor.annotationBegin annotation)
+      TypeMismatch annotation _ ->
+        pure (Rumor.annotationBegin annotation)
+      UnexpectedFailure -> Mega.getOffset
   let
     err = Mega.ErrorCustom customError
 
-  pos <- Mega.getOffset
   Mega.parseError (Mega.FancyError pos (Set.singleton err))
 
 --------------------------------------------------------------------------------
