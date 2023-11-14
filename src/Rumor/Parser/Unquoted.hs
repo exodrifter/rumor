@@ -11,6 +11,7 @@ import qualified Data.Text as T
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Identifier as Identifier
+import qualified Rumor.TypeCheck as TypeCheck
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
@@ -25,30 +26,30 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   An unquoted string can be a single line.
 
   >>> parse (unquoted (Mega.mkPos 1)) "Hello world!"
-  (String "Hello world!",Nothing)
+  (Concat (String "Hello") (String " world!"),Nothing)
 
   >>> parse (unquoted (Mega.mkPos 1)) "Hello world! [label]"
-  (String "Hello world!",Just (Label (Unicode "label")))
+  (Concat (String "Hello") (String " world!"),Just (Label (Unicode "label")))
 
   An unquoted string over multiple lines must indent all lines the same, except
   for the first line.
 
   >>> parse (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz"
-  (String "foo bar baz",Nothing)
+  (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz")))),Nothing)
 
   >>> parse (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz [label]"
-  (String "foo bar baz",Just (Label (Unicode "label")))
+  (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz")))),Just (Label (Unicode "label")))
 
   >>> parse (unquoted (Mega.mkPos 1)) "foo\n  bar\n  baz\n  [label]"
-  (String "foo bar baz",Just (Label (Unicode "label")))
+  (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz")))),Just (Label (Unicode "label")))
 
   An unquoted string can start indented on the next line.
 
   >>> parse (unquoted (Mega.mkPos 1)) "\n  bar\n  baz"
-  (String "bar baz",Nothing)
+  (Concat (String "bar") (Concat (String " ") (String "baz")),Nothing)
 
   >>> parse (unquoted (Mega.mkPos 1)) "\n  bar\n  baz\n  [label]"
-  (String "bar baz",Just (Label (Unicode "label")))
+  (Concat (String "bar") (Concat (String " ") (String "baz")),Just (Label (Unicode "label")))
 
   >>> parse (unquoted (Mega.mkPos 1)) "\nbar\nbaz"
   2:1:
@@ -100,16 +101,16 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   (String "foo",Nothing)
 
   >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz\n"
-  (String "foo bar baz",Nothing)
+  (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz")))),Nothing)
 
   >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  "
-  (String "foo bar baz",Nothing)
+  (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz")))),Nothing)
 
   >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n"
-  (String "foo bar baz",Nothing)
+  (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz")))),Nothing)
 
   >>> parse (unquoted (Mega.mkPos 1)) "foo  \n  bar\t\n  baz  \n  "
-  (String "foo bar baz",Nothing)
+  (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz")))),Nothing)
 -}
 unquoted :: Mega.Pos -> Parser (Rumor.Expression, Maybe Rumor.Label)
 unquoted ref = do
@@ -157,25 +158,25 @@ unquoted ref = do
   Blocks can contain a single string literal.
 
   >>> parse unquotedBlock "Hello world!"
-  String "Hello world!"
+  Concat (String "Hello") (String " world!")
 
   >>> parse unquotedBlock "I have { 5 } mangoes!"
-  Concat (String "I have ") (Concat (ToString (Number 5.0)) (String " mangoes!"))
+  Concat (String "I") (Concat (String " have ") (Concat (ToString (Number 5.0)) (String " mangoes!")))
 
   >>> parse unquotedBlock "Hello\\nworld!"
-  String "Hello\nworld!"
+  Concat (String "Hello") (Concat (String "\n") (String "world!"))
 
   Blocks can have multiple indented lines, as long as each line has the same
   amount of indentation. Each line will be joined with a single space.
 
   >>> parse unquotedBlock "Hello\nworld!"
-  String "Hello world!"
+  Concat (String "Hello") (Concat (String " ") (String "world!"))
 
   >>> parse (do hspace; unquotedBlock) "  foo\n  bar\n  baz"
-  String "foo bar baz"
+  Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))
 
   >>> parse (do hspace; unquotedBlock) "  foo\r\n  bar\r\n  baz"
-  String "foo bar baz"
+  Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))
 
   >>> parse (do hspace; unquotedBlock) "  foo\n  bar\n baz"
   2:6:
@@ -214,7 +215,7 @@ unquoted ref = do
   on the last line.
 
   >>> parse unquotedBlock "foo  \nbar\t\nbaz  "
-  String "foo bar baz"
+  Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))
 
   >>> parse unquotedBlock "foo  \nbar  \nbaz  \n"
   3:6:
@@ -269,10 +270,10 @@ unquotedBlock = do
 {-| Parses an unquoted line, which is an interpolated, non-empty string literal.
 
   >>> parse unquotedLine "Hello world!"
-  String "Hello world!"
+  Concat (String "Hello") (String " world!")
 
   >>> parse unquotedLine "I have { 5 } mangoes!"
-  Concat (String "I have ") (Concat (ToString (Number 5.0)) (String " mangoes!"))
+  Concat (String "I") (Concat (String " have ") (Concat (ToString (Number 5.0)) (String " mangoes!")))
 
   Unquoted lines end whenever vertical space or a label is enountered, without
   consuming the vertical space or label.
@@ -296,23 +297,23 @@ unquotedBlock = do
   You can escape characters like you can in a string expression.
 
   >>> parse unquotedLine "Hello! \\[not a label\\]"
-  String "Hello! [not a label]"
+  Concat (String "Hello!") (Concat (String " ") (Concat (String "[") (Concat (String "not a label") (String "]"))))
 
   >>> parse unquotedLine "Hello\\nworld!"
-  String "Hello\nworld!"
+  Concat (String "Hello") (Concat (String "\n") (String "world!"))
 
   Horizontal space between words is maintained.
 
   >>> parse unquotedLine "Hello   world!"
-  String "Hello   world!"
+  Concat (String "Hello") (String "   world!")
 
   Trailing horizontal space is consumed, but not vertical space.
 
   >>> parse unquotedLine "Hello world!  "
-  String "Hello world!"
+  Concat (String "Hello") (String " world!")
 
   >>> parse unquotedLine "Hello world!\t"
-  String "Hello world!"
+  Concat (String "Hello") (String " world!")
 
   >>> parse unquotedLine "Hello world!\n"
   1:13:
@@ -343,27 +344,32 @@ unquotedBlock = do
 unquotedLine :: Parser Rumor.Expression
 unquotedLine = do
   let
-    end = (do _ <- Char.char '['; pure ()) <|> eolf
-    stripEnd literal = do
+    endOfUnquotedLine = (do _ <- Char.char '['; pure ()) <|> eolf
+    stripEnd begin end literal = do
       -- Strip the end of the text if this is at the end of the line
-      next <- Mega.lookAhead ((do end; pure True) <|> pure False)
+      next <- Mega.lookAhead ((do endOfUnquotedLine; pure True) <|> pure False)
       if next
-      then pure (Rumor.String (T.stripEnd literal))
-      else pure (Rumor.String literal)
+      then pure (Rumor.AnnotatedString begin end (T.stripEnd literal))
+      else pure (Rumor.AnnotatedString begin end literal)
 
     nonSpaceLiteralString = do
+      begin <- Mega.getOffset
       literal <-
         Mega.takeWhile1P
           (Just "non-space literal char")
           (\ch -> ch `notElem` (fst <$> unquotedEscapes) && not (isSpace ch))
-      stripEnd literal
+      end <- Mega.getOffset
+      stripEnd begin end literal
     literalString = do
+      begin <- Mega.getOffset
       literal <-
         Mega.takeWhile1P
           (Just "literal char")
           (`notElem` (fst <$> unquotedEscapes))
-      stripEnd literal
+      end <- Mega.getOffset
+      stripEnd begin end literal
 
+  begin <- Mega.getOffset
   first <- nonSpaceLiteralString
       <|> Expression.escape unquotedEscapes
       <|> Expression.interpolation
@@ -373,8 +379,13 @@ unquotedLine = do
       <|> Expression.escape unquotedEscapes
       <|> Expression.interpolation
     )
+  end <- Mega.getOffset
 
-  pure (Rumor.concatStrings (first:rest))
+  let
+    expr = Rumor.concatAnnotatedStrings begin end (first:rest)
+
+  TypeCheck.check Rumor.StringType expr
+  pure (Rumor.unAnnotate expr)
 
 unquotedEscapes :: [(Char, Text)]
 unquotedEscapes =

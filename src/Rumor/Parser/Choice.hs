@@ -23,16 +23,16 @@ import qualified Rumor.Parser.Unquoted as Unquoted
   strings for dialog nodes.
 
   >>> parse (choice say) "choice\n  > foo bar baz"
-  Choice (String "foo bar baz") Nothing Nothing
+  Choice (Concat (String "foo") (String " bar baz")) Nothing Nothing
 
   >>> parse (choice say) "choice\n  > foo\n    bar\n    baz"
-  Choice (String "foo bar baz") Nothing Nothing
+  Choice (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) Nothing Nothing
 
   The choice text can be provided on the following line, but it must have
   indentation greater than the choice marker '>'.
 
   >>> parse (choice say) "choice\n  >\n    foo\n    bar\n    baz"
-  Choice (String "foo bar baz") Nothing Nothing
+  Choice (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) Nothing Nothing
 
   >>> parse (choice say) "choice\n  >\nfoo"
   3:1:
@@ -44,16 +44,16 @@ import qualified Rumor.Parser.Unquoted as Unquoted
   The choice text can be given a label.
 
   >>> parse (choice say) "choice\n  > foo bar baz [label]"
-  Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
+  Choice (Concat (String "foo") (String " bar baz")) (Just (Label (Unicode "label"))) Nothing
 
   >>> parse (choice say) "choice\n  > foo\n    bar\n    baz [label]"
-  Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
+  Choice (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) (Just (Label (Unicode "label"))) Nothing
 
   >>> parse (choice say) "choice\n  >\n    foo\n    bar\n    baz [label]"
-  Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
+  Choice (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) (Just (Label (Unicode "label"))) Nothing
 
   >>> parse (choice say) "choice\n  >\n    foo\n    bar\n    baz\n    [label]"
-  Choice (String "foo bar baz") (Just (Label (Unicode "label"))) Nothing
+  Choice (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) (Just (Label (Unicode "label"))) Nothing
 
   Multi-line choice text must have the same level of indentation.
 
@@ -75,13 +75,13 @@ import qualified Rumor.Parser.Unquoted as Unquoted
   The choice can be given a list of indented nodes, but those nodes have to have
   the same amount of indentation as the choice text.
 
-  >>> parse (choice say) "choice\n  > Choice A\n  : Hello"
-  Choice (String "Choice A") Nothing (Just (Say Nothing (String "Hello") Nothing :| []))
+  >>> parse (choice say) "choice\n  > Choice\n  : Hello"
+  Choice (String "Choice") Nothing (Just (Say Nothing (String "Hello") Nothing :| []))
 
-  >>> parse (choice say) "choice\n  > Choice A\n  : foo\n  : bar\n  :baz"
-  Choice (String "Choice A") Nothing (Just (Say Nothing (String "foo") Nothing :| [Say Nothing (String "bar") Nothing,Say Nothing (String "baz") Nothing]))
+  >>> parse (choice say) "choice\n  > Choice\n  : foo\n  : bar\n  :baz"
+  Choice (String "Choice") Nothing (Just (Say Nothing (String "foo") Nothing :| [Say Nothing (String "bar") Nothing,Say Nothing (String "baz") Nothing]))
 
-  >>> parse (choice say) "choice\n  > Choice A\n: Hello"
+  >>> parse (choice say) "choice\n  > Choice\n: Hello"
   3:1:
     |
   3 | : Hello

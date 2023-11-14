@@ -5,7 +5,7 @@ module Rumor.TypeCheck
 
 import Control.Applicative ((<|>))
 import Data.Foldable (traverse_)
-import Rumor.Parser (Parser, RumorError(..), gets, throw, modifyVariableType)
+import Rumor.Parser.Common (Parser, RumorError(..), gets, throw, modifyVariableType)
 
 import qualified Rumor.Internal as Rumor
 import qualified Text.Megaparsec as Mega
@@ -18,8 +18,8 @@ import qualified Text.Megaparsec as Mega
 --
 -- >>> let foo = Variable (VariableName (Unicode (NET.new 'f' "oo")))
 -- >>> let bar = Variable (VariableName (Unicode (NET.new 'b' "ar")))
--- >>> let annotatedFoo = AnnotatedVariable (VariableName (Unicode (NET.new 'f' "oo")))
--- >>> let annotatedBar = AnnotatedVariable (VariableName (Unicode (NET.new 'b' "ar")))
+-- >>> let annotatedFoo b e = AnnotatedVariable b e (VariableName (Unicode (NET.new 'f' "oo")))
+-- >>> let annotatedBar b e = AnnotatedVariable b e (VariableName (Unicode (NET.new 'b' "ar")))
 -- >>> let parse = parseTest newContext
 -- 
 -- For tests that succeed, we won't need any annotation information. This eases
@@ -28,22 +28,22 @@ import qualified Text.Megaparsec as Mega
 -- fakeAnnotate :: Expression -> AnnotatedExpression
 -- fakeAnnotate expression =
 --   case expression of
---     Boolean a -> AnnotatedBoolean a 0 0
---     LogicalNot a -> AnnotatedLogicalNot (fakeAnnotate a) 0 0
---     LogicalAnd a b -> AnnotatedLogicalAnd (fakeAnnotate a) (fakeAnnotate b) 0 0
---     LogicalOr a b -> AnnotatedLogicalOr (fakeAnnotate a) (fakeAnnotate b) 0 0
---     LogicalXor a b -> AnnotatedLogicalXor (fakeAnnotate a) (fakeAnnotate b) 0 0
---     Number a -> AnnotatedNumber a 0 0
---     Addition a b -> AnnotatedAddition (fakeAnnotate a) (fakeAnnotate b) 0 0
---     Subtraction a b -> AnnotatedSubtraction (fakeAnnotate a) (fakeAnnotate b) 0 0
---     Multiplication a b -> AnnotatedMultiplication (fakeAnnotate a) (fakeAnnotate b) 0 0
---     Division a b -> AnnotatedDivision (fakeAnnotate a) (fakeAnnotate b) 0 0
---     String a -> AnnotatedString a 0 0
---     Concat a b -> AnnotatedConcat (fakeAnnotate a) (fakeAnnotate b) 0 0
---     Variable a -> AnnotatedVariable a 0 0
---     Equal a b -> AnnotatedEqual (fakeAnnotate a) (fakeAnnotate b) 0 0
---     NotEqual a b -> AnnotatedNotEqual (fakeAnnotate a) (fakeAnnotate b) 0 0
---     ToString a -> AnnotatedToString (fakeAnnotate a) 0 0
+--     Boolean a -> AnnotatedBoolean 0 0 a
+--     LogicalNot a -> AnnotatedLogicalNot 0 0 (fakeAnnotate a)
+--     LogicalAnd a b -> AnnotatedLogicalAnd 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     LogicalOr a b -> AnnotatedLogicalOr 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     LogicalXor a b -> AnnotatedLogicalXor 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     Number a -> AnnotatedNumber 0 0 a
+--     Addition a b -> AnnotatedAddition 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     Subtraction a b -> AnnotatedSubtraction 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     Multiplication a b -> AnnotatedMultiplication 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     Division a b -> AnnotatedDivision 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     String a -> AnnotatedString 0 0 a
+--     Concat a b -> AnnotatedConcat 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     Variable a -> AnnotatedVariable 0 0 a
+--     Equal a b -> AnnotatedEqual 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     NotEqual a b -> AnnotatedNotEqual 0 0 (fakeAnnotate a) (fakeAnnotate b)
+--     ToString a -> AnnotatedToString 0 0 (fakeAnnotate a)
 -- :}
 
 --------------------------------------------------------------------------------
@@ -110,14 +110,14 @@ import qualified Text.Megaparsec as Mega
   BooleanType
   Context {variableTypes = fromList [(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parse (infer (AnnotatedEqual (annotatedFoo 0 3) (annotatedBar 7 10) 0 10)) "foo == bar"
+  >>> parse (infer (AnnotatedEqual 4 6 (annotatedFoo 0 3) (annotatedBar 7 10))) "foo == bar"
   1:8:
     |
   1 | foo == bar
     |        ^^^
   Cannot infer type of the variable `bar`.
 
-  >>> parse (infer (AnnotatedEqual (annotatedBar 0 3) (annotatedFoo 7 10) 0 10)) "bar == foo"
+  >>> parse (infer (AnnotatedEqual 4 6 (annotatedBar 0 3) (annotatedFoo 7 10))) "bar == foo"
   1:8:
     |
   1 | bar == foo
@@ -130,7 +130,7 @@ import qualified Text.Megaparsec as Mega
   BooleanType
   Context {variableTypes = fromList [(VariableName (Unicode "bar"),NumberType),(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parse (infer (AnnotatedLogicalAnd (AnnotatedEqual (annotatedFoo 0 3) (annotatedBar 7 10) 0 10) (AnnotatedEqual (annotatedFoo 14 17) (AnnotatedNumber 1 21 22) 14 22) 1 22)) "foo == bar && foo == 1"
+  >>> parse (infer (AnnotatedLogicalAnd 11 13 (AnnotatedEqual 4 6 (annotatedFoo 0 3) (annotatedBar 7 10)) (AnnotatedEqual 18 20 (annotatedFoo 14 17) (AnnotatedNumber 21 22 1)))) "foo == bar && foo == 1"
   1:8:
     |
   1 | foo == bar && foo == 1
@@ -144,7 +144,7 @@ import qualified Text.Megaparsec as Mega
   StringType
   Context {variableTypes = fromList [(VariableName (Unicode "foo"),NumberType)]}
 
-  >>> parse (infer (AnnotatedToString (AnnotatedEqual (annotatedFoo 0 3) (annotatedBar 8 11) 1 11) 0 12)) "{foo == bar}"
+  >>> parse (infer (AnnotatedToString 0 12 (AnnotatedEqual 5 7 (annotatedFoo 0 3) (annotatedBar 8 11)))) "{foo == bar}"
   1:9:
     |
   1 | {foo == bar}
@@ -163,14 +163,14 @@ import qualified Text.Megaparsec as Mega
   This function will fail if the variables being used already have types
   assigned to them that don't match the inferred use.
 
-  >>> parse (infer (AnnotatedLogicalNot (AnnotatedNumber 1 1 2) 0 2)) "!1"
+  >>> parse (infer (AnnotatedLogicalNot 0 1 (AnnotatedNumber 1 2 1))) "!1"
   1:2:
     |
   1 | !1
     |  ^
   Expected expression to have the type Boolean!
 
-  >>> parse (infer (AnnotatedLogicalAnd (AnnotatedEqual (annotatedFoo 0 3) (AnnotatedBoolean True 7 11) 0 11) (AnnotatedEqual (annotatedFoo 15 18) (AnnotatedNumber 1 22 23) 15 23) 0 23)) "foo == true && foo == 1"
+  >>> parse (infer (AnnotatedLogicalAnd 12 14 (AnnotatedEqual 4 6 (annotatedFoo 0 3) (AnnotatedBoolean 7 11 True)) (AnnotatedEqual 19 21 (annotatedFoo 15 18) (AnnotatedNumber 22 23 1)))) "foo == true && foo == 1"
   1:23:
     |
   1 | foo == true && foo == 1
@@ -182,56 +182,56 @@ infer expression =
   case expression of
     Rumor.AnnotatedBoolean {} ->
       pure Rumor.BooleanType
-    Rumor.AnnotatedLogicalNot a _ _-> do
+    Rumor.AnnotatedLogicalNot _ _ a-> do
       check Rumor.BooleanType a
       pure Rumor.BooleanType
-    Rumor.AnnotatedLogicalAnd l r _ _ -> do
+    Rumor.AnnotatedLogicalAnd _ _ l r -> do
       traverse_ (check Rumor.BooleanType) [l, r]
       pure Rumor.BooleanType
-    Rumor.AnnotatedLogicalOr l r _ _ -> do
+    Rumor.AnnotatedLogicalOr _ _ l r -> do
       traverse_ (check Rumor.BooleanType) [l, r]
       pure Rumor.BooleanType
-    Rumor.AnnotatedLogicalXor l r _ _ -> do
+    Rumor.AnnotatedLogicalXor _ _ l r -> do
       traverse_ (check Rumor.BooleanType) [l, r]
       pure Rumor.BooleanType
 
     Rumor.AnnotatedNumber {} ->
       pure Rumor.NumberType
-    Rumor.AnnotatedAddition l r _ _ -> do
+    Rumor.AnnotatedAddition _ _ l r -> do
       traverse_ (check Rumor.NumberType) [l, r]
       pure Rumor.NumberType
-    Rumor.AnnotatedSubtraction l r _ _ -> do
+    Rumor.AnnotatedSubtraction _ _ l r -> do
       traverse_ (check Rumor.NumberType) [l, r]
       pure Rumor.NumberType
-    Rumor.AnnotatedMultiplication l r _ _ -> do
+    Rumor.AnnotatedMultiplication _ _ l r -> do
       traverse_ (check Rumor.NumberType) [l, r]
       pure Rumor.NumberType
-    Rumor.AnnotatedDivision l r _ _ -> do
+    Rumor.AnnotatedDivision _ _ l r -> do
       traverse_ (check Rumor.NumberType) [l, r]
       pure Rumor.NumberType
 
     Rumor.AnnotatedString {} ->
       pure Rumor.StringType
-    Rumor.AnnotatedConcat l r _ _ -> do
+    Rumor.AnnotatedConcat _ _ l r -> do
       traverse_ (check Rumor.StringType) [l, r]
       pure Rumor.StringType
 
-    Rumor.AnnotatedVariable name _ _ -> do
+    Rumor.AnnotatedVariable _ _ name -> do
       mVariableType <- gets (Rumor.getVariableType name)
       case mVariableType of
         Just typ -> pure typ
         Nothing -> throw (CannotInferVariable expression name)
-    Rumor.AnnotatedEqual l r _ _ -> do
+    Rumor.AnnotatedEqual _ _ l r -> do
       expected <- infer l <|> infer r
       check expected l
       check expected r
       pure Rumor.BooleanType
-    Rumor.AnnotatedNotEqual l r _ _ -> do
+    Rumor.AnnotatedNotEqual _ _ l r -> do
       expected <- infer l <|> infer r
       check expected l
       check expected r
       pure Rumor.BooleanType
-    Rumor.AnnotatedToString a _ _ -> do
+    Rumor.AnnotatedToString _ _ a -> do
       _ <- infer a
       pure Rumor.StringType
 
@@ -242,15 +242,15 @@ check expected expression =
       if expected == Rumor.BooleanType
       then pure ()
       else throw (TypeMismatch expression expected)
-    Rumor.AnnotatedLogicalNot a _ _ -> do
+    Rumor.AnnotatedLogicalNot _ _ a -> do
       check Rumor.BooleanType a
-    Rumor.AnnotatedLogicalAnd l r _ _ -> do
+    Rumor.AnnotatedLogicalAnd _ _ l r -> do
       check Rumor.BooleanType l
       check Rumor.BooleanType r
-    Rumor.AnnotatedLogicalOr l r _ _ -> do
+    Rumor.AnnotatedLogicalOr _ _ l r -> do
       check Rumor.BooleanType l
       check Rumor.BooleanType r
-    Rumor.AnnotatedLogicalXor l r _ _ -> do
+    Rumor.AnnotatedLogicalXor _ _ l r -> do
       check Rumor.BooleanType l
       check Rumor.BooleanType r
 
@@ -258,16 +258,16 @@ check expected expression =
       if expected == Rumor.NumberType
       then pure ()
       else throw (TypeMismatch expression expected)
-    Rumor.AnnotatedAddition l r _ _ -> do
+    Rumor.AnnotatedAddition _ _ l r -> do
       check Rumor.NumberType l
       check Rumor.NumberType r
-    Rumor.AnnotatedSubtraction l r _ _ -> do
+    Rumor.AnnotatedSubtraction _ _ l r -> do
       check Rumor.NumberType l
       check Rumor.NumberType r
-    Rumor.AnnotatedMultiplication l r _ _ -> do
+    Rumor.AnnotatedMultiplication _ _ l r -> do
       check Rumor.NumberType l
       check Rumor.NumberType r
-    Rumor.AnnotatedDivision l r _ _ -> do
+    Rumor.AnnotatedDivision _ _ l r -> do
       check Rumor.NumberType l
       check Rumor.NumberType r
 
@@ -275,11 +275,11 @@ check expected expression =
       if expected == Rumor.StringType
       then pure ()
       else throw (TypeMismatch expression expected)
-    Rumor.AnnotatedConcat l r _ _ -> do
+    Rumor.AnnotatedConcat _ _ l r -> do
       check Rumor.StringType l
       check Rumor.StringType r
 
-    Rumor.AnnotatedVariable name _ _ -> do
+    Rumor.AnnotatedVariable _ _ name -> do
       mVariableType <- gets (Rumor.getVariableType name)
       case mVariableType of
         Nothing -> do
@@ -290,21 +290,21 @@ check expected expression =
           if expected == actual
           then pure ()
           else throw (TypeMismatch expression actual)
-    Rumor.AnnotatedEqual l r _ _ -> do
+    Rumor.AnnotatedEqual _ _ l r -> do
       inner <- infer l <|> infer r
       check inner l
       check inner r
       if expected == Rumor.BooleanType
       then pure ()
       else throw (TypeMismatch expression Rumor.BooleanType)
-    Rumor.AnnotatedNotEqual l r _ _ -> do
+    Rumor.AnnotatedNotEqual _ _ l r -> do
       inner <- infer l <|> infer r
       check inner l
       check inner r
       if expected == Rumor.BooleanType
       then pure ()
       else throw (TypeMismatch expression Rumor.BooleanType)
-    Rumor.AnnotatedToString a _ _ -> do
+    Rumor.AnnotatedToString _ _ a -> do
       -- If we can infer the type of the interpolation, then we can convert it
       -- to a string.
       _ <- infer a

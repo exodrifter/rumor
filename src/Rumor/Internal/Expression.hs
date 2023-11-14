@@ -3,7 +3,9 @@ module Rumor.Internal.Expression
 ( AnnotatedExpression(..)
 , unAnnotate
 , annotationBegin
+, annotationEnd
 , annotationLength
+, concatAnnotatedStrings
 
 , Expression(..)
 , concatStrings
@@ -21,89 +23,120 @@ import qualified Data.List as List
 -}
 data AnnotatedExpression =
   -- Boolean
-    AnnotatedBoolean Bool Int Int
-  | AnnotatedLogicalNot AnnotatedExpression Int Int
-  | AnnotatedLogicalAnd AnnotatedExpression AnnotatedExpression Int Int
-  | AnnotatedLogicalOr AnnotatedExpression AnnotatedExpression Int Int
-  | AnnotatedLogicalXor AnnotatedExpression AnnotatedExpression Int Int
+    AnnotatedBoolean Int Int Bool
+  | AnnotatedLogicalNot Int Int AnnotatedExpression
+  | AnnotatedLogicalAnd Int Int AnnotatedExpression AnnotatedExpression
+  | AnnotatedLogicalOr Int Int AnnotatedExpression AnnotatedExpression
+  | AnnotatedLogicalXor Int Int AnnotatedExpression AnnotatedExpression
 
   -- Number
-  | AnnotatedNumber Scientific Int Int
-  | AnnotatedAddition AnnotatedExpression AnnotatedExpression Int Int
-  | AnnotatedSubtraction AnnotatedExpression AnnotatedExpression Int Int
-  | AnnotatedMultiplication AnnotatedExpression AnnotatedExpression Int Int
-  | AnnotatedDivision AnnotatedExpression AnnotatedExpression Int Int
+  | AnnotatedNumber Int Int Scientific
+  | AnnotatedAddition Int Int AnnotatedExpression AnnotatedExpression
+  | AnnotatedSubtraction Int Int AnnotatedExpression AnnotatedExpression
+  | AnnotatedMultiplication Int Int AnnotatedExpression AnnotatedExpression
+  | AnnotatedDivision Int Int AnnotatedExpression AnnotatedExpression
 
   -- String
-  | AnnotatedString Text Int Int
-  | AnnotatedConcat AnnotatedExpression AnnotatedExpression Int Int
+  | AnnotatedString Int Int Text
+  | AnnotatedConcat Int Int AnnotatedExpression AnnotatedExpression
 
   -- Overloaded
-  | AnnotatedVariable VariableName Int Int
-  | AnnotatedEqual AnnotatedExpression AnnotatedExpression Int Int
-  | AnnotatedNotEqual AnnotatedExpression AnnotatedExpression Int Int
-  | AnnotatedToString AnnotatedExpression Int Int
+  | AnnotatedVariable Int Int VariableName
+  | AnnotatedEqual Int Int AnnotatedExpression AnnotatedExpression
+  | AnnotatedNotEqual Int Int AnnotatedExpression AnnotatedExpression
+  | AnnotatedToString Int Int AnnotatedExpression
   deriving (Eq, Ord, Show)
 
 unAnnotate :: AnnotatedExpression -> Expression
 unAnnotate annotated =
   case annotated of
-    AnnotatedBoolean a _ _ -> Boolean a
-    AnnotatedLogicalNot a _ _ -> LogicalNot (unAnnotate a)
-    AnnotatedLogicalAnd a b _ _ -> LogicalAnd (unAnnotate a) (unAnnotate b)
-    AnnotatedLogicalOr a b _ _ -> LogicalOr (unAnnotate a) (unAnnotate b)
-    AnnotatedLogicalXor a b _ _ -> LogicalXor (unAnnotate a) (unAnnotate b)
-    AnnotatedNumber a _ _ -> Number a
-    AnnotatedAddition a b _ _ -> Addition (unAnnotate a) (unAnnotate b)
-    AnnotatedSubtraction a b _ _ -> Subtraction (unAnnotate a) (unAnnotate b)
-    AnnotatedMultiplication a b _ _ -> Multiplication (unAnnotate a) (unAnnotate b)
-    AnnotatedDivision a b _ _ -> Division (unAnnotate a) (unAnnotate b)
-    AnnotatedString a _ _ -> String a
-    AnnotatedConcat a b _ _ -> Concat (unAnnotate a) (unAnnotate b)
-    AnnotatedVariable a _ _ -> Variable a
-    AnnotatedEqual a b _ _ -> Equal (unAnnotate a) (unAnnotate b)
-    AnnotatedNotEqual a b _ _ -> NotEqual (unAnnotate a) (unAnnotate b)
-    AnnotatedToString a _ _ -> ToString (unAnnotate a)
+    AnnotatedBoolean _ _ a -> Boolean a
+    AnnotatedLogicalNot _ _ a -> LogicalNot (unAnnotate a)
+    AnnotatedLogicalAnd _ _ a b -> LogicalAnd (unAnnotate a) (unAnnotate b)
+    AnnotatedLogicalOr _ _ a b -> LogicalOr (unAnnotate a) (unAnnotate b)
+    AnnotatedLogicalXor _ _ a b -> LogicalXor (unAnnotate a) (unAnnotate b)
+    AnnotatedNumber _ _ a -> Number a
+    AnnotatedAddition _ _ a b -> Addition (unAnnotate a) (unAnnotate b)
+    AnnotatedSubtraction _ _ a b -> Subtraction (unAnnotate a) (unAnnotate b)
+    AnnotatedMultiplication _ _ a b -> Multiplication (unAnnotate a) (unAnnotate b)
+    AnnotatedDivision _ _ a b -> Division (unAnnotate a) (unAnnotate b)
+    AnnotatedString _ _ a -> String a
+    AnnotatedConcat _ _ a b -> Concat (unAnnotate a) (unAnnotate b)
+    AnnotatedVariable _ _ a -> Variable a
+    AnnotatedEqual _ _ a b -> Equal (unAnnotate a) (unAnnotate b)
+    AnnotatedNotEqual _ _ a b -> NotEqual (unAnnotate a) (unAnnotate b)
+    AnnotatedToString _ _ a -> ToString (unAnnotate a)
 
 annotationBegin :: AnnotatedExpression -> Int
 annotationBegin annotated =
   case annotated of
-    AnnotatedBoolean _ begin _ -> begin
-    AnnotatedLogicalNot _ begin _ -> begin
-    AnnotatedLogicalAnd _ _ begin _ -> begin
-    AnnotatedLogicalOr _ _ begin _ -> begin
-    AnnotatedLogicalXor _ _ begin _ -> begin
-    AnnotatedNumber _ begin _ -> begin
-    AnnotatedAddition _ _ begin _ -> begin
-    AnnotatedSubtraction _ _ begin _ -> begin
-    AnnotatedMultiplication _ _ begin _ -> begin
-    AnnotatedDivision _ _ begin _ -> begin
-    AnnotatedString _ begin _ -> begin
-    AnnotatedConcat _ _ begin _ -> begin
-    AnnotatedVariable _ begin _ -> begin
-    AnnotatedEqual _ _ begin _ -> begin
-    AnnotatedNotEqual _ _ begin _ -> begin
-    AnnotatedToString _ begin _ -> begin
+    AnnotatedBoolean begin _ _ -> begin
+    AnnotatedLogicalNot begin _ _ -> begin
+    AnnotatedLogicalAnd begin _ _ _ -> begin
+    AnnotatedLogicalOr begin _ _ _ -> begin
+    AnnotatedLogicalXor begin _ _ _ -> begin
+    AnnotatedNumber begin _ _ -> begin
+    AnnotatedAddition begin _ _ _ -> begin
+    AnnotatedSubtraction begin _ _ _ -> begin
+    AnnotatedMultiplication begin _ _ _ -> begin
+    AnnotatedDivision begin _ _ _ -> begin
+    AnnotatedString begin _ _ -> begin
+    AnnotatedConcat begin _ _ _ -> begin
+    AnnotatedVariable begin _ _ -> begin
+    AnnotatedEqual begin _ _ _ -> begin
+    AnnotatedNotEqual begin _ _ _ -> begin
+    AnnotatedToString begin _ _ -> begin
+
+annotationEnd :: AnnotatedExpression -> Int
+annotationEnd annotated =
+  case annotated of
+    AnnotatedBoolean _ end _ -> end
+    AnnotatedLogicalNot _ end _ -> end
+    AnnotatedLogicalAnd _ end _ _ -> end
+    AnnotatedLogicalOr _ end _ _ -> end
+    AnnotatedLogicalXor _ end _ _ -> end
+    AnnotatedNumber _ end _ -> end
+    AnnotatedAddition _ end _ _ -> end
+    AnnotatedSubtraction _ end _ _ -> end
+    AnnotatedMultiplication _ end _ _ -> end
+    AnnotatedDivision _ end _ _ -> end
+    AnnotatedString _ end _ -> end
+    AnnotatedConcat _ end _ _ -> end
+    AnnotatedVariable _ end _ -> end
+    AnnotatedEqual _ end _ _ -> end
+    AnnotatedNotEqual _ end _ _ -> end
+    AnnotatedToString _ end _ -> end
 
 annotationLength :: AnnotatedExpression -> Int
 annotationLength annotated =
   case annotated of
-    AnnotatedBoolean _ begin end -> end - begin
-    AnnotatedLogicalNot _ begin end -> end - begin
-    AnnotatedLogicalAnd _ _ begin end -> end - begin
-    AnnotatedLogicalOr _ _ begin end -> end - begin
-    AnnotatedLogicalXor _ _ begin end -> end - begin
-    AnnotatedNumber _ begin end -> end - begin
-    AnnotatedAddition _ _ begin end -> end - begin
-    AnnotatedSubtraction _ _ begin end -> end - begin
-    AnnotatedMultiplication _ _ begin end -> end - begin
-    AnnotatedDivision _ _ begin end -> end - begin
-    AnnotatedString _ begin end -> end - begin
-    AnnotatedConcat _ _ begin end -> end - begin
-    AnnotatedVariable _ begin end -> end - begin
-    AnnotatedEqual _ _ begin end -> end - begin
-    AnnotatedNotEqual _ _ begin end -> end - begin
-    AnnotatedToString _ begin end -> end - begin
+    AnnotatedBoolean begin end _ -> end - begin
+    AnnotatedLogicalNot begin end _ -> end - begin
+    AnnotatedLogicalAnd begin end _ _ -> end - begin
+    AnnotatedLogicalOr begin end _ _ -> end - begin
+    AnnotatedLogicalXor begin end _ _ -> end - begin
+    AnnotatedNumber begin end _ -> end - begin
+    AnnotatedAddition begin end _ _ -> end - begin
+    AnnotatedSubtraction begin end _ _ -> end - begin
+    AnnotatedMultiplication begin end _ _ -> end - begin
+    AnnotatedDivision begin end _ _ -> end - begin
+    AnnotatedString begin end _ -> end - begin
+    AnnotatedConcat begin end _ _ -> end - begin
+    AnnotatedVariable begin end _ -> end - begin
+    AnnotatedEqual begin end _ _ -> end - begin
+    AnnotatedNotEqual begin end _ _ -> end - begin
+    AnnotatedToString begin end _ -> end - begin
+
+concatAnnotatedStrings :: Int -> Int -> [AnnotatedExpression] -> AnnotatedExpression
+concatAnnotatedStrings start begin expressions =
+  let
+    step l r =
+      AnnotatedConcat (annotationBegin l) (annotationEnd r) l r
+  in
+    case List.filter (\other -> unAnnotate other /= String "") expressions of
+      [] -> AnnotatedString start begin ""
+      [expression] -> expression
+      _ -> List.foldr1 step expressions
 
 {-| An expression which is loosely typed -- the types of the variables are not
   known.
@@ -136,20 +169,7 @@ data Expression =
 
 concatStrings :: [Expression] -> Expression
 concatStrings expressions =
-  let
-    step lhs rhs =
-      case (lhs, rhs) of
-        (String l, String r) ->
-          String (l <> r)
-        (String l, Concat (String r1) r2) ->
-          Concat (String (l <> r1)) r2
-        (Concat l1 (String l2), String r) ->
-          Concat l1 (String (l2 <> r))
-        (Concat l1 (String l2), Concat (String r1) r2) ->
-          Concat l1 (Concat (String (l2 <> r1)) r2)
-        (l, r) -> Concat l r
-  in
-    case List.filter ((/=) (String "")) expressions of
-      [] -> String ""
-      [expression] -> expression
-      _ -> List.foldr1 step expressions
+  case List.filter (/= String "") expressions of
+    [] -> String ""
+    [expression] -> expression
+    _ -> List.foldr1 Concat expressions

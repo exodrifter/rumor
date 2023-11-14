@@ -1,7 +1,6 @@
 module Rumor.Parser.Expression
-( booleanExpression
-, numberExpression
-, stringExpression, escape, interpolation, stringEscapes
+( anyExpression
+, escape, interpolation, stringEscapes
 ) where
 
 import Data.Text (Text)
@@ -20,7 +19,17 @@ import qualified Text.Parser.Combinators as Combinators
 -- >>> import Rumor.Parser.Common
 -- >>> import Rumor.Internal
 --
--- >>> let parse inner = parseTest newContext (inner <* eof)
+-- Writing annotation information for tests that succeed is tedious and not
+-- very useful. We only want to check that the annotations are correct in error
+-- messages.
+-- >>> let parse inner = parseTest newContext (unAnnotate <$> (inner <* eof))
+
+anyExpression :: Parser Rumor.AnnotatedExpression
+anyExpression =
+      booleanExpression
+  <|> numberExpression
+  <|> stringExpression
+
 
 {-| Parses a loosely-typed boolean expression. Any amount of space, including
   newlines, is allowed between the terms of the boolean expression.
@@ -194,12 +203,12 @@ import qualified Text.Parser.Combinators as Combinators
   unexpected space
   expecting end of input
 -}
-booleanExpression :: Parser Rumor.Expression
+booleanExpression :: Parser Rumor.AnnotatedExpression
 booleanExpression =
   let
     -- Parse a boolean expression with the left associative operators from
     -- highest to lowest precedence.
-    expression = factor
+    go = factor
       `Combinators.chainl1` discardWhitespace eqOperator
       `Combinators.chainl1` discardWhitespace neqOperator
       `Combinators.chainl1` discardWhitespace xorOperator
@@ -207,7 +216,7 @@ booleanExpression =
       `Combinators.chainl1` discardWhitespace orOperator
 
     factor =
-          Mega.try (Surround.parentheses expression)
+          Mega.try (Surround.parentheses go)
       <|> Mega.try (notOperator term)
       <|> Mega.try equalityExpression
       <|> term
@@ -216,37 +225,53 @@ booleanExpression =
           Mega.try boolean
       <|> variable
 
-    notOperator inner = do
-      _ <- discardWhitespace ("!" <|> do _ <- "not"; " ")
-      Rumor.LogicalNot <$> inner
+    notOperator inner = discardWhitespace do
+      begin <- Mega.getOffset
+      _ <- "!" <|> do _ <- "not"; " "
+      end <- Mega.getOffset
+      Rumor.AnnotatedLogicalNot begin end <$> inner
     eqOperator = do
+      begin <- Mega.getOffset
       _ <- "==" <|> "is"
-      pure Rumor.Equal
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedEqual begin end)
     neqOperator = do
+      begin <- Mega.getOffset
       _ <- "/="
-      pure Rumor.NotEqual
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedNotEqual begin end)
     xorOperator = do
+      begin <- Mega.getOffset
       _ <- "^" <|> "xor"
-      pure Rumor.LogicalXor
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedLogicalXor begin end)
     andOperator = do
+      begin <- Mega.getOffset
       _ <- "&&" <|> "and"
-      pure Rumor.LogicalAnd
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedLogicalAnd begin end)
     orOperator = do
+      begin <- Mega.getOffset
       _ <- "||" <|> "or"
-      pure Rumor.LogicalOr
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedLogicalOr begin end)
 
   in
-    expression
+    go
 
-boolean :: Parser Rumor.Expression
+boolean :: Parser Rumor.AnnotatedExpression
 boolean =
   let
     true = do
+      begin <- Mega.getOffset
       _ <- "true"
-      pure (Rumor.Boolean True)
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedBoolean begin end True)
     false = do
+      begin <- Mega.getOffset
       _ <- "false"
-      pure (Rumor.Boolean False)
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedBoolean begin end False)
 
     -- Slightly nicer error messages compared to `Mega.notFollowedBy`.
     notFollowedBy :: Parser Text -> Parser ()
@@ -273,7 +298,7 @@ boolean =
   >>> parse equalityExpression "foo /= bar"
   NotEqual (Variable (VariableName (Unicode "foo"))) (Variable (VariableName (Unicode "bar")))
 -}
-equalityExpression :: Parser Rumor.Expression
+equalityExpression :: Parser Rumor.AnnotatedExpression
 equalityExpression = do
   let
     term =
@@ -282,11 +307,15 @@ equalityExpression = do
       <|> variable
 
     eqOperator = do
+      begin <- Mega.getOffset
       _ <- "==" <|> "is"
-      pure Rumor.Equal
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedEqual begin end)
     neqOperator = do
+      begin <- Mega.getOffset
       _ <- "/="
-      pure Rumor.NotEqual
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedNotEqual begin end)
 
   l <- lexeme term
   op <- lexeme (eqOperator <|> neqOperator)
@@ -388,41 +417,49 @@ equalityExpression = do
   expecting '.', 'E', 'e', digit, or end of input
 
 -}
-numberExpression :: Parser Rumor.Expression
+numberExpression :: Parser Rumor.AnnotatedExpression
 numberExpression =
   let
-    expression = term
+    go = term
       `Combinators.chainl1` discardWhitespace multiplicationOperator
       `Combinators.chainl1` divisionOperator
       `Combinators.chainl1` discardWhitespace additionOperator
       `Combinators.chainl1` discardWhitespace subtractionOperator
     term =
-          Surround.parentheses expression
+          Surround.parentheses go
       <|> number
       <|> variable
 
     multiplicationOperator = do
+      begin <- Mega.getOffset
       _ <- Char.char '*'
-      pure Rumor.Multiplication
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedMultiplication begin end)
     divisionOperator = do
-      Mega.try do
+      (begin, end) <- Mega.try do
         space
+        b <- Mega.getOffset
         _ <- Char.char '/'
-        pure ()
+        e <- Mega.getOffset
+        pure (b, e)
 
       -- Ensure this isn't a `/=` operator
       Mega.notFollowedBy (Char.char '=')
       space
-      pure Rumor.Division
+      pure (Rumor.AnnotatedDivision begin end)
     additionOperator = do
+      begin <- Mega.getOffset
       _ <- Char.char '+'
-      pure Rumor.Addition
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedAddition begin end)
     subtractionOperator = do
+      begin <- Mega.getOffset
       _ <- Char.char '-'
-      pure Rumor.Subtraction
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedSubtraction begin end)
 
   in
-    expression
+    go
 
 {-| Parses a number literal, which can be any signed decimal number. It can be
   written using scientific notation.
@@ -471,16 +508,18 @@ numberExpression =
   unexpected '.'
   expecting signed number
 -}
-number :: Parser Rumor.Expression
+number :: Parser Rumor.AnnotatedExpression
 number = do
+  begin <- Mega.getOffset
   n <- Lexer.signed hspace Lexer.scientific <?> "signed number"
-  pure (Rumor.Number n)
+  end <- Mega.getOffset
+  pure (Rumor.AnnotatedNumber begin end n)
 
 --------------------------------------------------------------------------------
 -- String
 --------------------------------------------------------------------------------
 
-stringExpression :: Parser Rumor.Expression
+stringExpression :: Parser Rumor.AnnotatedExpression
 stringExpression =
       string
   <|> variable
@@ -495,7 +534,7 @@ stringExpression =
   Concat (String "I have ") (Concat (ToString (Number 5.0)) (String " mangoes!"))
 
   >>> parse stringExpression "\"Hello\\nworld!\""
-  String "Hello\nworld!"
+  Concat (String "Hello") (Concat (String "\n") (String "world!"))
 
   You cannot use newlines in a string.
 
@@ -560,23 +599,27 @@ stringExpression =
   unexpected space
   expecting end of input
 -}
-string :: Parser Rumor.Expression
+string :: Parser Rumor.AnnotatedExpression
 string = do
   let
     literalString = do
+      begin <- Mega.getOffset
       text <-
         Mega.takeWhile1P
           (Just "literal char")
           (`notElem` (fst <$> stringEscapes))
-      pure (Rumor.String text)
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedString begin end text)
 
+  begin <- Mega.getOffset
   Surround.doubleQuotes do
     texts <- Mega.many
       (     Mega.try literalString
         <|> Mega.try (escape stringEscapes)
         <|> interpolation
       )
-    pure (Rumor.concatStrings texts)
+    end <- Mega.getOffset
+    pure (Rumor.concatAnnotatedStrings begin end texts)
 
 {-| The characters that can be escaped, and their corresponding escape code.
 -}
@@ -618,15 +661,17 @@ stringEscapes =
   unexpected end of input
   expecting '"', '\', 'n', 'r', '{', or '}'
 -}
-escape :: [(Char, Text)] -> Parser Rumor.Expression
+escape :: [(Char, Text)] -> Parser Rumor.AnnotatedExpression
 escape escapes = do
   let
-    escapeParser (ch, escapeCode) = do
+    escapeParser begin (ch, escapeCode) = do
       _ <- Char.string escapeCode
-      pure (Rumor.String (T.singleton ch))
+      end <- Mega.getOffset
+      pure (Rumor.AnnotatedString begin end (T.singleton ch))
 
+  b <- Mega.getOffset
   _ <- Char.char '\\'
-  Mega.choice (escapeParser <$> escapes)
+  Mega.choice (escapeParser b <$> escapes)
 
 {-| Parses a string interpolation, which is a boolean, number, or string
   expression surrounded by braces.
@@ -645,7 +690,7 @@ escape escapes = do
   ToString (Addition (Number 123.0) (Number 456.0))
 
   >>> parse interpolation "{ \"foobar\" }"
-  String "foobar"
+  ToString (String "foobar")
 
   You can use whitespace between the braces and the expression.
 
@@ -683,20 +728,30 @@ escape escapes = do
   unexpected 't'
   expecting interpolation
 -}
-interpolation :: Parser Rumor.Expression
-interpolation =
-  Surround.braces
-    (     Mega.try (Rumor.ToString <$> lexeme booleanExpression)
-      <|> Mega.try (Rumor.ToString <$> lexeme numberExpression)
-      <|> lexeme stringExpression
+interpolation :: Parser Rumor.AnnotatedExpression
+interpolation = do
+  let toString innerExpression = do
+        inner <- innerExpression
+        pure (\b e -> Rumor.AnnotatedToString b e inner)
+  begin <- Mega.getOffset
+  result <- Surround.braces
+    (     Mega.try (toString (lexeme booleanExpression))
+      <|> Mega.try (toString (lexeme numberExpression))
+      <|> lexeme (toString stringExpression)
     ) <?> "interpolation"
+  end <- Mega.getOffset
+  pure (result begin end)
 
 --------------------------------------------------------------------------------
 -- Helpers
 --------------------------------------------------------------------------------
 
-variable :: Parser Rumor.Expression
-variable = Rumor.Variable <$> Identifier.variableName
+variable :: Parser Rumor.AnnotatedExpression
+variable = do
+  begin <- Mega.getOffset
+  name <- Identifier.variableName
+  end <- Mega.getOffset
+  pure (Rumor.AnnotatedVariable begin end name)
 
 -- Discards whitespace surrounding an operator on both sides
 discardWhitespace :: Parser a -> Parser a

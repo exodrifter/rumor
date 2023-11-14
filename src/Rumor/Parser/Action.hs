@@ -7,6 +7,7 @@ import Rumor.Parser.Common (Parser, hlexeme, lexeme, (<?>), (<|>))
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Identifier as Identifier
+import qualified Rumor.TypeCheck as TypeCheck
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 
@@ -97,7 +98,7 @@ import qualified Text.Megaparsec.Char as Char
   1 | foobar(
     |        ^
   unexpected end of input
-  expecting close parenthesis, open double quotes, or variable name
+  expecting "false", "not", "true", '!', close parenthesis, open double quotes, open parenthesis, signed number, or variable name
 
   >>> parse action "foobar)"
   1:7:
@@ -135,32 +136,46 @@ action = do
 
 action1 :: Rumor.VariableName -> Parser Rumor.Node
 action1 actionName = do
-  param1 <- Expression.stringExpression
-  pure (Rumor.Action1 actionName param1)
+  param1 <- Expression.anyExpression
+  _ <- TypeCheck.infer param1
+  -- TODO: typecheck the function call
+  pure (Rumor.Action1 actionName (Rumor.unAnnotate param1))
 
 action2 :: Rumor.VariableName -> Parser Rumor.Node
 action2 actionName = do
-  param1 <- lexeme Expression.stringExpression
+  param1 <- lexeme Expression.anyExpression
+  _ <- TypeCheck.infer param1
   _ <- lexeme (Char.char ',')
-  param2 <- Expression.stringExpression
-  pure (Rumor.Action2 actionName param1 param2)
+  param2 <- Expression.anyExpression
+  _ <- TypeCheck.infer param2
+  -- TODO: typecheck the function call
+  pure (Rumor.Action2 actionName (Rumor.unAnnotate param1) (Rumor.unAnnotate param2))
 
 action3 :: Rumor.VariableName -> Parser Rumor.Node
 action3 actionName = do
-  param1 <- lexeme Expression.stringExpression
+  param1 <- lexeme Expression.anyExpression
+  _ <- TypeCheck.infer param1
   _ <- lexeme (Char.char ',')
-  param2 <- lexeme Expression.stringExpression
+  param2 <- lexeme Expression.anyExpression
+  _ <- TypeCheck.infer param2
   _ <- lexeme (Char.char ',')
-  param3 <- Expression.stringExpression
-  pure (Rumor.Action3 actionName param1 param2 param3)
+  param3 <- Expression.anyExpression
+  _ <- TypeCheck.infer param3
+  -- TODO: typecheck the function call
+  pure (Rumor.Action3 actionName (Rumor.unAnnotate param1) (Rumor.unAnnotate param2) (Rumor.unAnnotate param3))
 
 action4 :: Rumor.VariableName -> Parser Rumor.Node
 action4 actionName = do
-  param1 <- lexeme Expression.stringExpression
+  param1 <- lexeme Expression.anyExpression
+  _ <- TypeCheck.infer param1
   _ <- lexeme (Char.char ',')
-  param2 <- lexeme Expression.stringExpression
+  param2 <- lexeme Expression.anyExpression
+  _ <- TypeCheck.infer param2
   _ <- lexeme (Char.char ',')
-  param3 <- lexeme Expression.stringExpression
+  param3 <- lexeme Expression.anyExpression
+  _ <- TypeCheck.infer param3
   _ <- lexeme (Char.char ',')
-  param4 <- Expression.stringExpression
-  pure (Rumor.Action4 actionName param1 param2 param3 param4)
+  param4 <- Expression.anyExpression
+  _ <- TypeCheck.infer param4
+  -- TODO: typecheck the function call
+  pure (Rumor.Action4 actionName (Rumor.unAnnotate param1) (Rumor.unAnnotate param2) (Rumor.unAnnotate param3) (Rumor.unAnnotate param4))

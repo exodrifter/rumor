@@ -13,6 +13,7 @@ import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Surround as Surround
 import qualified Rumor.Parser.Expression as Expression
 import qualified Rumor.Parser.Indented as Indented
+import qualified Rumor.TypeCheck as TypeCheck
 
 -- $setup
 -- >>> import Rumor.Parser.Common
@@ -195,8 +196,8 @@ controlIf name ref inner = do
   _ <- hlexeme (Char.string name)
   condition <-
     hlexeme
-      (     Surround.braces Expression.booleanExpression
-        <|> Expression.booleanExpression
+      (     Surround.braces Expression.anyExpression
+        <|> Expression.anyExpression
       )
   _ <- eol
 
@@ -206,7 +207,8 @@ controlIf name ref inner = do
         <|> Mega.try (controlElse ref inner)
       )
 
-  pure (Rumor.Control condition successBlock failureBlock)
+  TypeCheck.check Rumor.BooleanType condition
+  pure (Rumor.Control (Rumor.unAnnotate condition) successBlock failureBlock)
 
 {-| Parses an else statement, which must be at the given indentation level, and
   a non-empty list of inner elements.

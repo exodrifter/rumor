@@ -23,37 +23,37 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   Add nodes can have one line.
 
   >>> parse add "alice+ Hello world!    \n"
-  Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Add (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   >>> parse add "+ Hello world!"
-  Add Nothing (String "Hello world!") Nothing
+  Add Nothing (Concat (String "Hello") (String " world!")) Nothing
 
   >>> parse add "alice+ Hello world!" -- With a speaker
-  Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Add (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   Add nodes can be spread over multiple lines, or start indented on the next
   line.
 
   >>> parse add "alice+ foo\n  bar\n  baz"
-  Add (Just (Speaker (Unicode "alice"))) (String "foo bar baz") Nothing
+  Add (Just (Speaker (Unicode "alice"))) (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) Nothing
 
   >>> parse add "alice+\n  foo\n  bar\n  baz"
-  Add (Just (Speaker (Unicode "alice"))) (String "foo bar baz") Nothing
+  Add (Just (Speaker (Unicode "alice"))) (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) Nothing
 
   Extra whitespace is okay and trailing whitespace is consumed.
 
   >>> parse add "alice    +    Hello world!"
-  Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Add (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   >>> parse add "alice+ Hello world!    "
-  Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Add (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
 
   >>> parse add "alice+ Hello world!    \n    "
-  Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Add (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   >>> parse add "alice+\n  Hello world!\n  "
-  Add (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Add (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   Add nodes end when the following line is unindented.
 
@@ -103,37 +103,37 @@ add = dialog '+' Rumor.Add
   Say nodes can have one line.
 
   >>> parse say "alice: Hello world!    \n"
-  Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Say (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   >>> parse say ": Hello world!"
-  Say Nothing (String "Hello world!") Nothing
+  Say Nothing (Concat (String "Hello") (String " world!")) Nothing
 
   >>> parse say "alice: Hello world!" -- With a speaker
-  Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Say (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   Say nodes can be spread over multiple lines, or start indented on the next
   line.
 
   >>> parse say "alice: foo\n  bar\n  baz"
-  Say (Just (Speaker (Unicode "alice"))) (String "foo bar baz") Nothing
+  Say (Just (Speaker (Unicode "alice"))) (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) Nothing
 
   >>> parse say "alice:\n  foo\n  bar\n  baz"
-  Say (Just (Speaker (Unicode "alice"))) (String "foo bar baz") Nothing
+  Say (Just (Speaker (Unicode "alice"))) (Concat (String "foo") (Concat (String " ") (Concat (String "bar") (Concat (String " ") (String "baz"))))) Nothing
 
   Extra whitespace is okay and trailing whitespace is consumed.
 
   >>> parse say "alice    :    Hello world!"
-  Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Say (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   >>> parse say "alice: Hello world!    "
-  Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Say (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
 
   >>> parse say "alice: Hello world!    \n    "
-  Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Say (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   >>> parse say "alice:\n  Hello world!\n  "
-  Say (Just (Speaker (Unicode "alice"))) (String "Hello world!") Nothing
+  Say (Just (Speaker (Unicode "alice"))) (Concat (String "Hello") (String " world!")) Nothing
 
   Say nodes end when the following line is unindented.
 
