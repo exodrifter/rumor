@@ -62,7 +62,7 @@ import qualified Rumor.TypeCheck as TypeCheck
   1 | if true or false}
     |                 ^^
   unexpected "}<newline>"
-  expecting "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', or end of line
+  expecting "&&", "/=", "==", "and", "is", "or", "xor", "||", '*', '+', '-', '/', '^', or end of line
 
   You cannot have an empty block of nodes.
 
@@ -72,7 +72,7 @@ import qualified Rumor.TypeCheck as TypeCheck
   1 | if true
     |        ^
   unexpected end of input
-  expecting "&&", "/=", "==", "and", "is", "or", "xor", "||", '^', or end of line
+  expecting "&&", "/=", "==", "and", "is", "or", "xor", "||", '*', '+', '-', '/', '^', or end of line
 
   >>> parse (control say) "if true\n"
   2:1:

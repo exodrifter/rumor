@@ -1,12 +1,4 @@
 // Gender Dysphoria, Networking 4
-let ask: String
-let blood: Boolean
-let pain: Boolean
-let phone: String
-let relieved: Boolean
-let wisp: Boolean
-let wrong: String
-
 if { blood }
   hit("other_bartender-1")
   other_bartender: Sir! Here's your order -- a Blood Moon.
