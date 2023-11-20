@@ -106,7 +106,7 @@ foobar("1", "2", "3", "4")
 1 | foobar(  
   |          ^
 unexpected end of input
-expecting "let", close parenthesis, or expression
+expecting close parenthesis or expression
 
 >>> foobar)
 1:7:
@@ -114,7 +114,7 @@ expecting "let", close parenthesis, or expression
 1 | foobar)
   |       ^
 unexpected ')'
-expecting "let", '+', ':', '=', identifier character, open parenthesis, or variable character
+expecting '+', ':', '=', identifier character, open parenthesis, or variable character
 
 // Functions cannot start with a number.
 
@@ -124,4 +124,4 @@ expecting "let", '+', ':', '=', identifier character, open parenthesis, or varia
 1 | 123()
   |    ^
 unexpected '('
-expecting "let", '+', ':', or identifier character
+expecting '+', ':', or identifier character

@@ -19,7 +19,7 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 nodes :: Parser [Rumor.Node]
 nodes = do
-  _ <- Mega.many (Mega.try (Lexer.nonIndented space Let.let'))
+  _ <- Mega.hidden (Mega.many (Lexer.nonIndented space Let.let'))
   Mega.manyTill (Lexer.nonIndented space node) (Mega.hidden Mega.eof)
 
 node :: Parser Rumor.Node
