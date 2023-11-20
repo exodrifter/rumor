@@ -20,7 +20,7 @@ data Node =
   | Action2 VariableName Expression Expression
   | Action3 VariableName Expression Expression Expression
   | Action4 VariableName Expression Expression Expression Expression
-  | Choice Expression (Maybe Label) (Maybe (NonEmpty Node))
+  | Choice Expression (Maybe Label) (NonEmpty Node)
   | Clear ClearType
   deriving (Eq, Show)
 
