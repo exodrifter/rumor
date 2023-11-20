@@ -1,13 +1,16 @@
 module Rumor.Internal.Context
 ( Context, newContext
+, contextToDebugText
 , getVariableType
 , setVariableType
 ) where
 
-import Rumor.Internal.VariableName (VariableName)
-import Rumor.Internal.VariableType (VariableType)
+import Data.Text (Text)
+import Rumor.Internal.VariableName (VariableName, variableNameToText)
+import Rumor.Internal.VariableType (VariableType, typeToText)
 
 import qualified Data.Map.Strict as Map
+import qualified Data.Text as T
 
 newtype Context =
   Context
@@ -19,6 +22,22 @@ newContext =
   Context
     { variableTypes = Map.empty
     }
+
+contextToDebugText :: Context -> Text
+contextToDebugText context =
+  if context == newContext
+  then
+    "empty context"
+  else
+    let
+      mapping = Map.toList (variableTypes context)
+      toText (name, typ) =
+           "let "
+        <> variableNameToText name
+        <> ": "
+        <> typeToText typ
+    in
+      T.intercalate "\n" (toText <$> mapping) <> "\n"
 
 getVariableType :: VariableName -> Context -> Maybe VariableType
 getVariableType name context =

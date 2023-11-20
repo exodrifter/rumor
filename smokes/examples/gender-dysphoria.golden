@@ -94,3 +94,13 @@ hit("stranger-2")
 stranger: "Yeah," <> " I'm sure he and I will have plenty to talk about."
 hit("me-23")
 : "No," <> " please..."
+
+===
+
+let ask: String
+let blood: Boolean
+let pain: Boolean
+let phone: String
+let relieved: Boolean
+let wisp: Boolean
+let wrong: String
