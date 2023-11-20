@@ -2,13 +2,12 @@ module Rumor.Parser.Let
 ( let'
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, lexeme, modifyVariableType, space, (<|>))
+import Rumor.Parser.Common (Parser, hlexeme, lexeme, modifyVariableType, (<|>))
 
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Identifier as Identifier
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
-import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 -- $setup
 -- >>> import Data.Either (fromRight)
@@ -117,16 +116,15 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
   expecting ':' or variable character
 -}
 let' :: Parser (Rumor.VariableName, Rumor.VariableType)
-let' =
-  Lexer.nonIndented space do
-    begin <- Mega.getOffset
-    _ <- hlexeme "let"
-    name <- hlexeme Identifier.variableName
-    _ <- hlexeme (Char.char ':')
-    typ <- Mega.try (do _ <- lexeme "Boolean"; pure Rumor.BooleanType)
-       <|> Mega.try (do _ <- lexeme "Number"; pure Rumor.NumberType)
-       <|> Mega.try (do _ <- lexeme "String"; pure Rumor.StringType)
-    end <- Mega.getOffset
+let' = do
+  begin <- Mega.getOffset
+  _ <- hlexeme "let"
+  name <- hlexeme Identifier.variableName
+  _ <- hlexeme (Char.char ':')
+  typ <- Mega.try (do _ <- lexeme "Boolean"; pure Rumor.BooleanType)
+     <|> Mega.try (do _ <- lexeme "Number"; pure Rumor.NumberType)
+     <|> Mega.try (do _ <- lexeme "String"; pure Rumor.StringType)
+  end <- Mega.getOffset
 
-    modifyVariableType name typ begin end
-    pure (name, typ)
+  modifyVariableType name typ begin end
+  pure (name, typ)

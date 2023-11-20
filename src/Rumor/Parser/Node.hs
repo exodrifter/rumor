@@ -3,7 +3,7 @@ module Rumor.Parser.Node
 , node
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, space, (<|>))
+import Rumor.Parser.Common (Parser, space, (<|>))
 
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Action as Action
@@ -16,10 +16,9 @@ import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 nodes :: Parser [Rumor.Node]
-nodes =
-  Lexer.nonIndented space do
-    _ <- Mega.many (hlexeme Let.let')
-    Mega.manyTill (hlexeme node) (Mega.hidden Mega.eof)
+nodes = do
+  _ <- Mega.many (Mega.try (Lexer.nonIndented space Let.let'))
+  Mega.manyTill (Lexer.nonIndented space node) (Mega.hidden Mega.eof)
 
 node :: Parser Rumor.Node
 node =
