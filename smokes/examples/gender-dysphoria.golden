@@ -1,0 +1,96 @@
+if { blood }
+  hit("other_bartender-1")
+  other_bartender: "Sir!" <> " Here's your order -- a Blood Moon."
+else
+  if { wisp }
+    hit("other_bartender-2")
+    other_bartender: "Sir!" <> " Here's your order -- a Willow Wisp."
+  else
+    hit("other_bartender-3")
+    other_bartender: "Sir!" <> " Here's your drink. That will be $10."
+    if { phone == "okay" }
+      hit("me-1")
+      : "I" <> " fish the money out of my pocket, adding in a tip."
+    else
+      if { phone == "tell" }
+        hit("me-2")
+        : "I" <> " hand money over the counter, adding in a tip."
+      else
+        hit("me-3")
+        : "I" <> " thumb through bills and hand them over, adding in a tip."
+if { wrong == "no" }
+  hit("me-4")
+  me: "Yeah," <> " thanks."
+else
+  if { wrong == "hurts" }
+    hit("me-5")
+    me: "...Thanks."
+  else
+    hit("me-6")
+    me: "...Thank" <> " you."
+if { ask == "guess" }
+  hit("me-7")
+  : "I" <> " hesitantly pick up the drink for a sip."
+else
+  if { ask == "sure" }
+    hit("me-8")
+    : "I" <> " taste the drink, trying to savor the taste."
+  else
+    hit("me-9")
+    : "I" <> " pick up the drink and take a sip."
+if { blood }
+  hit("me-10")
+  : "I" <> " can't remember what it tastes like."
+else
+  if { wisp }
+    hit("me-11")
+    : "I" <> " don't remember what it tastes like."
+  else
+    hit("me-12")
+    : "What" <> " am I even doing here?"
+clear all
+hit("me-13")
+: "Taking" <> " the drink back onto the floor, I meet a friend."
+hit("friend-1")
+friend: "Hey!" <> " Iris, how are you?"
+choice
+  > "I" <> " smile, a little relieved." [system-1]
+  relieved = true
+  hit("me-14")
+  : "I" <> " smile, a little relieved."
+choice
+  > "I" <> " try to smile, hiding the pain." [system-2]
+  pain = true
+  hit("me-15")
+  : "I" <> " try to smile, hiding the pain."
+choose
+hit("me-16")
+me: "Hey" <> " █████████, how are you?"
+hit("friend-2")
+friend: "I've" <> " been doing quite alright! How have you been doing?"
+clear all
+hit("me-17")
+me: "I've" <> " been... well, to be honest things could be better."
+hit("friend-3")
+friend: "Yeah," <> " I hear ya... So -- hey, I wanted to introduce you to my friend" <> " " <> "here."
+hit("me-18")
+me: "Nice" <> " to meet you. What's your name?"
+hit("me-19")
+: "He" <> " introduces himself and shakes my hand. My friend quips in."
+clear all
+hit("friend-4")
+friend: "She's" <> " also really into music, so I thought you two could share some" <> " " <> "ideas" <> " or get to talking."
+hit("me-20")
+: "Then" <> " the man speaks."
+hit("stranger-1")
+stranger: "Ah," <> " so he's into music too?"
+hit("me-21")
+: "Please" <> " correct him."
+hit("friend-5")
+friend: "Yup!" <> " She's great. Hey, I gotta go -- you two have fun now!"
+hit("me-22")
+: "The" <> " stranger chuckles."
+hit("stranger-2")
+stranger: "Yeah," <> " I'm sure he and I will have plenty to talk about."
+hit("me-23")
+: "No," <> " please..."

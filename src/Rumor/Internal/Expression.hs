@@ -9,13 +9,15 @@ module Rumor.Internal.Expression
 
 , Expression(..)
 , concatStrings
+, expressionToDebugText
 ) where
 
 import Data.Text (Text)
 import Data.Scientific (Scientific)
-import Rumor.Internal.VariableName (VariableName)
+import Rumor.Internal.VariableName (VariableName, variableNameToText)
 
 import qualified Data.List as List
+import qualified Data.Text as T
 
 {-| When parsing, Rumor will parse expressions into this type, which contains
   the expression used by the virtual machine and additional information about
@@ -173,3 +175,27 @@ concatStrings expressions =
     [] -> String ""
     [expression] -> expression
     _ -> List.foldr1 Concat expressions
+
+expressionToDebugText :: Expression -> Text
+expressionToDebugText expression =
+  case expression of
+    Boolean True -> "true"
+    Boolean False -> "false"
+    LogicalNot inner -> "!" <> expressionToDebugText inner
+    LogicalAnd l r -> expressionToDebugText l <> " && " <> expressionToDebugText r
+    LogicalOr l r -> expressionToDebugText l <> " || " <> expressionToDebugText r
+    LogicalXor l r -> expressionToDebugText l <> " ^ " <> expressionToDebugText r
+
+    Number number -> T.pack (show number)
+    Addition l r -> expressionToDebugText l <> " + " <> expressionToDebugText r
+    Subtraction l r -> expressionToDebugText l <> " - " <> expressionToDebugText r
+    Multiplication l r -> expressionToDebugText l <> " * " <> expressionToDebugText r
+    Division l r -> expressionToDebugText l <> " / " <> expressionToDebugText r
+
+    String text -> "\"" <> text <> "\""
+    Concat l r -> expressionToDebugText l <> " <> " <> expressionToDebugText r
+
+    Variable name -> variableNameToText name
+    Equal l r -> expressionToDebugText l <> " == " <> expressionToDebugText r
+    NotEqual l r -> expressionToDebugText l <> " /= " <> expressionToDebugText r
+    ToString inner -> "{" <> expressionToDebugText inner <> "}"

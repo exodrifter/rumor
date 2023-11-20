@@ -1,9 +1,11 @@
 module Rumor.Internal.Unicode
 ( Unicode(..)
 , unicodeToNET
+, unicodeToText
 ) where
 
 import Data.NonEmptyText (NonEmptyText)
+import Data.Text (Text)
 
 import qualified Data.NonEmptyText as NET
 import qualified Data.Text.ICU.Normalize2 as Normalize
@@ -41,3 +43,6 @@ instance Ord Unicode where
 
 unicodeToNET :: Unicode -> NonEmptyText
 unicodeToNET (Unicode net) = net
+
+unicodeToText :: Unicode -> Text
+unicodeToText = NET.toText . unicodeToNET

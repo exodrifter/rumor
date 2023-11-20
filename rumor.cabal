@@ -88,6 +88,7 @@ test-suite smokes
 
   build-depends:
     base ^>=4.17.2.0,
+    filepath,
     HUnit,
     rumor,
     text
