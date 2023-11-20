@@ -12,6 +12,7 @@ import qualified Rumor.Parser.Clear as Clear
 import qualified Rumor.Parser.Control as Control
 import qualified Rumor.Parser.Dialog as Dialog
 import qualified Rumor.Parser.Let as Let
+import qualified Rumor.Parser.Set as Set
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
@@ -25,6 +26,7 @@ node =
       Mega.try Dialog.say
   <|> Mega.try Dialog.add
   <|> Mega.try Action.action
+  <|> Mega.try Set.set
   <|> Mega.try Clear.clear
   <|> Mega.try (Choice.choice node)
   <|> Control.control node

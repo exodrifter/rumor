@@ -22,6 +22,7 @@ data Node =
   | Action4 VariableName Expression Expression Expression Expression
   | Choice Expression (Maybe Label) (NonEmpty Node)
   | Clear ClearType
+  | Set VariableName Expression
   deriving (Eq, Show)
 
 -- | The identifier for a node.

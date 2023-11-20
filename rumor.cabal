@@ -43,6 +43,7 @@ library
     Rumor.Parser.Indented
     Rumor.Parser.Let
     Rumor.Parser.Node
+    Rumor.Parser.Set
     Rumor.Parser.Surround
     Rumor.Parser.Unquoted
     Rumor.TypeCheck
