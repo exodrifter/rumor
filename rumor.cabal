@@ -109,3 +109,24 @@ test-suite doctests
   build-depends:
     base ^>=4.17.2.0,
     doctest
+
+test-suite goldentests
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: goldentests
+  main-is: Main.hs
+
+  default-language:
+    Haskell2010
+  default-extensions:
+    BlockArguments,
+    OverloadedStrings
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Werror
+
+  build-depends:
+    base ^>=4.17.2.0,
+    rumor,
+    text

@@ -100,13 +100,13 @@ foobar("1", "2", "3", "4")
 
 // Both parenthesis must be provided.
 
->>> foobar(
-1:8:
+>>> foobar(  
+1:10:
   |
-1 | foobar(
-  |        ^
+1 | foobar(  
+  |          ^
 unexpected end of input
-expecting close parenthesis or expression
+expecting "let", close parenthesis, or expression
 
 >>> foobar)
 1:7:
@@ -114,14 +114,14 @@ expecting close parenthesis or expression
 1 | foobar)
   |       ^
 unexpected ')'
-expecting open parenthesis or variable character
+expecting "let", '+', ':', '=', identifier character, open parenthesis, or variable character
 
 // Functions cannot start with a number.
 
 >>> 123()
-1:1:
+1:4:
   |
 1 | 123()
-  | ^
-unexpected '1'
-expecting variable name
+  |    ^
+unexpected '('
+expecting "let", '+', ':', or identifier character

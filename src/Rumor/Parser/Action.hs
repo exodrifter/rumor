@@ -24,18 +24,6 @@ import qualified Text.Megaparsec.Char as Char
   let foobar: Action<>
   foobar()
 
-  >>> parse action "foobar(\"1\")"
-  let foobar: Action<String>
-  foobar("1")
-
-  >>> parse action "foobar(\"1\", \"2\")"
-  let foobar: Action<String, String>
-  foobar("1", "2")
-
-  >>> parse action "foobar(\"1\", \"2\", \"3\")"
-  let foobar: Action<String, String, String>
-  foobar("1", "2", "3")
-
   >>> parse action "foobar(\"1\", \"2\", \"3\", \"4\")"
   let foobar: Action<String, String, String, String>
   foobar("1", "2", "3", "4")
@@ -46,92 +34,6 @@ import qualified Text.Megaparsec.Char as Char
   >>> parse action "foobar(false || true, 1 + 2, \"Hello\")"
   let foobar: Action<Boolean, Number, String>
   foobar(false || true, 1.0 + 2.0, "Hello")
-
-  No spaces are okay.
-
-  >>> parse action "foobar(\"1\",\"2\")"
-  let foobar: Action<String, String>
-  foobar("1", "2")
-
-  >>> parse action "foobar(\"1\",\"2\",\"3\")"
-  let foobar: Action<String, String, String>
-  foobar("1", "2", "3")
-
-  >>> parse action "foobar(\"1\",\"2\",\"3\",\"4\")"
-  let foobar: Action<String, String, String, String>
-  foobar("1", "2", "3", "4")
-
-  Extra spaces are okay.
-
-  >>> parse action "foobar  (  )"
-  let foobar: Action<>
-  foobar()
-
-  >>> parse action "foobar  (  \"1\"  )"
-  let foobar: Action<String>
-  foobar("1")
-
-  >>> parse action "foobar  (  \"1\"  ,  \"2\"  )"
-  let foobar: Action<String, String>
-  foobar("1", "2")
-
-  >>> parse action "foobar  (  \"1\"  ,  \"2\"  ,  \"3\"  )"
-  let foobar: Action<String, String, String>
-  foobar("1", "2", "3")
-
-  >>> parse action "foobar  (  \"1\"  ,  \"2\"  ,  \"3\"  ,  \"4\"  )"
-  let foobar: Action<String, String, String, String>
-  foobar("1", "2", "3", "4")
-
-  Extra newlines are okay.
-
-  >>> parse action "foobar  (\n)"
-  let foobar: Action<>
-  foobar()
-
-  >>> parse action "foobar  (\n\"1\"\n)"
-  let foobar: Action<String>
-  foobar("1")
-
-  >>> parse action "foobar  (\n\"1\"\n,\n\"2\"\n)"
-  let foobar: Action<String, String>
-  foobar("1", "2")
-
-  >>> parse action "foobar  (\n\"1\"\n,\n\"2\"\n,\n\"3\"\n)"
-  let foobar: Action<String, String, String>
-  foobar("1", "2", "3")
-
-  >>> parse action "foobar  (\n\"1\"\n,\n\"2\"\n,\n\"3\"\n,\n\"4\"\n)"
-  let foobar: Action<String, String, String, String>
-  foobar("1", "2", "3", "4")
-
-  Both parenthesis must be provided.
-
-  >>> parse action "foobar("
-  1:8:
-    |
-  1 | foobar(
-    |        ^
-  unexpected end of input
-  expecting close parenthesis or expression
-
-  >>> parse action "foobar)"
-  1:7:
-    |
-  1 | foobar)
-    |       ^
-  unexpected ')'
-  expecting open parenthesis or variable character
-
-  Functions cannot start with a number.
-
-  >>> parse action "123()"
-  1:1:
-    |
-  1 | 123()
-    | ^
-  unexpected '1'
-  expecting variable name
 
   Trailing horizontal whitespace is consumed.
 
