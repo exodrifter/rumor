@@ -58,14 +58,14 @@ hit("me-13")
 hit("friend-1")
 friend: Hey! Iris, how are you?
 
-choice [system-1]
-  > I smile, a little relieved.
+choice
+  > I smile, a little relieved. [system-1]
   relieved = { true }
   hit("me-14")
   : I smile, a little relieved.
 
-choice [system-2]
-  > I try to smile, hiding the pain.
+choice
+  > I try to smile, hiding the pain. [system-2]
   pain = { true }
   hit("me-15")
   : I try to smile, hiding the pain.
