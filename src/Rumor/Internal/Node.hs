@@ -2,6 +2,7 @@ module Rumor.Internal.Node
   ( Node(..)
   , Label(..)
   , Speaker(..)
+  , ClearType(..)
   ) where
 
 import Data.List.NonEmpty (NonEmpty)
@@ -20,7 +21,8 @@ data Node =
   | Action3 VariableName Expression Expression Expression
   | Action4 VariableName Expression Expression Expression Expression
   | Choice Expression (Maybe Label) (Maybe (NonEmpty Node))
-  deriving (Show)
+  | Clear ClearType
+  deriving (Eq, Show)
 
 -- | The identifier for a node.
 newtype Label = Label Unicode
@@ -28,4 +30,11 @@ newtype Label = Label Unicode
 
 -- | The identifier for a character who is saying something.
 newtype Speaker = Speaker Unicode
+  deriving (Eq, Show)
+
+data ClearType =
+    ClearAll
+  | ClearChoice Label
+  | ClearChoices
+  | ClearDialog
   deriving (Eq, Show)

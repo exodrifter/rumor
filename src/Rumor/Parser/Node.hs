@@ -5,12 +5,13 @@ module Rumor.Parser.Node
 
 import Rumor.Parser.Common (Parser, hlexeme, space, (<|>))
 
+import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Action as Action
 import qualified Rumor.Parser.Choice as Choice
+import qualified Rumor.Parser.Clear as Clear
 import qualified Rumor.Parser.Control as Control
-import qualified Rumor.Parser.Let as Let
 import qualified Rumor.Parser.Dialog as Dialog
-import qualified Rumor.Internal as Rumor
+import qualified Rumor.Parser.Let as Let
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char.Lexer as Lexer
 
@@ -25,5 +26,6 @@ node =
       Mega.try Dialog.say
   <|> Mega.try Dialog.add
   <|> Mega.try Action.action
-  <|> Choice.choice node
+  <|> Mega.try Clear.clear
+  <|> Mega.try (Choice.choice node)
   <|> Control.control node

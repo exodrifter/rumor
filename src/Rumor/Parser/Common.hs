@@ -10,8 +10,8 @@ module Rumor.Parser.Common
 , RumorError(..)
 , throw
 
-, lexeme, hlexeme
-, space, hspace
+, lexeme, hlexeme, hlexeme1
+, space, hspace, hspace1
 , Mega.eof, Char.eol, eolf
 
 -- Re-exports
@@ -149,11 +149,20 @@ lexeme = Lexer.lexeme space
 hlexeme :: Parser a -> Parser a
 hlexeme = Lexer.lexeme hspace
 
+hlexeme1 :: Parser a -> Parser a
+hlexeme1 = Lexer.lexeme hspace1
+
 space :: Parser ()
 space = Lexer.space Char.space1 lineComment blockComment
 
 hspace :: Parser ()
 hspace = Lexer.space Char.hspace1 lineComment blockComment
+
+hspace1 :: Parser ()
+hspace1 =
+      Mega.try (blockComment *> Char.hspace1)
+  <|> Mega.try (Char.hspace1 *> blockComment)
+  <|> Mega.try Char.hspace1
 
 lineComment :: Parser ()
 lineComment = Lexer.skipLineComment "//"
