@@ -34,6 +34,7 @@ library
     Rumor.Parser
     Rumor.Parser.Action
     Rumor.Parser.Choice
+    Rumor.Parser.Choose
     Rumor.Parser.Clear
     Rumor.Parser.Common
     Rumor.Parser.Control

@@ -23,6 +23,7 @@ data Node =
   | Choice Expression (Maybe Label) (NonEmpty Node)
   | Clear ClearType
   | Set VariableName Expression
+  | Choose
   deriving (Eq, Show)
 
 -- | The identifier for a node.

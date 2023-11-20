@@ -8,6 +8,7 @@ import Rumor.Parser.Common (Parser, space, (<|>))
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Action as Action
 import qualified Rumor.Parser.Choice as Choice
+import qualified Rumor.Parser.Choose as Choose
 import qualified Rumor.Parser.Clear as Clear
 import qualified Rumor.Parser.Control as Control
 import qualified Rumor.Parser.Dialog as Dialog
@@ -28,5 +29,6 @@ node =
   <|> Mega.try Action.action
   <|> Mega.try Set.set
   <|> Mega.try Clear.clear
+  <|> Mega.try Choose.choose
   <|> Mega.try (Choice.choice node)
   <|> Control.control node
