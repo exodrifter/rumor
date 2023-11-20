@@ -121,10 +121,40 @@ let' = do
   _ <- hlexeme "let"
   name <- hlexeme Identifier.variableName
   _ <- hlexeme (Char.char ':')
-  typ <- Mega.try (do _ <- lexeme "Boolean"; pure Rumor.BooleanType)
-     <|> Mega.try (do _ <- lexeme "Number"; pure Rumor.NumberType)
-     <|> Mega.try (do _ <- lexeme "String"; pure Rumor.StringType)
+  typ <- primitiveType <|> actionType
   end <- Mega.getOffset
 
   modifyVariableType name typ begin end
   pure (name, typ)
+
+primitiveType :: Parser Rumor.VariableType
+primitiveType =
+      (do _ <- lexeme "Boolean"; pure Rumor.BooleanType)
+  <|> (do _ <- lexeme "Number"; pure Rumor.NumberType)
+  <|> (do _ <- lexeme "String"; pure Rumor.StringType)
+
+actionType :: Parser Rumor.VariableType
+actionType = do
+  _ <- lexeme "Action"
+  _ <- lexeme "<"
+  params <- parameters
+  _ <- lexeme ">"
+  pure (Rumor.ActionType params)
+
+parameters :: Parser [Rumor.VariableType]
+parameters = do
+  -- Check if there is a parameter
+  mParam <- Mega.optional (lexeme primitiveType)
+  case mParam of
+    Nothing ->
+      pure []
+
+    -- If there is a parameter, check if it is followed by another parameter.
+    Just param -> do
+      comma <- Mega.optional (lexeme (Char.char ','))
+      case comma of
+        Just _ -> do
+          rest <- parameters
+          pure (param : rest)
+        Nothing ->
+          pure [param]
