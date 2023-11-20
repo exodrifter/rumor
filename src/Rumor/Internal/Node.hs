@@ -21,11 +21,7 @@ data Node =
     Say (Maybe Speaker) Expression (Maybe Label)
   | Add (Maybe Speaker) Expression (Maybe Label)
   | Control Expression (NonEmpty Node) (Maybe (NonEmpty Node))
-  | Action0 VariableName
-  | Action1 VariableName Expression
-  | Action2 VariableName Expression Expression
-  | Action3 VariableName Expression Expression Expression
-  | Action4 VariableName Expression Expression Expression Expression
+  | Action VariableName [Expression]
   | Choice Expression (Maybe Label) (NonEmpty Node)
   | Clear ClearType
   | Set VariableName Expression
@@ -86,44 +82,10 @@ nodesToDebugText allNodes =
                     ] <> go 2 (NE.toList ifFalse)
                   Nothing ->
                     []
-        Action0 name ->
-          [    variableNameToText name
-            <> "()"
-          ]
-        Action1 name p1 ->
+        Action name expressions ->
           [    variableNameToText name
             <> "("
-            <> expressionToDebugText p1
-            <> ")"
-          ]
-        Action2 name p1 p2 ->
-          [    variableNameToText name
-            <> "("
-            <> expressionToDebugText p1
-            <> ", "
-            <> expressionToDebugText p2
-            <> ")"
-          ]
-        Action3 name p1 p2 p3 ->
-          [    variableNameToText name
-            <> "("
-            <> expressionToDebugText p1
-            <> ", "
-            <> expressionToDebugText p2
-            <> ", "
-            <> expressionToDebugText p3
-            <> ")"
-          ]
-        Action4 name p1 p2 p3 p4 ->
-          [    variableNameToText name
-            <> "("
-            <> expressionToDebugText p1
-            <> ", "
-            <> expressionToDebugText p2
-            <> ", "
-            <> expressionToDebugText p3
-            <> ", "
-            <> expressionToDebugText p4
+            <> T.intercalate ", " (expressionToDebugText <$> expressions)
             <> ")"
           ]
         Choice text label inner ->

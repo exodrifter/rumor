@@ -2,7 +2,7 @@ module Rumor.Parser.Action
 ( action
 ) where
 
-import Rumor.Parser.Common (Parser, hlexeme, lexeme, (<?>), (<|>))
+import Rumor.Parser.Common (Parser, hlexeme, lexeme, (<?>))
 
 import qualified Rumor.Internal as Rumor
 import qualified Rumor.Parser.Expression as Expression
@@ -15,10 +15,10 @@ import qualified Text.Megaparsec.Char as Char
 -- >>> import Rumor.Parser.Common
 -- >>> let parse inner = parseNodeTest newContext (inner <* eof)
 
-{-| Parses an action with one to four string arguments.
+{-| Parses an action with any number of arguments.
 
-  An action is a variable name followed by a set of parenthesis containing zero
-  to four comma-separated arguments.
+  An action is a variable name followed by a set of parenthesis containing any
+  number of comma-separated arguments.
 
   >>> parse action "foobar()"
   let foobar: Action<>
@@ -133,125 +133,51 @@ import qualified Text.Megaparsec.Char as Char
   unexpected '1'
   expecting variable name
 
-  Trailing whitespace is consumed.
+  Trailing horizontal whitespace is consumed.
 
   >>> parse action "foobar()  "
   let foobar: Action<>
   foobar()
 
   >>> parse action "foobar()  \n"
-  let foobar: Action<>
-  foobar()
-
-  >>> parse action "foobar()  \n  "
-  let foobar: Action<>
-  foobar()
+  1:11:
+    |
+  1 | foobar()
+    |           ^
+  unexpected newline
+  expecting end of input
 -}
 action :: Parser Rumor.Node
 action = do
+  -- Parse the action
   start <- Mega.getOffset
   actionName <- hlexeme Identifier.variableName
   end <- Mega.getOffset
   _ <- lexeme (Char.char '(') <?> "open parenthesis"
-
-  result <-
-        Mega.try (action4 start end actionName)
-    <|> Mega.try (action3 start end actionName)
-    <|> Mega.try (action2 start end actionName)
-    <|> Mega.try (action1 start end actionName)
-    <|> action0 start end actionName
-
-  _ <- lexeme (Char.char ')') <?> "close parenthesis"
-  pure result
-
-action0 :: Int -> Int -> Rumor.VariableName -> Parser Rumor.Node
-action0 start end actionName = do
-  -- Typecheck the action
-  TypeCheck.check
-    (Rumor.ActionType [])
-    (Rumor.AnnotatedVariable start end actionName)
-  pure (Rumor.Action0 actionName)
-
-action1 :: Int -> Int -> Rumor.VariableName -> Parser Rumor.Node
-action1 start end actionName = do
-  -- Parse the parameters
-  param1 <- lexeme Expression.anyExpression <?> "expression"
+  params <- parameters
+  _ <- hlexeme (Char.char ')') <?> "close parenthesis"
 
   -- Typecheck the action
-  type1 <- TypeCheck.infer param1
+  types <- traverse TypeCheck.infer params
   TypeCheck.check
-    (Rumor.ActionType [type1])
+    (Rumor.ActionType types)
     (Rumor.AnnotatedVariable start end actionName)
-  pure (Rumor.Action1 actionName (Rumor.unAnnotate param1))
+  pure (Rumor.Action actionName (Rumor.unAnnotate <$> params))
 
-action2 :: Int -> Int -> Rumor.VariableName -> Parser Rumor.Node
-action2 start end actionName = do
-  -- Parse the parameters
-  param1 <- lexeme Expression.anyExpression <?> "expression"
-  _ <- lexeme (Char.char ',')
-  param2 <- lexeme Expression.anyExpression <?> "expression"
+parameters :: Parser [Rumor.AnnotatedExpression]
+parameters = do
+  -- Check if there is a parameter
+  mParam <- Mega.optional (lexeme Expression.anyExpression) <?> "expression"
+  case mParam of
+    Nothing ->
+      pure []
 
-  -- Typecheck the action
-  type1 <- TypeCheck.infer param1
-  type2 <- TypeCheck.infer param2
-  TypeCheck.check
-    (Rumor.ActionType [type1, type2])
-    (Rumor.AnnotatedVariable start end actionName)
-  pure
-    ( Rumor.Action2
-        actionName
-        (Rumor.unAnnotate param1)
-        (Rumor.unAnnotate param2)
-    )
-
-action3 :: Int -> Int -> Rumor.VariableName -> Parser Rumor.Node
-action3 start end actionName = do
-  -- Parse the parameters
-  param1 <- lexeme Expression.anyExpression <?> "expression"
-  _ <- lexeme (Char.char ',')
-  param2 <- lexeme Expression.anyExpression <?> "expression"
-  _ <- lexeme (Char.char ',')
-  param3 <- lexeme Expression.anyExpression <?> "expression"
-
-  -- Typecheck the action
-  type1 <- TypeCheck.infer param1
-  type2 <- TypeCheck.infer param2
-  type3 <- TypeCheck.infer param3
-  TypeCheck.check
-    (Rumor.ActionType [type1, type2, type3])
-    (Rumor.AnnotatedVariable start end actionName)
-  pure
-    ( Rumor.Action3
-        actionName
-        (Rumor.unAnnotate param1)
-        (Rumor.unAnnotate param2)
-        (Rumor.unAnnotate param3)
-    )
-
-action4 :: Int -> Int -> Rumor.VariableName -> Parser Rumor.Node
-action4 start end actionName = do
-  -- Parse the parameters
-  param1 <- lexeme Expression.anyExpression <?> "expression"
-  _ <- lexeme (Char.char ',')
-  param2 <- lexeme Expression.anyExpression <?> "expression"
-  _ <- lexeme (Char.char ',')
-  param3 <- lexeme Expression.anyExpression <?> "expression"
-  _ <- lexeme (Char.char ',')
-  param4 <- lexeme Expression.anyExpression <?> "expression"
-
-  -- Typecheck the action
-  type1 <- TypeCheck.infer param1
-  type2 <- TypeCheck.infer param2
-  type3 <- TypeCheck.infer param3
-  type4 <- TypeCheck.infer param4
-  TypeCheck.check
-    (Rumor.ActionType [type1, type2, type3, type4])
-    (Rumor.AnnotatedVariable start end actionName)
-  pure
-    ( Rumor.Action4
-        actionName
-        (Rumor.unAnnotate param1)
-        (Rumor.unAnnotate param2)
-        (Rumor.unAnnotate param3)
-        (Rumor.unAnnotate param4)
-    )
+    -- If there is a parameter, check if it is followed by another parameter.
+    Just param -> do
+      comma <- Mega.optional (lexeme (Char.char ','))
+      case comma of
+        Just _ -> do
+          rest <- parameters
+          pure (param : rest)
+        Nothing ->
+          pure [param]
