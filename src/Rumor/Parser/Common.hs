@@ -1,5 +1,5 @@
 module Rumor.Parser.Common
-( Parser, runParser, parseTest
+( Parser, runParser, parseTest, parseNodeTest
 , State.gets
 
 , Rumor.Context, Rumor.newContext
@@ -68,6 +68,16 @@ parseTest context parser text =
       print a
       State.when (updatedContext /= Rumor.newContext) do
         print updatedContext
+
+parseNodeTest :: Rumor.Context -> Parser Rumor.Node -> Text -> IO ()
+parseNodeTest context parser text =
+  case runParser context parser "" text of
+    Left e ->
+      putStr e
+    Right (node, updatedContext) -> do
+      State.when (updatedContext /= Rumor.newContext) do
+        putStr (T.unpack (Rumor.contextToDebugText updatedContext))
+      putStr (T.unpack (Rumor.nodesToDebugText [node]))
 
 --------------------------------------------------------------------------------
 -- Typing

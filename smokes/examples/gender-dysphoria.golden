@@ -99,6 +99,7 @@ hit("me-23")
 
 let ask: String
 let blood: Boolean
+let hit: Action<String>
 let pain: Boolean
 let phone: String
 let relieved: Boolean

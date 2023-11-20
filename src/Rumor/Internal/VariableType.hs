@@ -5,7 +5,13 @@ module Rumor.Internal.VariableType
 
 import Data.Text (Text)
 
-data VariableType = BooleanType | NumberType | StringType
+import qualified Data.Text as T
+
+data VariableType =
+    BooleanType
+  | NumberType
+  | StringType
+  | ActionType [VariableType]
   deriving (Eq, Ord, Show)
 
 typeToText :: VariableType -> Text
@@ -14,3 +20,5 @@ typeToText typ =
     BooleanType -> "Boolean"
     NumberType -> "Number"
     StringType -> "String"
+    ActionType arr ->
+      "Action<" <> T.intercalate ", " (typeToText <$> arr) <> ">"
