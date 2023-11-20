@@ -1,0 +1,127 @@
+// Exhaustively checks the edge cases for the action parser.
+
+>>> foobar()
+let foobar: Action<>
+foobar()
+
+>>> foobar("1")
+let foobar: Action<String>
+foobar("1")
+
+>>> foobar("1", "2")
+let foobar: Action<String, String>
+foobar("1", "2")
+
+>>> foobar("1", "2", "3")
+let foobar: Action<String, String, String>
+foobar("1", "2", "3")
+
+>>> foobar("1", "2", "3", "4")
+let foobar: Action<String, String, String, String>
+foobar("1", "2", "3", "4")
+
+// No spaces are okay.
+
+>>> foobar("1","2")
+let foobar: Action<String, String>
+foobar("1", "2")
+
+>>> foobar("1","2","3")
+let foobar: Action<String, String, String>
+foobar("1", "2", "3")
+
+>>> foobar("1","2","3","4")
+let foobar: Action<String, String, String, String>
+foobar("1", "2", "3", "4")
+
+// Extra spaces are okay.
+
+>>> foobar  (  )
+let foobar: Action<>
+foobar()
+
+>>> foobar  (  "1"  )
+let foobar: Action<String>
+foobar("1")
+
+>>> foobar  (  "1"  ,  "2"  )
+let foobar: Action<String, String>
+foobar("1", "2")
+
+>>> foobar  (  "1"  ,  "2"  ,  "3"  )
+let foobar: Action<String, String, String>
+foobar("1", "2", "3")
+
+>>> foobar  (  "1"  ,  "2"  ,  "3"  ,  "4"  )
+let foobar: Action<String, String, String, String>
+foobar("1", "2", "3", "4")
+
+// Extra newlines are okay.
+
+>>> foobar  (
+>>> )
+let foobar: Action<>
+foobar()
+
+>>> foobar  (
+>>> "1"
+>>> )
+let foobar: Action<String>
+foobar("1")
+
+>>> foobar  (
+>>> "1",
+>>> "2"
+>>> )
+let foobar: Action<String, String>
+foobar("1", "2")
+
+>>> foobar  (
+>>> "1"
+>>> ,
+>>> "2"
+>>> ,
+>>> "3"
+>>> )
+let foobar: Action<String, String, String>
+foobar("1", "2", "3")
+
+>>> foobar  (
+>>> "1"
+>>> ,
+>>> "2"
+>>> ,
+>>> "3"
+>>> ,
+>>> "4"
+>>> )
+let foobar: Action<String, String, String, String>
+foobar("1", "2", "3", "4")
+
+// Both parenthesis must be provided.
+
+>>> foobar(
+1:8:
+  |
+1 | foobar(
+  |        ^
+unexpected end of input
+expecting close parenthesis or expression
+
+>>> foobar)
+1:7:
+  |
+1 | foobar)
+  |       ^
+unexpected ')'
+expecting open parenthesis or variable character
+
+// Functions cannot start with a number.
+
+>>> 123()
+1:1:
+  |
+1 | 123()
+  | ^
+unexpected '1'
+expecting variable name
