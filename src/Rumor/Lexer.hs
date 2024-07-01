@@ -6,6 +6,7 @@ module Rumor.Lexer
 ) where
 
 import Prelude hiding (String)
+import Control.Monad (void)
 import Data.Void (Void)
 import Data.Text (Text)
 import Data.Scientific (Scientific)
@@ -23,7 +24,7 @@ data ExpressionToken =
   -- Literals
     Boolean Bool
   | Number Scientific
-  | String (Located StringToken)
+  | String [Located Chunk]
 
   -- Operators
   | And
@@ -45,11 +46,9 @@ data ExpressionToken =
   | CloseParenthesis
   deriving (Eq, Show)
 
-data StringToken =
-  StringToken
-    { prefix :: Text
-    , suffix :: Maybe ([Located ExpressionToken], Located StringToken)
-    }
+data Chunk =
+    Body Text
+  | Interpolation [Located ExpressionToken]
   deriving (Eq, Show)
 
 data Located token =
@@ -108,74 +107,59 @@ data Located token =
       [ Located
           { start = 0
           , token = String
-              ( Located
-                  { start = 0
-                  , token = StringToken
-                      { prefix = ""
-                      , suffix = Just
-                          (
+              [ Located
+                  { start = 1
+                  , token = Interpolation
+                      [ Located
+                          { start = 3
+                          , token = String
                               [ Located
-                                  { start = 3
-                                  , token = String
-                                      ( Located
-                                          { start = 3
-                                          , token = StringToken
-                                              { prefix = "foo"
-                                              , suffix = Nothing
-                                              }
-                                          }
-                                      )
-                                  }
-                              , Located
-                                  { start = 9
-                                  , token = Addition
-                                  }
-                              , Located
-                                  { start = 11
-                                  , token = Number 1.0
+                                  { start = 4
+                                  , token = Body "foo"
                                   }
                               ]
-                          , Located
-                              { start = 14
-                              , token = StringToken
-                                  { prefix = " foo "
-                                  , suffix = Just
-                                      (
-                                          [ Located
-                                              { start = 21
-                                              , token = Number 2.0
-                                              }
-                                          , Located
-                                              { start = 23
-                                              , token = Addition
-                                              }
-                                          , Located
-                                              { start = 25
-                                              , token = String
-                                                  ( Located
-                                                      { start = 25
-                                                      , token = StringToken
-                                                          { prefix = "bar"
-                                                          , suffix = Nothing
-                                                          }
-                                                      }
-                                                  )
-                                              }
-                                          ]
-                                      , Located
-                                          { start = 32
-                                          , token = StringToken
-                                              { prefix = " bar "
-                                              , suffix = Nothing
-                                              }
-                                          }
-                                      )
-                                  }
-                              }
-                          )
-                      }
+                          }
+                      , Located
+                          { start = 9
+                          , token = Addition
+                          }
+                      , Located
+                          { start = 11
+                          , token = Number 1.0
+                          }
+                      ]
                   }
-              )
+              , Located
+                  { start = 14
+                  , token = Body " foo "
+                  }
+              , Located
+                  { start = 19
+                  , token = Interpolation
+                      [ Located
+                          { start = 21
+                          , token = Number 2.0
+                          }
+                      , Located
+                          { start = 23
+                          , token = Addition
+                          }
+                      , Located
+                          { start = 25
+                          , token = String
+                              [ Located
+                                  { start = 26
+                                  , token = Body "bar"
+                                  }
+                              ]
+                          }
+                      ]
+                  }
+              , Located
+                  { start = 32
+                  , token = Body " bar "
+                  }
+              ]
           }
       ]
 
@@ -184,58 +168,43 @@ data Located token =
       [ Located
           { start = 0
           , token = String
-              ( Located
-                  { start = 0
-                  , token = StringToken
-                      { prefix = " "
-                      , suffix = Just
-                          (
+              [ Located
+                  { start = 1
+                  , token = Body " "
+                  }
+              , Located
+                  { start = 2
+                  , token = Interpolation
+                      [ Located
+                          { start = 4
+                          , token = String
                               [ Located
-                                  { start = 4
-                                  , token = String
-                                      ( Located
-                                          { start = 4
-                                          , token = StringToken
-                                              { prefix = ""
-                                              , suffix = Just
-                                                  (
-                                                      [ Located
-                                                          { start = 7
-                                                          , token = String
-                                                              ( Located
-                                                                  { start = 7
-                                                                  , token = StringToken
-                                                                      { prefix = "foo"
-                                                                      , suffix = Nothing
-                                                                      }
-                                                                  }
-                                                              )
-                                                          }
-                                                      ]
-                                                  , Located
-                                                      { start = 14
-                                                      , token = StringToken
-                                                          { prefix = " "
-                                                          , suffix = Nothing
-                                                          }
-                                                      }
-                                                  )
-                                              }
+                                  { start = 5
+                                  , token = Interpolation
+                                      [ Located
+                                          { start = 7
+                                          , token = String
+                                              [ Located
+                                                  { start = 8
+                                                  , token = Body "foo"
+                                                  }
+                                              ]
                                           }
-                                      )
+                                      ]
+                                  }
+                              , Located
+                                  { start = 14
+                                  , token = Body " "
                                   }
                               ]
-                          , Located
-                              { start = 18
-                              , token = StringToken
-                                  { prefix = " "
-                                  , suffix = Nothing
-                                  }
-                              }
-                          )
-                      }
+                          }
+                      ]
                   }
-              )
+              , Located
+                  { start = 18
+                  , token = Body " "
+                  }
+              ]
           }
       ]
 -}
@@ -296,31 +265,25 @@ number :: Parser Scientific
 number =
   Mega.try (Lexer.signed mempty Lexer.scientific)
 
-string :: Parser (Located StringToken)
+string :: Parser [Located Chunk]
 string = do
   let
-    go = do
-      prefix <- Mega.takeWhileP Nothing (\c -> not (c `elem` ['{', '\"']))
+    body = do
+      start <- Mega.getOffset
+      parts <- Mega.takeWhile1P Nothing (\c -> c `notElem` ['{', '\"'])
+      let token = Body parts
+      pure (Located{..})
 
-      endQuote <- Mega.choice
-        [ True <$ Char.char '\"'
-        , False <$ lexeme (Char.char '{')
-        ]
-      suffix <-
-        if endQuote
-        then do
-          pure Nothing
-        else do
-          interpolation <- locatedExpressionTokens (() <$ Char.char '}')
-          start <- Mega.getOffset
-          token <- go
-          pure (Just (interpolation, Located {..}))
+    interpolation = do
+      start <- Mega.getOffset
+      _ <- lexeme (Char.char '{')
+      token <- Interpolation <$> locatedExpressionTokens (void (Char.char '}'))
+      pure (Located{..})
 
-      pure (StringToken {..})
-
-  startOfString <- Mega.getOffset
   _ <- Char.char '\"'
-  Located startOfString <$> go
+  parts <- Mega.many (Mega.choice [body, interpolation])
+  _ <- Char.char '\"'
+  pure parts
 
 --------------------------------------------------------------------------------
 -- Helpers
