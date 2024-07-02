@@ -12,6 +12,7 @@ import Data.Text (Text)
 import Data.Scientific (Scientific)
 import Text.Megaparsec ((<?>))
 
+import qualified Data.Text as Text
 import qualified Text.Megaparsec as Mega
 import qualified Text.Megaparsec.Char as Char
 import qualified Text.Megaparsec.Char.Lexer as Lexer
@@ -207,6 +208,20 @@ data Located token =
               ]
           }
       ]
+
+  >>> pPrint (tokenize "" "\"\\\"a\\tb\\r\\nc\"")
+  Right
+      [ Located
+          { start = 0
+          , token = String
+              [ Located
+                  { start = 1
+                  , token = Body ""a\x9b\xd
+                    c"
+                  }
+              ]
+          }
+      ]
 -}
 tokenize :: [Char] -> Text -> Either [Char] [Located ExpressionToken]
 tokenize name code =
@@ -270,9 +285,22 @@ string = do
   let
     body = do
       start <- Mega.getOffset
-      parts <- Mega.takeWhile1P Nothing (\c -> c `notElem` ['{', '\"'])
-      let token = Body parts
+      parts <- Mega.some (Mega.choice [unescaped, escaped])
+      let token = Body (Text.concat parts)
       pure (Located{..})
+
+    unescaped = do
+      Mega.takeWhile1P Nothing (\c -> c `notElem` ['{', '\\', '\"'])
+
+    escaped = do
+      _ <- Char.char '\\'
+      Mega.choice
+        [ "\\"
+        , "\""
+        , "\n" <$ "n"
+        , "\r" <$ "r"
+        , "\t" <$ "t"
+        ]
 
     interpolation = do
       start <- Mega.getOffset
