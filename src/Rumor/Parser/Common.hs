@@ -22,6 +22,7 @@ module Rumor.Parser.Common
 import Data.Text (Text)
 import Text.Megaparsec ((<?>), (<|>))
 
+import qualified Control.Monad as Monad
 import qualified Control.Monad.State.Strict as State
 import qualified Data.Set as Set
 import qualified Data.Text as T
@@ -66,7 +67,7 @@ parseTest context parser text =
       putStr e
     Right (a, updatedContext) -> do
       print a
-      State.when (updatedContext /= Rumor.newContext) do
+      Monad.when (updatedContext /= Rumor.newContext) do
         print updatedContext
 
 parseNodeTest :: Rumor.Context -> Parser Rumor.Node -> Text -> IO ()
@@ -75,7 +76,7 @@ parseNodeTest context parser text =
     Left e ->
       putStr e
     Right (node, updatedContext) -> do
-      State.when (updatedContext /= Rumor.newContext) do
+      Monad.when (updatedContext /= Rumor.newContext) do
         putStr (T.unpack (Rumor.contextToDebugText updatedContext))
       putStr (T.unpack (Rumor.nodesToDebugText [node]))
 
